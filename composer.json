@@ -1,0 +1,8 @@
+{
+	"name": "mediawiki/extensions/AWS",
+	"type": "mediawiki-extension",
+	"require": {
+		"aws/aws-sdk-php": ">=2.1.1",
+		"composer/installers": "~1.0"
+	}
+}
