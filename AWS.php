@@ -21,6 +21,10 @@
  * @file
  */
 
+if ( !defined( 'MEDIAWIKI' ) ) {
+	exit( 1 );
+}
+
 $wgExtensionCredits['other'][] = array(
 	'path'           => __FILE__,
 	'name'           => 'AWS',
@@ -42,6 +46,8 @@ $wgAWSCredentials = array(
  * Region of AWS to connect to
  */
 $wgAWSRegion = false;
+
+$wgAutoloadClasses['AmazonS3FileBackend'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
 
 $wgExtensionMessagesFiles['AWS'] = __DIR__ . '/AWS.i18n.php';
 
