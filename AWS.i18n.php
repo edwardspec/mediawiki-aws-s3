@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Internationalization and localization for Extension:AWS
  *
@@ -10,7 +9,7 @@
 $messages = array();
 
 $messages['en'] = array(
-	'aws-desc' => 'This plugin provides classes for using Amazon Web Services with MediaWiki.'
+	'aws-desc' => 'Plugin for using Amazon Web Services'
 );
 
 $messages['qqq'] = array(
