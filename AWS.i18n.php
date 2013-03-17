@@ -25,11 +25,25 @@ $messages['de'] = array(
 	'aws-desc' => 'Ergänzt ein Plugin zur Verwendung von Amazon Web Services',
 );
 
+/** Lower Sorbian (dolnoserbski)
+ * @author Michawiki
+ */
+$messages['dsb'] = array(
+	'aws-desc' => 'Tykac za wužywanje Amazonowych websłužbow',
+);
+
 /** French (français)
  * @author Sherbrooke
  */
 $messages['fr'] = array(
 	'aws-desc' => "Plugin pour l'utilisation des Amazon Web Services",
+);
+
+/** Galician (galego)
+ * @author Toliño
+ */
+$messages['gl'] = array(
+	'aws-desc' => 'Complemento para usar Amazon Web Services',
 );
 
 /** Upper Sorbian (hornjoserbsce)
@@ -46,9 +60,30 @@ $messages['ja'] = array(
 	'aws-desc' => 'Amazon Web サービス (AWS) を使用するためのプラグイン',
 );
 
+/** Korean (한국어)
+ * @author 아라
+ */
+$messages['ko'] = array(
+	'aws-desc' => '아마존 웹 서비스(Amazon Web Services)를 사용하는 플러그인',
+);
+
+/** Luxembourgish (Lëtzebuergesch)
+ * @author Robby
+ */
+$messages['lb'] = array(
+	'aws-desc' => 'Plugin fir Amazon Web Services ze benotzen',
+);
+
 /** tarandíne (tarandíne)
  * @author Joetaras
  */
 $messages['roa-tara'] = array(
 	'aws-desc' => 'Plugin pe ausà le Servizie Web de Amazon',
+);
+
+/** Simplified Chinese (中文（简体）‎)
+ * @author Yfdyh000
+ */
+$messages['zh-hans'] = array(
+	'aws-desc' => '亚马逊网络服务（AWS）的插件',
 );
