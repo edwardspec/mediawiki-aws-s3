@@ -74,6 +74,20 @@ $messages['lb'] = array(
 	'aws-desc' => 'Plugin fir Amazon Web Services ze benotzen',
 );
 
+/** Macedonian (македонски)
+ * @author Bjankuloski06
+ */
+$messages['mk'] = array(
+	'aws-desc' => 'Приклучок за користење на Amazon Web Services',
+);
+
+/** Dutch (Nederlands)
+ * @author Konovalov
+ */
+$messages['nl'] = array(
+	'aws-desc' => 'Plugin voor het gebruik van Amazon Web Services',
+);
+
 /** tarandíne (tarandíne)
  * @author Joetaras
  */
