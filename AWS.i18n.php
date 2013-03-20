@@ -18,6 +18,13 @@ $messages['qqq'] = array(
 	'aws-desc' => '{{desc}}',
 );
 
+/** Asturian (asturianu)
+ * @author Xuacu
+ */
+$messages['ast'] = array(
+	'aws-desc' => 'Complementu pa usar Amazon Web Services',
+);
+
 /** German (Deutsch)
  * @author Metalhead64
  */
@@ -51,6 +58,13 @@ $messages['gl'] = array(
  */
 $messages['hsb'] = array(
 	'aws-desc' => 'Tykač za wužiwanje Amazonowych websłužbow',
+);
+
+/** Italian (italiano)
+ * @author Beta16
+ */
+$messages['it'] = array(
+	'aws-desc' => 'Plugin per usare Amazon Web Services',
 );
 
 /** Japanese (日本語)
