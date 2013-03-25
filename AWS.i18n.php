@@ -25,6 +25,13 @@ $messages['ast'] = array(
 	'aws-desc' => 'Complementu pa usar Amazon Web Services',
 );
 
+/** Belarusian (Taraškievica orthography) (беларуская (тарашкевіца)‎)
+ * @author Wizardist
+ */
+$messages['be-tarask'] = array(
+	'aws-desc' => 'Пашырэньне для выкарыстаньня Amazon Web Services',
+);
+
 /** German (Deutsch)
  * @author Metalhead64
  */
@@ -107,6 +114,13 @@ $messages['nl'] = array(
  */
 $messages['roa-tara'] = array(
 	'aws-desc' => 'Plugin pe ausà le Servizie Web de Amazon',
+);
+
+/** Tagalog (Tagalog)
+ * @author AnakngAraw
+ */
+$messages['tl'] = array(
+	'aws-desc' => 'Pampasak para sa paggamit ng mga Serbisyong Pangweb ng Amazon',
 );
 
 /** Simplified Chinese (中文（简体）‎)
