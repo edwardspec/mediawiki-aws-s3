@@ -88,6 +88,13 @@ $messages['ko'] = array(
 	'aws-desc' => '아마존 웹 서비스(Amazon Web Services)를 사용하는 플러그인',
 );
 
+/** Colognian (Ripoarisch)
+ * @author Purodha
+ */
+$messages['ksh'] = array(
+	'aws-desc' => 'E Zohsazprojramm för der Internet_Deenß vun <i lang="en">Amazon</i> ze bruche.',
+);
+
 /** Luxembourgish (Lëtzebuergesch)
  * @author Robby
  */
