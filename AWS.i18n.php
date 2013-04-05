@@ -32,6 +32,13 @@ $messages['be-tarask'] = array(
 	'aws-desc' => 'Пашырэньне для выкарыстаньня Amazon Web Services',
 );
 
+/** Catalan (català)
+ * @author Pintor Smeargle
+ */
+$messages['ca'] = array(
+	'aws-desc' => "Requereixes un Plugin per a l'ús d'Amazon Web Services",
+);
+
 /** German (Deutsch)
  * @author Metalhead64
  */
@@ -128,6 +135,13 @@ $messages['roa-tara'] = array(
  */
 $messages['tl'] = array(
 	'aws-desc' => 'Pampasak para sa paggamit ng mga Serbisyong Pangweb ng Amazon',
+);
+
+/** Ukrainian (українська)
+ * @author Base
+ */
+$messages['uk'] = array(
+	'aws-desc' => 'Плаґін для використання Amazon Web Services',
 );
 
 /** Simplified Chinese (中文（简体）‎)
