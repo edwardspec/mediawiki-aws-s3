@@ -32,6 +32,13 @@ $messages['be-tarask'] = array(
 	'aws-desc' => 'Пашырэньне для выкарыстаньня Amazon Web Services',
 );
 
+/** Breton (brezhoneg)
+ * @author Y-M D
+ */
+$messages['br'] = array(
+	'aws-desc' => 'Lugant evit implij Servijoù Amazon Web',
+);
+
 /** Catalan (català)
  * @author Pintor Smeargle
  */
