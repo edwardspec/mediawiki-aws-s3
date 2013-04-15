@@ -137,6 +137,13 @@ $messages['roa-tara'] = array(
 	'aws-desc' => 'Plugin pe ausà le Servizie Web de Amazon',
 );
 
+/** Russian (русский)
+ * @author Iluvatar
+ */
+$messages['ru'] = array(
+	'aws-desc' => 'Плагин для использования Amazon Web Services',
+);
+
 /** Tagalog (Tagalog)
  * @author AnakngAraw
  */
