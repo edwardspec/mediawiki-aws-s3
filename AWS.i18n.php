@@ -123,6 +123,13 @@ $messages['mk'] = array(
 	'aws-desc' => 'Приклучок за користење на Amazon Web Services',
 );
 
+/** Malay (Bahasa Melayu)
+ * @author Anakmalaysia
+ */
+$messages['ms'] = array(
+	'aws-desc' => 'Pemalam untuk menggunakan Amazon Web Services',
+);
+
 /** Dutch (Nederlands)
  * @author Konovalov
  */
