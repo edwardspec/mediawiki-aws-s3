@@ -171,3 +171,10 @@ $messages['uk'] = array(
 $messages['zh-hans'] = array(
 	'aws-desc' => '亚马逊网络服务（AWS）的插件',
 );
+
+/** Traditional Chinese (中文（繁體）‎)
+ * @author Justincheng12345
+ */
+$messages['zh-hant'] = array(
+	'aws-desc' => '亞馬遜網絡服務插件',
+);
