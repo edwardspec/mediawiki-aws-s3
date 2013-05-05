@@ -60,6 +60,13 @@ $messages['dsb'] = array(
 	'aws-desc' => 'Tykac za wužywanje Amazonowych websłužbow',
 );
 
+/** Spanish (español)
+ * @author Fitoschido
+ */
+$messages['es'] = array(
+	'aws-desc' => 'Complemento para usar Amazon Web Services',
+);
+
 /** French (français)
  * @author Sherbrooke
  */
