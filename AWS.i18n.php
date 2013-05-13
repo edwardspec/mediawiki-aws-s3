@@ -18,6 +18,13 @@ $messages['qqq'] = array(
 	'aws-desc' => '{{desc}}',
 );
 
+/** Afrikaans (Afrikaans)
+ * @author Naudefj
+ */
+$messages['af'] = array(
+	'aws-desc' => 'Inprop vir die gebruik van Amazon Web Services',
+);
+
 /** Asturian (asturianu)
  * @author Xuacu
  */
