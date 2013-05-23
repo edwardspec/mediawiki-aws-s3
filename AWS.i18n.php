@@ -179,6 +179,13 @@ $messages['uk'] = array(
 	'aws-desc' => 'Плаґін для використання Amazon Web Services',
 );
 
+/** Vietnamese (Tiếng Việt)
+ * @author Tuankiet65
+ */
+$messages['vi'] = array(
+	'aws-desc' => 'Phần mở rộng để sử dụng Amazon Web Services',
+);
+
 /** Simplified Chinese (中文（简体）‎)
  * @author Yfdyh000
  */
