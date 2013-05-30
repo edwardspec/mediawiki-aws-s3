@@ -86,7 +86,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$this->memCache = wfGetMainCache();
 		$this->client = S3Client::factory( array(
 			'key' => isset( $config['awsKey'] ) ? $config['awsKey'] : $wgAWSCredentials['key'],
-			'secret' => isset( $config['awsKey'] ) ? $config['awsKey'] : $wgAWSCredentials['secret'],
+			'secret' => isset( $config['awsSecret'] ) ? $config['awsSecret'] : $wgAWSCredentials['secret'],
 			'region' => isset( $config['awsRegion'] ) ? $config['awsRegion'] : $wgAWSRegion,
 			'scheme' => $this->useHTTPS ? 'https' : 'http',
 			'ssl.certificate_authority' => $this->useHTTPS ?: null
