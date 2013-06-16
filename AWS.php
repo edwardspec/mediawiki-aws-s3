@@ -55,6 +55,15 @@ $wgAWSUseHTTPS = true;
 $wgExtensionMessagesFiles['AWS'] = __DIR__ . '/AWS.i18n.php';
 $wgAutoloadClasses['JobQueueAmazonSqs'] = __DIR__ . '/sqs/JobQueueAmazonSqs.php';
 $wgAutoloadClasses['AmazonS3FileBackend'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
-$wgJobTypeConf['sqs'] = array( 'class' => 'JobQueueAmazonSqs', 'order' => 'random' );
+
+$wgJobTypeConf['sqs'] = array(
+	'class' => 'JobQueueAmazonSqs',
+	'order' => 'random'
+);
+$wgFileBackends['s3'] = array(
+	'name' => 'AmazonS3',
+	'class' => 'AmazonS3FileBackend',
+	'lockManager' => 'nullLockManager',
+);
 
 require_once __DIR__ . '/vendor/autoload.php';
