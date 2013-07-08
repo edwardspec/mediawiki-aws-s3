@@ -95,6 +95,13 @@ $messages['hsb'] = array(
 	'aws-desc' => 'Tykač za wužiwanje Amazonowych websłužbow',
 );
 
+/** Interlingua (interlingua)
+ * @author McDutchie
+ */
+$messages['ia'] = array(
+	'aws-desc' => 'Plug-in pro usar Amazon Web Services',
+);
+
 /** Italian (italiano)
  * @author Beta16
  */
