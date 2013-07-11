@@ -74,6 +74,13 @@ $messages['es'] = array(
 	'aws-desc' => 'Complemento para usar Amazon Web Services',
 );
 
+/** Persian (فارسی)
+ * @author Reza1615
+ */
+$messages['fa'] = array(
+	'aws-desc' => 'پلاگین برای استفاده از وب سرویس‌های آمازون',
+);
+
 /** French (français)
  * @author Sherbrooke
  */
