@@ -53,6 +53,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 */
 	private $useHTTPS;
 
+	private $containerPaths;
+
 	/**
 	 * Construct the backend. Doesn't take any extra config parameters.
 	 *
@@ -197,6 +199,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return $status;
 		}
 
+		$params['headers'] = isset( $params['headers'] ) ? $params['headers'] : array();
 		$params['headers'] += array_fill_keys( array(
 			'Cache-Control',
 			'Content-Disposition',
@@ -210,7 +213,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		try {
 			$res = $this->client->copyObject( array_filter( array(
-				'ACL' => $this->isSecure( $container ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
+				'ACL' => $this->isSecure( $dstContainer ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
 				'Bucket' => $dstContainer,
 				'CacheControl' => $params['headers']['Cache-Control'],
 				'ContentDisposition' => $params['headers']['Content-Disposition'],
@@ -485,7 +488,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		foreach( $acl['Grants'] as $grant ) {
-			if( $grant['Grantee']['URI'] == $pubUrl ) {
+			if( isset( $grant['Grantee']['URI'] ) && $grant['Grantee']['URI'] == $pubUrl ) {
 				return false;
 			}
 		}
