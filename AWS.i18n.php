@@ -13,9 +13,10 @@ $messages['en'] = array(
 );
 
 /** Message documentation (Message documentation)
+ * @author Shirayuki
  */
 $messages['qqq'] = array(
-	'aws-desc' => '{{desc}}',
+	'aws-desc' => '{{desc|name=AWS|url=http://www.mediawiki.org/wiki/Extension:AWS}}',
 );
 
 /** Afrikaans (Afrikaans)
