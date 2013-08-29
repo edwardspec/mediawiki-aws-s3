@@ -33,6 +33,13 @@ $messages['ast'] = array(
 	'aws-desc' => 'Complementu pa usar Amazon Web Services',
 );
 
+/** Bikol Central (Bikol Central)
+ * @author Geopoet
+ */
+$messages['bcl'] = array(
+	'aws-desc' => 'Panaksakan para sa paggagamit sa mga Serbisyo kan Amazon Web',
+);
+
 /** Belarusian (Taraškievica orthography) (беларуская (тарашкевіца)‎)
  * @author Wizardist
  */
@@ -164,6 +171,13 @@ $messages['ms'] = array(
  */
 $messages['nl'] = array(
 	'aws-desc' => 'Plugin voor het gebruik van Amazon Web Services',
+);
+
+/** Occitan (occitan)
+ * @author Cedric31
+ */
+$messages['oc'] = array(
+	'aws-desc' => "Plugin per l'utilizacion dels Amazon Web Services",
 );
 
 /** tarandíne (tarandíne)
