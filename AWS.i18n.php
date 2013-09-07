@@ -180,6 +180,13 @@ $messages['oc'] = array(
 	'aws-desc' => "Plugin per l'utilizacion dels Amazon Web Services",
 );
 
+/** Brazilian Portuguese (português do Brasil)
+ * @author Cainamarques
+ */
+$messages['pt-br'] = array(
+	'aws-desc' => 'Plugin para a utilização do Amazon Web Services',
+);
+
 /** tarandíne (tarandíne)
  * @author Joetaras
  */
