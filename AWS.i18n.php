@@ -201,6 +201,13 @@ $messages['ru'] = array(
 	'aws-desc' => 'Плагин для использования Amazon Web Services',
 );
 
+/** Swedish (svenska)
+ * @author LittleGun
+ */
+$messages['sv'] = array(
+	'aws-desc' => 'Insticksmodul för Amazon Web Services tjänster',
+);
+
 /** Tagalog (Tagalog)
  * @author AnakngAraw
  */
