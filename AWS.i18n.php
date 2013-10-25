@@ -159,6 +159,13 @@ $messages['mk'] = array(
 	'aws-desc' => 'Приклучок за користење на Amazon Web Services',
 );
 
+/** Marathi (मराठी)
+ * @author V.narsikar
+ */
+$messages['mr'] = array(
+	'aws-desc' => 'ॲमॅझॉन वेब सर्व्हीसचा वापर करण्यास प्लग-इन करा',
+);
+
 /** Malay (Bahasa Melayu)
  * @author Anakmalaysia
  */
