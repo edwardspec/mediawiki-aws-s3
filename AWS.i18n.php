@@ -222,6 +222,13 @@ $messages['tl'] = array(
 	'aws-desc' => 'Pampasak para sa paggamit ng mga Serbisyong Pangweb ng Amazon',
 );
 
+/** Turkish (Türkçe)
+ * @author Joseph
+ */
+$messages['tr'] = array(
+	'aws-desc' => 'Amazon Web Servislerini kullanmak için eklenti',
+);
+
 /** Ukrainian (українська)
  * @author Base
  */
