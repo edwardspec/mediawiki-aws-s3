@@ -135,7 +135,7 @@ $messages['ja'] = array(
  * @author 아라
  */
 $messages['ko'] = array(
-	'aws-desc' => '아마존 웹 서비스(Amazon Web Services)를 사용하는 플러그인',
+	'aws-desc' => '아마존 웹 서비스(Amazon Web Services)를 사용하기 위한 플러그인',
 );
 
 /** Colognian (Ripoarisch)
