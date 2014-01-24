@@ -319,8 +319,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 		} catch ( S3Exception $e ) {
 			return null;
 		}
-
-		return null;
 	}
 
 	function getDirectoryListInternal( $container, $dir, array $params ) {
@@ -517,7 +515,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 class AmazonS3FileIterator implements Iterator {
 	private $client, $container, $dir, $topOnly, $limit;
-	private $index, $results, $market, $finished;
+	private $index, $results, $marker, $finished;
 
 	public function __construct( S3Client $client, $container, $dir, array $params, $limit = 500 ) {
 		$this->client = $client;

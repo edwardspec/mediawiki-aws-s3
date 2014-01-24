@@ -75,7 +75,6 @@ class JobQueueAmazonSqs extends JobQueue {
 
 		$this->queueName = "mediawiki-{$this->wiki}-jobqueue-{$this->type}";
 
-		$useHTTPS = false;
 		if ( isset( $params['aws-https'] ) ) {
 			$useHTTPS = (bool)$params['aws-https'];
 		} else {
@@ -222,6 +221,7 @@ class JobQueueAmazonSqs extends JobQueue {
 	 *
 	 * @param int|bool $limit Max number of jobs to retrieve, or false for no limit
 	 * @param bool $claim Whether to claim the jobs
+	 * @throws MWException
 	 * @return MappedIterator with the jobs
 	 * @see JobQueue::getAllQueuedJobs
 	 */
