@@ -215,6 +215,13 @@ $messages['ru'] = array(
 	'aws-desc' => 'Плагин для использования Amazon Web Services',
 );
 
+/** Scots (Scots)
+ * @author John Reid
+ */
+$messages['sco'] = array(
+	'aws-desc' => 'Plug-in fer uising Amazon Wab Services',
+);
+
 /** Swedish (svenska)
  * @author LittleGun
  */
