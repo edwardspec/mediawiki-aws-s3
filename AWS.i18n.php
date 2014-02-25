@@ -103,6 +103,13 @@ $messages['gl'] = array(
 	'aws-desc' => 'Complemento para usar Amazon Web Services',
 );
 
+/** Hebrew (עברית)
+ * @author Yona b
+ */
+$messages['he'] = array(
+	'aws-desc' => 'תוסף לשימוש בשירותי אתר אמאזון',
+);
+
 /** Upper Sorbian (hornjoserbsce)
  * @author Michawiki
  */
