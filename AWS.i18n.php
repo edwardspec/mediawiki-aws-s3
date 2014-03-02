@@ -236,6 +236,13 @@ $messages['sv'] = array(
 	'aws-desc' => 'Insticksmodul för Amazon Web Services tjänster',
 );
 
+/** Telugu (తెలుగు)
+ * @author Ravichandra
+ */
+$messages['te'] = array(
+	'aws-desc' => 'అమెజాన్ వెబ్ సేవలు వాడేందుకు పొడగింత',
+);
+
 /** Tagalog (Tagalog)
  * @author AnakngAraw
  */
