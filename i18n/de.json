@@ -1,8 +1,8 @@
 {
-    "@metadata": {
-        "authors": [
-            "Metalhead64"
-        ]
-    },
-    "aws-desc": "Ergänzt ein Plugin zur Verwendung von Amazon Web Services"
+	"@metadata": {
+		"authors": [
+			"Metalhead64"
+		]
+	},
+	"aws-desc": "Ergänzt ein Plugin zur Verwendung von Amazon Web Services"
 }

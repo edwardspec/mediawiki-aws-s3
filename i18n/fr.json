@@ -1,8 +1,8 @@
 {
-    "@metadata": {
-        "authors": [
-            "Sherbrooke"
-        ]
-    },
-    "aws-desc": "Plugin pour l'utilisation des Amazon Web Services"
+	"@metadata": {
+		"authors": [
+			"Sherbrooke"
+		]
+	},
+	"aws-desc": "Plugin pour l'utilisation des Amazon Web Services"
 }

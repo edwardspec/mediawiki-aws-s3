@@ -1,8 +1,8 @@
 {
-    "@metadata": {
-        "authors": [
-            "Toliño"
-        ]
-    },
-    "aws-desc": "Complemento para usar Amazon Web Services"
+	"@metadata": {
+		"authors": [
+			"Toliño"
+		]
+	},
+	"aws-desc": "Complemento para usar Amazon Web Services"
 }

@@ -1,8 +1,8 @@
 {
-    "@metadata": {
-        "authors": [
-            "Joseph"
-        ]
-    },
-    "aws-desc": "Amazon Web Servislerini kullanmak için eklenti"
+	"@metadata": {
+		"authors": [
+			"Joseph"
+		]
+	},
+	"aws-desc": "Amazon Web Servislerini kullanmak için eklenti"
 }

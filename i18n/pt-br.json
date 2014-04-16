@@ -1,8 +1,8 @@
 {
-    "@metadata": {
-        "authors": [
-            "Cainamarques"
-        ]
-    },
-    "aws-desc": "Plugin para a utilização do Amazon Web Services"
+	"@metadata": {
+		"authors": [
+			"Cainamarques"
+		]
+	},
+	"aws-desc": "Plugin para a utilização do Amazon Web Services"
 }

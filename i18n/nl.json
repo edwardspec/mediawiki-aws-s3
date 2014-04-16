@@ -1,8 +1,8 @@
 {
-    "@metadata": {
-        "authors": [
-            "Konovalov"
-        ]
-    },
-    "aws-desc": "Plugin voor het gebruik van Amazon Web Services"
+	"@metadata": {
+		"authors": [
+			"Konovalov"
+		]
+	},
+	"aws-desc": "Plugin voor het gebruik van Amazon Web Services"
 }

@@ -1,8 +1,8 @@
 {
-    "@metadata": {
-        "authors": [
-            "Robby"
-        ]
-    },
-    "aws-desc": "Plugin fir Amazon Web Services ze benotzen"
+	"@metadata": {
+		"authors": [
+			"Robby"
+		]
+	},
+	"aws-desc": "Plugin fir Amazon Web Services ze benotzen"
 }

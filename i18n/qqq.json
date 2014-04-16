@@ -1,8 +1,8 @@
 {
-    "@metadata": {
-        "authors": [
-            "Shirayuki"
-        ]
-    },
-    "aws-desc": "{{desc|name=AWS|url=http://www.mediawiki.org/wiki/Extension:AWS}}"
+	"@metadata": {
+		"authors": [
+			"Shirayuki"
+		]
+	},
+	"aws-desc": "{{desc|name=AWS|url=http://www.mediawiki.org/wiki/Extension:AWS}}"
 }

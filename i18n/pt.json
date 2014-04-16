@@ -1,8 +1,8 @@
 {
-    "@metadata": {
-        "authors": [
-            "Giro720"
-        ]
-    },
-    "aws-desc": "Plugin para a utilização do Amazon Web Services"
+	"@metadata": {
+		"authors": [
+			"Giro720"
+		]
+	},
+	"aws-desc": "Plugin para a utilização do Amazon Web Services"
 }
