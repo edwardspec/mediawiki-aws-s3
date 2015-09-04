@@ -30,7 +30,10 @@ $wgExtensionCredits['other'][] = array(
 	'name'           => 'AWS',
 	'url'            => 'https://www.mediawiki.org/wiki/Extension:AWS',
 	'version'        => '0.6.0',
-	'author'         => 'Tyler Romeo',
+	'author'         => array(
+		'Tyler Romeo',
+		'Daniel Friesen @ Redwerks',
+	),
 	'descriptionmsg' => 'aws-desc'
 );
 
@@ -48,6 +51,11 @@ $wgAWSCredentials = array(
 $wgAWSRegion = false;
 
 /**
+ * Use SES as a mailer
+ */
+$wgAWSSES = null;
+
+/**
  * Whether to use HTTPS with AWS
  */
 $wgAWSUseHTTPS = true;
@@ -58,6 +66,9 @@ $wgAutoloadClasses['JobQueueAmazonSqs'] = __DIR__ . '/sqs/JobQueueAmazonSqs.php'
 $wgAutoloadClasses['AmazonS3FileBackend'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
 $wgAutoloadClasses['AmazonS3FileIterator'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
 $wgAutoloadClasses['AmazonS3DirectoryIterator'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
+$wgAutoloadClasses['AmazonSesAlternateUserMailer'] = __DIR__ . '/ses/AmazonSesAlternateUserMailer.php';
+
+$wgHooks['AlternateUserMailer'][] = 'AmazonSesAlternateUserMailer::hook';
 
 $wgJobTypeConf['sqs'] = array(
 	'class' => 'JobQueueAmazonSqs',
