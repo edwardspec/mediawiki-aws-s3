@@ -1,6 +1,6 @@
 {
-    "@metadata": {
-        "authors": []
-    },
-    "aws-desc": "Plugin for using Amazon Web Services"
+	"@metadata": {
+		"authors": []
+	},
+	"aws-desc": "Plugin for using Amazon Web Services"
 }
