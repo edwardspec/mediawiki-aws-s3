@@ -68,6 +68,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 *  * awsHttps - Whether to use HTTPS for AWS connections (defaults to $wgAWSUseHTTPS)
 	 *  * awsEncryption - Whether to turn on server-side encryption on AWS (implies awsHttps=true)
 	 *
+	 * @param array $config
 	 * @throws MWException if no containerPaths is set
 	 */
 	function __construct( array $config ) {
@@ -85,7 +86,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$this->useHTTPS = (bool)$wgAWSUseHTTPS;
 		}
 
-		$this->memCache = wfGetMainCache();
+		// Cache container information to mask latency
+		if ( isset( $config['wanCache'] ) && $config['wanCache'] instanceof WANObjectCache ) {
+			$this->memCache = $config['wanCache'];
+		}
+
 		$this->client = S3Client::factory( array(
 			'key' => isset( $config['awsKey'] ) ? $config['awsKey'] : $wgAWSCredentials['key'],
 			'secret' => isset( $config['awsSecret'] ) ? $config['awsSecret'] : $wgAWSCredentials['secret'],
