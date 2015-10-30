@@ -436,7 +436,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 					$res = $this->client->putObjectAcl( array(
 						'ACL' => CannedAcl::PUBLIC_READ,
 						'Bucket' => $container,
-						'Key' => $key
+						'Key' => "$dir/$key"
 					) );
 				} catch ( S3Exception $e ) {
 					$this->handleException( $e, $status, __METHOD__, $params );
@@ -467,7 +467,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 					$res = $this->client->putObjectAcl( array(
 						'ACL' => CannedAcl::PRIVATE_ACCESS,
 						'Bucket' => $container,
-						'Key' => $key
+						'Key' => "$dir/$key"
 					) );
 				} catch ( S3Exception $e ) {
 					$this->handleException( $e, $status, __METHOD__, $params );
@@ -522,7 +522,18 @@ class AmazonS3FileIterator implements Iterator {
 	private $client, $container, $dir, $topOnly, $limit;
 	private $index, $results, $marker, $finished;
 
+	private $suffixStart;
+
 	public function __construct( S3Client $client, $container, $dir, array $params, $limit = 500 ) {
+		/* "Directory" must end with the slash,
+			otherwise S3 will return PRE (prefix) suggestion
+			instead of the listing itself */
+		if(substr($dir, -1, 1) != '/') {
+			$dir .= '/';
+		}
+
+		$this->suffixStart = strlen($dir); // size of "path/to/dir/"
+
 		$this->client = $client;
 		$this->container = $container;
 		$this->dir = $dir;
@@ -539,7 +550,7 @@ class AmazonS3FileIterator implements Iterator {
 
 	public function current() {
 		$this->init();
-		return $this->results['Contents'][$this->index]['Key'];
+		return substr( $this->results['Contents'][$this->index]['Key'], $this->suffixStart );
 	}
 
 	public function next() {
