@@ -4,7 +4,7 @@
 	"type": "mediawiki-extension",
 	"license": "GPL-2.0+",
 	"require": {
-		"aws/aws-sdk-php": ">=2.1.1",
+		"aws/aws-sdk-php": "^2.8.20",
 		"composer/installers": "~1.0"
 	}
 }
