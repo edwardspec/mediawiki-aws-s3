@@ -401,19 +401,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	function doCleanInternal( $container, $dir, array $params ) {
-		$status = Status::newGood();
-
-		try {
-			$this->client->deleteBucket( array(
-				'Bucket' => $container
-			) );
-		} catch ( NoSuchBucketException $e ) {
-		} catch ( BucketNotEmptyException $e ) {
-		} catch ( S3Exception $e ) {
-			$this->handleException( $e, $status, __METHOD__, $params );
-		}
-
-		return $status;
+		return Status::newGood();  /* Nothing to do */
 	}
 
 	function doPublishInternal( $container, $dir, array $params ) {
