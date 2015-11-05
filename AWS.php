@@ -42,7 +42,8 @@ $wgExtensionCredits['other'][] = array(
  */
 $wgAWSCredentials = array(
 	'key' => false,
-	'secret' => false
+	'secret' => false,
+	'token' => false
 );
 
 /**
