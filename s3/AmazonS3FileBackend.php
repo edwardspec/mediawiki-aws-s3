@@ -144,9 +144,9 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		if ( is_resource( $params['content'] ) ) {
-			$sha1Hash = wfBaseConvert( sha1_file( $params['src'] ), 16, 36, 31 );
+			$sha1Hash = Wikimedia\base_convert( sha1_file( $params['src'] ), 16, 36, 31 );
 		} else {
-			$sha1Hash = wfBaseConvert( sha1( $params['content'] ), 16, 36, 31 );
+			$sha1Hash = Wikimedia\base_convert( sha1( $params['content'] ), 16, 36, 31 );
 		}
 
 		$params['headers'] = isset( $params['headers'] ) ? $params['headers'] : array();
