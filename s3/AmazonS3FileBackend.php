@@ -156,9 +156,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 			'Content-Disposition',
 			'Content-Encoding',
 			'Content-Language',
-			'Content-Type',
 			'Expires'
 		), null );
+
+		if ( !isset( $params['headers']['Content-Type'] ) ) {
+			$params['headers']['Content-Type'] = $this->getContentType( $params['dst'], $params['content'], null );
+		}
 
 		try {
 			$res = $this->client->putObject( array(
@@ -231,6 +234,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'CopySourceIfModifiedSince' => $params['headers']['If-Modified-Since'],
 				'Expires' => $params['headers']['Expires'],
 				'Key' => $dstKey,
+				'MetadataDirective' => 'COPY',
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null
 			) ) );
 		} catch ( NoSuchBucketException $e ) {
