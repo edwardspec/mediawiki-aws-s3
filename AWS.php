@@ -25,6 +25,14 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 	exit( 1 );
 }
 
+if ( isset( $wgWikimediaJenkinsCI ) && $wgWikimediaJenkinsCI ) {
+	if ( is_readable( __DIR__ . '/../../vendor/autoload.php' ) ) {
+		require_once __DIR__ . '/../../vendor/autoload.php';
+	}
+} elseif ( is_readable( __DIR__ . '/vendor/autoload.php' ) ) {
+	require_once __DIR__ . '/vendor/autoload.php';
+}
+
 $wgExtensionCredits['other'][] = array(
 	'path'           => __FILE__,
 	'name'           => 'AWS',
@@ -80,5 +88,3 @@ $wgFileBackends['s3'] = array(
 	'class' => 'AmazonS3FileBackend',
 	'lockManager' => 'nullLockManager',
 );
-
-require_once __DIR__ . '/vendor/autoload.php';
