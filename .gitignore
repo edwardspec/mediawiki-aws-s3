@@ -1,5 +1,5 @@
-.svn
 *~
 *.kate-swp
 .*.swp
-vendor/
+/node_modules/
+/vendor/
