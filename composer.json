@@ -1,0 +1,10 @@
+{
+	"name": "mediawiki/aws",
+	"description": "Use Amazon Web Services as a MediaWiki backend",
+	"type": "mediawiki-extension",
+	"license": "GPL-2.0+",
+	"require": {
+		"aws/aws-sdk-php": "^2.8.20",
+		"composer/installers": "~1.0"
+	}
+}
