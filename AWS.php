@@ -29,13 +29,14 @@ $wgExtensionCredits['other'][] = array(
 	'path'           => __FILE__,
 	'name'           => 'AWS',
 	'url'            => 'https://www.mediawiki.org/wiki/Extension:AWS',
-	'version'        => '0.6.0-production',
+	'version'        => '0.7.0',
 	'author'         => array(
 		'Tyler Romeo',
 		'Daniel Friesen @ Redwerks',
 		'Edward Chernenko'
 	),
-	'descriptionmsg' => 'aws-desc'
+	'descriptionmsg' => 'aws-desc',
+	'license-name' => 'GPL-2.0+'
 );
 
 /**
@@ -58,7 +59,7 @@ $wgAWSRegion = false;
 $wgAWSUseHTTPS = true;
 
 $wgMessagesDirs['AWS'] = __DIR__ . '/i18n';
-$wgExtensionMessagesFiles['AWS'] = __DIR__ . '/AWS.i18n.php';
+$wgAutoloadClasses['JobQueueAmazonSqs'] = __DIR__ . '/sqs/JobQueueAmazonSqs.php';
 $wgAutoloadClasses['AmazonS3FileBackend'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
 $wgAutoloadClasses['AmazonS3FileIterator'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
 $wgAutoloadClasses['AmazonS3DirectoryIterator'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
