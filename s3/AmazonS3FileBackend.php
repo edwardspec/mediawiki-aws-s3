@@ -56,6 +56,22 @@ class AmazonS3FileBackend extends FileBackendStore {
 	private $containerPaths;
 
 	/**
+	 * Presence of this file in the bucket means that this bucket is used
+	 * for private zone (e.g. 'deleted'), meaning PRIVATE_ACCESS should be
+	 * used in putObject() and CopyObject() into this bucket.
+	 * See isSecure() below.
+	 */
+	const RESTRICT_FILE = '.htsecure';
+
+	/**
+	 * Temporary cache used in isSecure()/setSecure().
+	 * Avoids extra request to doesObjectExist(), unless MediaWiki core
+	 * has forgotten to call prepare() before storing/copying a file.
+	 * @var array(bucket_name => true/false, ...)
+	 */
+	private $isBucketSecure;
+
+	/**
 	 * Construct the backend. Doesn't take any extra config parameters.
 	 *
 	 * The configuration array may contain the following keys in addition
@@ -145,9 +161,9 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		if ( is_resource( $params['content'] ) ) {
-			$sha1Hash = Wikimedia\base_convert( sha1_file( $params['src'] ), 16, 36, 31 );
+			$sha1Hash = wfBaseConvert( sha1_file( $params['src'] ), 16, 36, 31 );
 		} else {
-			$sha1Hash = Wikimedia\base_convert( sha1( $params['content'] ), 16, 36, 31 );
+			$sha1Hash = wfBaseConvert( sha1( $params['content'] ), 16, 36, 31 );
 		}
 
 		$params['headers'] = isset( $params['headers'] ) ? $params['headers'] : array();
@@ -406,35 +422,23 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	function doCleanInternal( $container, $dir, array $params ) {
-		return Status::newGood();  /* Nothing to do */
+		return Status::newGood(); /* Nothing to do */
 	}
 
 	function doPublishInternal( $container, $dir, array $params ) {
 		$status = Status::newGood();
 
-		if( !empty( $params['listing'] ) ) {
+		if( !empty( $params['access'] ) ) {
 			try {
-				$res = $this->client->putBucketAcl( array(
-					'ACL' => CannedAcl::PUBLIC_READ,
-					'Bucket' => $container
-				) );
-			} catch ( S3Excepton $e ) {
+				$res = $this->client->deleteObject(array(
+					'Bucket' => $container,
+					'Key'    => self::RESTRICT_FILE
+				));
+			} catch ( S3Exception $e ) {
 				$this->handleException( $e, $status, __METHOD__, $params );
 			}
-		}
 
-		if( !empty( $params['access'] ) ) {
-			foreach( new AmazonS3FileIterator( $this->client, $container, $dir, $params ) as $key ) {
-				try {
-					$res = $this->client->putObjectAcl( array(
-						'ACL' => CannedAcl::PUBLIC_READ,
-						'Bucket' => $container,
-						'Key' => "$dir/$key"
-					) );
-				} catch ( S3Exception $e ) {
-					$this->handleException( $e, $status, __METHOD__, $params );
-				}
-			}
+			$this->isBucketSecure[$container] = false;
 		}
 
 		return $status;
@@ -443,52 +447,39 @@ class AmazonS3FileBackend extends FileBackendStore {
 	function doSecureInternal( $container, $dir, array $params ) {
 		$status = Status::newGood();
 
-		if( !empty( $params['noListing'] ) ) {
+		if( !empty( $params['noAccess'] ) ) {
 			try {
-				$res = $this->client->putBucketAcl( array(
-					'ACL' => CannedAcl::PRIVATE_ACCESS,
-					'Bucket' => $container
-				) );
+				$res = $this->client->putObject(array(
+					'Bucket' => $container,
+					'Key'    => self::RESTRICT_FILE,
+					'Body'   => '' /* Empty file */
+				));
 			} catch ( S3Exception $e ) {
 				$this->handleException( $e, $status, __METHOD__, $params );
 			}
-		}
 
-		if( !empty( $params['noAccess'] ) ) {
-			foreach( new AmazonS3FileIterator( $this->client, $container, $dir, $params ) as $key ) {
-				try {
-					$res = $this->client->putObjectAcl( array(
-						'ACL' => CannedAcl::PRIVATE_ACCESS,
-						'Bucket' => $container,
-						'Key' => "$dir/$key"
-					) );
-				} catch ( S3Exception $e ) {
-					$this->handleException( $e, $status, __METHOD__, $params );
-				}
-			}
+			$this->isBucketSecure[$container] = true;
 		}
 
 		return $status;
 	}
 
 	private function isSecure( $container ) {
-		static $pubUrl = "http://acs.amazonaws.com/groups/global/AllUsers";
+		if(array_key_exists($container, $this->isBucketSecure)) {
+			/* We've just secured/published this very bucket */
+			return $this->isBucketSecure[$container];
+		}
+
 		try {
-			$acl = $this->client->getBucketAcl( array( 'Bucket' => $container ) );
-		} catch ( NoSuchBucketException $e ) {
-			// Non-existent buckets can't be accessed, so technically they're secure.
-			return true;
+			$is_secure = $this->client->doesObjectExist($container,
+				self::RESTRICT_FILE);
 		} catch ( S3Exception $e ) {
-			// Other error, assume insecure.
+			/* Assume insecure */
 			return false;
 		}
 
-		foreach( $acl['Grants'] as $grant ) {
-			if( isset( $grant['Grantee']['URI'] ) && $grant['Grantee']['URI'] == $pubUrl ) {
-				return false;
-			}
-		}
-		return true;
+		$this->isBucketSecure[$container] = $is_secure;
+		return $is_secure;
 	}
 
 	/**

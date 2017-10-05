@@ -25,14 +25,6 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 	exit( 1 );
 }
 
-if ( isset( $wgWikimediaJenkinsCI ) && $wgWikimediaJenkinsCI ) {
-	if ( is_readable( __DIR__ . '/../../vendor/autoload.php' ) ) {
-		require_once __DIR__ . '/../../vendor/autoload.php';
-	}
-} elseif ( is_readable( __DIR__ . '/vendor/autoload.php' ) ) {
-	require_once __DIR__ . '/vendor/autoload.php';
-}
-
 $wgExtensionCredits['other'][] = array(
 	'path'           => __FILE__,
 	'name'           => 'AWS',
@@ -41,7 +33,7 @@ $wgExtensionCredits['other'][] = array(
 	'author'         => array(
 		'Tyler Romeo',
 		'Daniel Friesen @ Redwerks',
-		'...'
+		'Edward Chernenko'
 	),
 	'descriptionmsg' => 'aws-desc',
 	'license-name' => 'GPL-2.0+'
@@ -62,11 +54,6 @@ $wgAWSCredentials = array(
 $wgAWSRegion = false;
 
 /**
- * Use SES as a mailer
- */
-$wgAWSSES = null;
-
-/**
  * Whether to use HTTPS with AWS
  */
 $wgAWSUseHTTPS = true;
@@ -76,16 +63,11 @@ $wgAutoloadClasses['JobQueueAmazonSqs'] = __DIR__ . '/sqs/JobQueueAmazonSqs.php'
 $wgAutoloadClasses['AmazonS3FileBackend'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
 $wgAutoloadClasses['AmazonS3FileIterator'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
 $wgAutoloadClasses['AmazonS3DirectoryIterator'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
-$wgAutoloadClasses['AmazonSesAlternateUserMailer'] = __DIR__ . '/ses/AmazonSesAlternateUserMailer.php';
 
-$wgHooks['AlternateUserMailer'][] = 'AmazonSesAlternateUserMailer::hook';
-
-$wgJobTypeConf['sqs'] = array(
-	'class' => 'JobQueueAmazonSqs',
-	'order' => 'random'
-);
 $wgFileBackends['s3'] = array(
 	'name' => 'AmazonS3',
 	'class' => 'AmazonS3FileBackend',
 	'lockManager' => 'nullLockManager',
 );
+
+require_once __DIR__ . '/vendor/autoload.php';
