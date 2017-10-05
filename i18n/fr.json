@@ -1,8 +1,9 @@
 {
 	"@metadata": {
 		"authors": [
-			"Sherbrooke"
+			"Sherbrooke",
+			"Urhixidur"
 		]
 	},
-	"aws-desc": "Plugin pour l'utilisation des Amazon Web Services"
+	"aws-desc": "Greffon pour l’utilisation des Amazon Web Services"
 }
