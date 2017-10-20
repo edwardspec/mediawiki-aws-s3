@@ -320,11 +320,17 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return false;
 		}
 
+        if (array_key_exists('sha1base36',$res['Metadata'])) {
+            $sha1base36 = $res['Metadata']['sha1base36'];
+        } else {
+            $sha1base36 = '';
+        }
+
 		return array(
 			'mtime' => wfTimestamp( TS_MW, $res['LastModified'] ),
 			'size' => (int)$res['ContentLength'],
 			'etag' => $res['Etag'],
-			'sha1' => $res['Metadata']['sha1base36']
+            'sha1' => $sha1base36
 		);
 	}
 
