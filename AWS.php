@@ -40,7 +40,11 @@ $wgExtensionCredits['other'][] = array(
 );
 
 /**
- * Credentials to use to connect to AWS
+ * Credentials to use to connect to AWS.
+ *
+ * If your EC2 instance has an IAM instance profile, and its IAM role allows access to Amazon S3,
+ * then you don't need to set $wgAWSCredentials in LocalSettings.php,
+ * they will be determined automatically.
  */
 $wgAWSCredentials = array(
 	'key' => false,

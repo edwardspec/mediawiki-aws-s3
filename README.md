@@ -14,7 +14,8 @@ The fork was made because:
 ```php
 require_once("$IP/extensions/AWS/AWS.php");
 
-// Configure AWS credentials
+// Configure AWS credentials.
+// If your EC2 instance has an IAM instance profile, you don't need to set $wgAWSCredentials.
 $wgAWSCredentials = array(
 	'key' => '<something>',
 	'secret' => '<something>',
