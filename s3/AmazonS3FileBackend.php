@@ -72,6 +72,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 	private $isBucketSecure;
 
 	/**
+		@var boolean
+		@brief If true, then all S3 objects are private.
+		NOTE: for images to work in private mode, $wgUploadPath should point to img_auth.php.
+	*/
+	protected $privateWiki = null;
+
+	/**
 	 * Construct the backend. Doesn't take any extra config parameters.
 	 *
 	 * The configuration array may contain the following keys in addition
@@ -120,6 +127,18 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$this->containerPaths = (array)$config['containerPaths'];
 		} else {
 			throw new MWException( __METHOD__ . " : containerPaths array must be set for S3." );
+		}
+
+		if ( isset( $config['privateWiki'] ) ) {
+			/* Explicitly set in LocalSettings.php ($wgLocalFileRepo) */
+			$this->privateWiki = $config['privateWiki'];
+		}
+		else {
+			/* If anonymous users aren't allowed to read articles,
+				then we assume that this wiki is private,
+				and that we want files to be "for registered users only".
+			*/
+			$this->privateWiki = !( User::isEveryoneAllowed( 'read' ) );
 		}
 	}
 
@@ -471,6 +490,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	private function isSecure( $container ) {
+		if ( $this->privateWiki ) {
+			return true; /* Private wiki: all buckets are secure, even in "public" and "thumb" zones */
+		}
+
 		if(array_key_exists($container, $this->isBucketSecure)) {
 			/* We've just secured/published this very bucket */
 			return $this->isBucketSecure[$container];
