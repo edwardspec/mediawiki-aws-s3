@@ -59,7 +59,6 @@ $wgAWSRegion = false;
 $wgAWSUseHTTPS = true;
 
 $wgMessagesDirs['AWS'] = __DIR__ . '/i18n';
-$wgAutoloadClasses['JobQueueAmazonSqs'] = __DIR__ . '/sqs/JobQueueAmazonSqs.php';
 $wgAutoloadClasses['AmazonS3FileBackend'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
 $wgAutoloadClasses['AmazonS3FileIterator'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
 $wgAutoloadClasses['AmazonS3DirectoryIterator'] = __DIR__ . '/s3/AmazonS3FileBackend.php';
