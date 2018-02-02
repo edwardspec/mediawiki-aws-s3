@@ -17,7 +17,7 @@ The fork was made because:
 
 3\) Run "composer install" from /var/www/html/w/extensions/AWS (to download dependencies). If you don't have Composer installed, see https://www.mediawiki.org/wiki/Composer for how to install it.
 
-4\) Choose a unique name for your Amazon S3 buckets, e.g. "wonderfulbali234". Create four S3 buckets: wonderfulbali234-img, wonderfulbali234-img-thumb, wonderfulbali234-img-deleted, wonderfulbali234-img-temp. Note: this name will be seen in URL of images.
+4\) Choose a unique name (not taken by another AWS user) for your Amazon S3 buckets, e.g. ```wonderfulbali234```. Create four S3 buckets: ```wonderfulbali234-img```, ```wonderfulbali234-img-thumb```, ```wonderfulbali234-img-deleted```, ```wonderfulbali234-img-temp```. Note: this name will be seen in URL of images.
 
 5a\) If your EC2 instance has an IAM instance profile (recommended), copy everything from "Needed IAM permissions" (see below) to inline policy of the IAM role. See https://console.aws.amazon.com/iam/home#/roles
 
@@ -69,7 +69,7 @@ $wgLocalFileRepo = array (
 
 # Needed IAM permissions
 
-Replace <something> with the prefix of your S3 buckets, e.g. wonderfulbali234.
+Replace ```<something>``` with the prefix of your S3 buckets, e.g. ```wonderfulbali234```.
 Note: you must create S3 buckets yourself (not wait for MediaWiki to do it).
 
 ```json
