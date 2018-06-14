@@ -69,7 +69,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * has forgotten to call prepare() before storing/copying a file.
 	 * @var array(bucket_name => true/false, ...)
 	 */
-	private $isBucketSecure;
+	private $isBucketSecure = [];
 
 	/**
 		@var boolean
