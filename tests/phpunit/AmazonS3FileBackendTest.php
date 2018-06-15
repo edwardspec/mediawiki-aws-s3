@@ -126,7 +126,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	public function testDirectoryListInternal( array $params ) {
 		$iterator = $this->backend->getDirectoryListInternal(
 			$params['container'],
-			'Hello',
+			$params['directory'],
 			[]
 		);
 
@@ -144,8 +144,19 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 * @depends testCreate
 	 * @covers AmazonS3FileBackend::getFileListInternal
 	 */
-	public function xtestFileListInternal( array $params ) {
-		/* TODO */
+	public function testFileListInternal( array $params ) {
+		$iterator = $this->backend->getFileListInternal(
+			$params['container'],
+			$params['directory'],
+			[]
+		);
+
+		$files = [];
+		foreach ( $iterator as $file ) {
+			$files[] = $file;
+		}
+
+		$this->assertContains( $params['filename'], $files );
 	}
 
 	/**
