@@ -622,16 +622,28 @@ class AmazonS3FileIterator implements Iterator {
 }
 
 class AmazonS3DirectoryIterator extends AmazonS3FileIterator {
-	private $directories = array();
+	private $seenDirectories = [];
 
 	function current() {
 		return dirname( parent::current() );
 	}
 
-	function next() {
-		do {
-			parent::next();
-		} while( array_key_exists( $this->current(), $this->directories ) );
-		$this->directories[] = $this->current();
+	public function rewind() {
+		$this->seenDirectories = [];
+	}
+
+	public function valid() {
+		while ( parent::valid() ) { // Still have filenames
+			$dirname = $this->current();
+
+			if ( !isset( $this->seenDirectories[$dirname] ) ) {
+				/* Found a new directory */
+				$this->seenDirectories[$dirname] = true;
+				return true;
+			}
+			$this->next();
+		}
+
+		return false;
 	}
 }
