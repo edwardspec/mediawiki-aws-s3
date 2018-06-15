@@ -43,6 +43,13 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
+		@brief Translate "Hello/world.txt" to mw:// pseudo-URL.
+	*/
+	private function getVirtualPath( $filename ) {
+		return $this->repo->newFile( $filename )->getPath();
+	}
+
+	/**
 	 * @brief Check that doCreateInternal() succeeds.
 	 * @covers AmazonS3FileBackend::doCreateInternal
 	 */
@@ -51,9 +58,10 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			'content' => 'hello',
 			'headers' => [],
 			'directory' => 'Hello',
-			'filename' => 'world.txt'
+			'filename' => 'world.txt',
 		];
-		$params['dst'] = $this->repo->newFile( $params['directory'] . '/' . $params['filename'] )->getPath();
+		$params['fullfilename'] = $params['directory'] . '/' . $params['filename'];
+		$params['dst'] = $this->getVirtualPath( $params['fullfilename'] );
 
 		$status = $this->backend->doCreateInternal( [
 			'content' => $params['content'],
@@ -67,7 +75,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * @brief Double-check that doGetFileStat() returns correct information about the file.
+	 * @brief Check that doGetFileStat() returns correct information about the file.
 	 * @depends testCreate
 	 * @covers AmazonS3FileBackend::doGetFileStat
 	 */
@@ -83,12 +91,11 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * @brief Double-check that the file can be downloaded via getFileHttpUrl().
+	 * @brief Check that the file can be downloaded via getFileHttpUrl().
 	 * @depends testCreate
 	 * @covers AmazonS3FileBackend::getFileHttpUrl
 	 */
 	public function xtestFileHttpUrl( array $params ) {
-		/* Now check the URL and download it */
 		$url = $this->backend->getFileHttpUrl( [ 'src' => $params['dst'] ] );
 		$this->assertNotNull( $url, 'No URL returned by getFileHttpUrl()' );
 
@@ -98,7 +105,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * @brief Double-check that doDirectoryExists() work correctly.
+	 * @brief Check that doDirectoryExists() can find the newly created object.
 	 * @depends testCreate
 	 * @covers AmazonS3FileBackend::doDirectoryExists
 	 */
@@ -111,6 +118,38 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$this->assertTrue( $this->backend->doDirectoryExists( $container, $fakeDir, [] ),
 			"Directory [$fakeDir] doesn't exist after creating [{$params['dst']}]" );
 	}
+
+	/**
+	 * @brief Check that doCopyInternal() succeeds.
+	 * @depends testCreate
+	 * @covers AmazonS3FileBackend::doCopyInternal
+	 */
+	public function testCopyInternal( array $params ) {
+		$params['copy-filename'] = $params['fullfilename'] . '_new_' . rand();
+		$params['copy-dst'] = $this->getVirtualPath( $params['copy-filename'] );
+
+		$status = $this->backend->doCopyInternal( [
+			'src' => $params['dst'],
+			'dst' => $params['copy-dst']
+		] );
+		$this->assertTrue( $status->isGood(), 'doCopyInternal() failed' );
+
+		/* Pass $params to dependent test */
+		return $params;
+	}
+
+	/**
+	 * @brief Check that doDeleteInternal() succeeds.
+	 * @depends testCopyInternal
+	 * @covers AmazonS3FileBackend::doDeleteInternal
+	 */
+	public function testDeleteInternal( array $params ) {
+		$status = $this->backend->doDeleteInternal( [
+			'src' => $params['copy-dst']
+		] );
+		$this->assertTrue( $status->isGood(), 'doDeleteInternal() failed' );
+	}
+
 
 
 		/* TODO: test other operations: Copy, Delete, etc. */
