@@ -353,11 +353,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 	}
 
-	function doGetFileSha1base36( array $params ) {
-		$stat = $this->getFileStat( $params );
-		return $stat ? $stat['sha1'] : false;
-	}
-
 	function getFileHttpUrl( array $params ) {
 		list( $container, $key ) = $this->resolveStoragePathReal( $params['src'] );
 		if( $container === null ) {
