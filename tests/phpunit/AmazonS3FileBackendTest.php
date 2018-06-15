@@ -155,8 +155,8 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 */
 	public function testDirectoryExists_emptyDir( array $params ) {
 		$fakeDir = 'WeNeverCreatedFilesWithThisPrefix';
-		$this->assertTrue( $this->backend->doDirectoryExists( $params['container'], $fakeDir, [] ),
-			"Directory [$fakeDir] doesn't exist after creating [{$params['dst']}]" );
+		$this->assertFalse( $this->backend->doDirectoryExists( $params['container'], $fakeDir, [] ),
+			"doDirectoryExists() says that [$fakeDir] exists, but we never created it." );
 	}
 
 	/**

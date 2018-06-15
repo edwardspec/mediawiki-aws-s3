@@ -599,13 +599,16 @@ class AmazonS3FileIterator implements Iterator {
 					'MaxKeys' => $this->limit,
 					'Prefix' => $this->dir
 				) );
-			} catch ( NoSuchBucketException $e ) {
-				$this->results = array(
+			} catch ( NoSuchBucketException $e ) { }
+
+			if ( !isset( $this->results['Contents'] ) ) {
+				/* Either an error happened (e.g. NoSuchBucketException)
+					or no objects were found by listObject() */
+				$this->results = [
 					'Marker' => null,
 					'IsTruncated' => false,
-					'Contents' => array()
-				);
-				$this->finished = true;
+					'Contents' => []
+				];
 			}
 
 			$this->index = 0;
