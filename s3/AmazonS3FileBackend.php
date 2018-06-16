@@ -579,27 +579,30 @@ class AmazonS3FileIterator implements Iterator {
 		return !$this->finished || $this->index < count( $this->filenamesArray );
 	}
 
+	/**
+		@brief If needed, load more filenames from listObjects API.
+	*/
 	private function init() {
-		if ( !$this->finished && $this->index >= count( $this->filenamesArray ) ) {
-			try {
-				$apiResponse = $this->client->listObjects( array(
-					'Bucket' => $this->container,
-					'Delimiter' => $this->topOnly ? '/' : '',
-					'Marker' => $this->marker,
-					'MaxKeys' => $this->limit,
-					'Prefix' => $this->dir
-				) );
-			} catch ( NoSuchBucketException $e ) { }
-
-			$this->filenamesArray = $this->extractNamesFromResponse( $apiResponse, $this->topOnly );
-			$this->index = 0;
-			$this->marker = $this->filenamesArray ? $apiResponse['Marker'] : null;
-			$this->finished = $this->filenamesArray ? true : !$apiResponse['IsTruncated'];
-
-			return true;
+		if ( $this->finished || $this->index < count( $this->filenamesArray ) ) {
+			// Either there aren't any objects left
+			// or we still have enough objects in filenamesArray.
+			return;
 		}
 
-		return false;
+		try {
+			$apiResponse = $this->client->listObjects( array(
+				'Bucket' => $this->container,
+				'Delimiter' => $this->topOnly ? '/' : '',
+				'Marker' => $this->marker,
+				'MaxKeys' => $this->limit,
+				'Prefix' => $this->dir
+			) );
+		} catch ( NoSuchBucketException $e ) { }
+
+		$this->filenamesArray = $this->extractNamesFromResponse( $apiResponse, $this->topOnly );
+		$this->index = 0;
+		$this->marker = $this->filenamesArray ? $apiResponse['Marker'] : null;
+		$this->finished = $this->filenamesArray ? true : !$apiResponse['IsTruncated'];
 	}
 
 	/**
