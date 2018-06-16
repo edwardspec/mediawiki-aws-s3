@@ -118,82 +118,6 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			"Directory [$fakeDir] doesn't exist after creating [{$params['dst']}]" );
 	}
 
-	/**
-	 * @brief Create multiple objects via doCreateInternal().
-	 * @coversNothing
-	 * @note This test is only needed to pre-create files for dependent tests like testGetLocalCopyMulti().
-	 * @returns array(
-	 *	'contents' => [ 'dst1' => 'content1', ... ],
-	 *	'filenames' => [ 'name1', ... ],
-	 *	'directories' => [ 'dirName1', ... ],
-	 *	'parentDirectory' => 'dirName',
-	 *	'container' => 'containerName'
-	 * );
-	 */
-	public function testCreateMultipleFiles() {
-		$info = [
-			'contents' => [],
-			'filenames' => [],
-			'directories' => [],
-			'parentDirectory' => 'Testdir_' . time() . '_' . rand()
-		];
-
-		foreach ( [ 1, 2, '' ] as $dirSuffix ) {
-			$directoryName = $info['parentDirectory'];
-			if ( $dirSuffix != '' ) {
-				$directoryName .= "/dir${dirSuffix}";
-			}
-
-			$info['directories'][] = $directoryName;
-
-			foreach ( [ 'a', 'b', 'c' ] as $fileSuffix ) {
-				$filename = "$directoryName/file${fileSuffix}.txt";
-				$info['filenames'][] = $filename;
-
-				$dst = $this->getVirtualPath( $filename );
-				$info['contents'][$dst] = $this->getTestContent( $filename );
-
-				$status = $this->backend->doCreateInternal( [
-					'dst' => $dst,
-					'content' => $info['contents'][$dst]
-				]);
-				$this->assertTrue( $status->isGood(), 'doCreateInternal() failed' );
-			}
-		}
-
-		/* Pass $info to dependent tests */
-		list( $info['container'], ) = $this->backend->resolveStoragePathReal(
-			array_keys( $info['contents'] )[0]
-		);
-		return $info;
-	}
-
-	/**
-	 * @brief Check that doGetLocalCopyMulti() provides correct content.
-	 * @covers AmazonS3FileBackend::doGetLocalCopyMulti
-	 * @depends testCreateMultipleFiles
-	 */
-	public function testGetLocalCopyMulti( array $info ) {
-		/*
-			Test response of doGetLocalCopyMulti.
-		*/
-		$expectedContents = $info['contents'];
-		$result = $this->backend->doGetLocalCopyMulti( [
-			'src' => array_keys( $expectedContents )
-		] );
-		$this->assertInternalType( 'array', $result,
-			'doGetLocalCopyMulti() didn\'t return an array' );
-		$this->assertCount( count( $expectedContents ), $result,
-			'Incorrect number of elements returned by doGetLocalCopyMulti()' );
-
-		foreach ( $expectedContents as $dst => $expectedContent ) {
-			$this->assertArrayHasKey( $dst, $result,
-				"URL $dst not found() in array returned by doGetLocalCopyMulti()" );
-			$this->assertEquals( $expectedContent, file_get_contents( $result[$dst]->getPath() ),
-				"Incorrect contents of $dst returned by doGetLocalCopyMulti()" );
-		}
-	}
-
 	protected function getTestContent( $filename ) {
 		return 'Content of [' . $filename . '].';
 	}
@@ -305,28 +229,35 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		@brief Calculate expected filenames under $directory in $topOnly mode.
-		Used by tests like testDirectoryListInternal_topOnly().
+	 * @brief Check that doGetLocalCopyMulti() provides correct content.
+	 * @covers AmazonS3FileBackend::doGetLocalCopyMulti
+	 */
+	public function testGetLocalCopyMulti() {
+		$testinfo = $this->prepareListTest();
+		$filenames = $this->getFilenamesForListTest();
 
-		@param $where Either $info['directories'] or $info['filenames'],
-			where $info is the return value of testCreateMultipleFiles().
-	*/
-	protected function getExpectedFilenames( $directory, $topOnly, array $where ) {
-		return array_filter( array_map( function( $filename ) use ( $directory, $topOnly ) {
-			$prefix = $directory . '/';
-			if ( strpos( $filename, $prefix ) !== 0 ) {
-				return null;
-			}
+		/* Make an array of VirtualPaths for 'src' parameter of doGetLocalCopyMulti() */
+		$src = [];
+		foreach ( $filenames as $filename ) {
+			$src[$filename] = $this->getVirtualPath( $testinfo['parentDirectory'] . '/' . $filename );
+		}
 
-			$filename = substr( $filename, strlen( $prefix ) );
-			if ( $topOnly && strpos( $filename, '/' ) !== false ) {
-				return null; /* Subdirectory in $filename, not expected in topOnly mode */
-			}
+		$result = $this->backend->doGetLocalCopyMulti( [
+			'src' => array_values( $src )
+		] );
+		$this->assertCount( count( $filenames ), $result,
+			'Incorrect number of elements returned by doGetLocalCopyMulti()' );
 
-			return $filename;
-		}, $where ) );
+		foreach ( $src as $filename => $virtualPath ) {
+			$this->assertArrayHasKey( $virtualPath, $result,
+				"URL $virtualPath not found() in array returned by doGetLocalCopyMulti()" );
+			$this->assertEquals(
+				$this->getTestContent( $filename ),
+				file_get_contents( $result[$virtualPath]->getPath() ),
+				"Incorrect contents of $virtualPath returned by doGetLocalCopyMulti()"
+			);
+		}
 	}
-
 
 	/**
 	 * @brief Check that doCopyInternal() succeeds.
