@@ -105,19 +105,6 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			'Content downloaded from FileHttpUrl is different from expected' );
 	}
 
-	/**
-	 * @brief Check that doDirectoryExists() can find the newly created object.
-	 * @depends testCreate
-	 * @covers AmazonS3FileBackend::doDirectoryExists
-	 */
-	public function testDirectoryExists_afterCreate( array $params ) {
-		// Amazon S3 doesn't really have directories.
-		// Method doDirectoryExists() checks if there are files with the certain prefix.
-		$fakeDir = $params['directory'];
-		$this->assertTrue( $this->backend->doDirectoryExists( $params['container'], $fakeDir, [] ),
-			"Directory [$fakeDir] doesn't exist after creating [{$params['dst']}]" );
-	}
-
 	protected function getTestContent( $filename ) {
 		return 'Content of [' . $filename . '].';
 	}
@@ -177,10 +164,16 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		@brief Provides datasets for testLists().
+		@brief Provides datasets for testList().
 	*/
 	public function listingTestsDataProvider() {
 		return [
+			[ 'doDirectoryExists', '', [], true ],
+			[ 'doDirectoryExists', 'dir1', [], true ],
+			[ 'doDirectoryExists', 'dir2', [], true ],
+			[ 'doDirectoryExists', 'dir1/subdir1', [], true ],
+			[ 'doDirectoryExists', 'dir2/subdir1', [], true ],
+			[ 'doDirectoryExists', 'dir1/file2.txt', [], false ],
 			[ 'doDirectoryExists', 'WeNeverCreatedFilesWithThisPrefix', [], false ],
 			[ 'getDirectoryListInternal', '', [], [ 'dir1', 'dir1/subdir1', 'dir1/subdir2', 'dir2', 'dir2/subdir1' ] ],
 			[ 'getDirectoryListInternal', '', [ 'topOnly' => true ], [ 'dir1', 'dir2' ] ],
