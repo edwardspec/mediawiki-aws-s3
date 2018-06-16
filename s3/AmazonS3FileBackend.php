@@ -33,6 +33,7 @@ use Aws\S3\Exception\S3Exception;
  *
  * @author Tyler Romeo <tylerromeo@gmail.com>
  * @author Thai Phan <thai@outlook.com>
+ * @author Edward Chernenko <edwardspec@gmail.com>
  */
 class AmazonS3FileBackend extends FileBackendStore {
 	/**
@@ -528,19 +529,20 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 class AmazonS3FileIterator implements Iterator {
 	private $client, $container, $dir, $topOnly, $limit;
-	private $index, $results, $marker, $finished;
+	private $index, $marker, $finished;
 
+	private $filenamesArray = []; /**< Array of filenames obtained by the last listObjects() call */
 	private $suffixStart;
 
 	public function __construct( S3Client $client, $container, $dir, array $params, $limit = 500 ) {
 		/* "Directory" must end with the slash,
 			otherwise S3 will return PRE (prefix) suggestion
 			instead of the listing itself */
-		if(substr($dir, -1, 1) != '/') {
+		if ( $dir != '' && substr( $dir, -1, 1 ) != '/' ) {
 			$dir .= '/';
 		}
 
-		$this->suffixStart = strlen($dir); // size of "path/to/dir/"
+		$this->suffixStart = strlen( $dir ); // size of "path/to/dir/"
 
 		$this->client = $client;
 		$this->container = $container;
@@ -558,21 +560,15 @@ class AmazonS3FileIterator implements Iterator {
 
 	public function current() {
 		$this->init();
-		return substr( $this->results['Contents'][$this->index]['Key'], $this->suffixStart );
+		return $this->filenamesArray[$this->index];
 	}
 
 	public function next() {
-		if( $this->topOnly ) {
-			do {
-				++$this->index;
-			} while( strpos( $this->current(), '/', strlen( $this->dir ) ) !== false );
-		} else {
-			++$this->index;
-		}
+		$this->index ++;
 	}
 
 	public function rewind() {
-		$this->results = null;
+		$this->filenamesArray = [];
 		$this->marker = null;
 		$this->index = 0;
 		$this->finished = false;
@@ -580,70 +576,105 @@ class AmazonS3FileIterator implements Iterator {
 
 	public function valid() {
 		$this->init();
-		return !$this->finished || $this->index < count( $this->results['Contents'] );
+		return !$this->finished || $this->index < count( $this->filenamesArray );
 	}
 
 	private function init() {
-		if(
-			(
-				$this->results === null ||
-				$this->index >= count( $this->results['Contents'] )
-			) &&
-			!$this->finished
-		) {
+		if ( !$this->finished && $this->index >= count( $this->filenamesArray ) ) {
 			try {
-				$this->results = $this->client->listObjects( array(
+				$apiResponse = $this->client->listObjects( array(
 					'Bucket' => $this->container,
-					'Delimiter' => '/',
+					'Delimiter' => $this->topOnly ? '/' : '',
 					'Marker' => $this->marker,
 					'MaxKeys' => $this->limit,
 					'Prefix' => $this->dir
 				) );
 			} catch ( NoSuchBucketException $e ) { }
 
-			if ( !isset( $this->results['Contents'] ) ) {
-				/* Either an error happened (e.g. NoSuchBucketException)
-					or no objects were found by listObject() */
-				$this->results = [
-					'Marker' => null,
-					'IsTruncated' => false,
-					'Contents' => []
-				];
-			}
-
+			$this->filenamesArray = $this->extractNamesFromResponse( $apiResponse, $this->topOnly );
 			$this->index = 0;
-			$this->marker = $this->results['Marker'];
-			$this->finished = !$this->results['IsTruncated'];
+			$this->marker = $this->filenamesArray ? $apiResponse['Marker'] : null;
+			$this->finished = $this->filenamesArray ? true : !$apiResponse['IsTruncated'];
+
 			return true;
-		} else {
-			return false;
 		}
+
+		return false;
+	}
+
+	/**
+		@brief Delete first $suffixStart symbols from $path.
+		@returns Filename (what remains of $path).
+	*/
+	protected function stripDirectorySuffix( $path ) {
+		return substr( $path, $this->suffixStart );
+	}
+
+	/**
+		@brief Extract filenames (but not directories) from $apiResponse.
+		@param $apiResponse Return value of successful listObjects() API call.
+		@returns Array of strings (filenames).
+	*/
+	protected function extractNamesFromResponse( $apiResponse, $topOnly ) {
+		if ( !isset( $apiResponse['Contents'] ) ) {
+			return [];
+		}
+
+		return array_map( function( $contentObj ) {
+			return $this->stripDirectorySuffix( $contentObj['Key'] );
+		}, $apiResponse['Contents'] );
 	}
 }
 
 class AmazonS3DirectoryIterator extends AmazonS3FileIterator {
 	private $seenDirectories = [];
 
-	function current() {
-		return dirname( parent::current() );
-	}
-
 	public function rewind() {
 		$this->seenDirectories = [];
 	}
 
-	public function valid() {
-		while ( parent::valid() ) { // Still have filenames
-			$dirname = $this->current();
-
-			if ( !isset( $this->seenDirectories[$dirname] ) ) {
-				/* Found a new directory */
-				$this->seenDirectories[$dirname] = true;
-				return true;
+	/**
+		@brief Extract directory names (but not files) from $apiResponse.
+		@param $apiResponse Return value of successful listObjects() API call.
+		@returns Array of strings (filenames).
+	*/
+	protected function extractNamesFromResponse( $apiResponse, $topOnly ) {
+		if ( $topOnly ) {
+			/* In $topOnly mode, Delimiter=/ was used,
+				meaning that subdirectories will be shown as CommonPrefixes,
+				not in $apiResponse['Contents']. */
+			if ( !isset( $apiResponse['CommonPrefixes'] ) ) {
+				return [];
 			}
-			$this->next();
+
+			return array_map( function( $prefixObj ) {
+				$prefix = $this->stripDirectorySuffix( $prefixObj['Prefix'] );
+
+				/* Strip "/" which is always in the end of CommonPrefixes */
+				return preg_replace( '/\/$/', '', $prefix );
+			}, $apiResponse['CommonPrefixes'] );
 		}
 
-		return false;
+		/* No Delimiter was used, so we only have $apiResponse['Contents']
+			with the list of all files.
+			We need to compile the list of directories ourselves. */
+		if ( !isset( $apiResponse['Contents'] ) ) {
+			return [];
+		}
+
+		$list = [];
+		foreach ( $apiResponse['Contents'] as $contentObj ) {
+			$dirname = dirname( $this->stripDirectorySuffix( $contentObj['Key'] ) );
+			if ( !isset( $seenDirectories[$dirname] ) ) {
+				/* New directory found */
+				$seenDirectories[$dirname] = true;
+
+				if ( $dirname != '.' ) { // Skip ".", as FSFileBackend does
+					$list[] = $dirname;
+				}
+			}
+		}
+
+		return $list;
 	}
 }

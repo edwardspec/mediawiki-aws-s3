@@ -80,7 +80,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 * @depends testCreate
 	 * @covers AmazonS3FileBackend::doGetFileStat
 	 */
-	public function xtestGetFileStat( array $params ) {
+	public function testGetFileStat( array $params ) {
 		$info = $this->backend->doGetFileStat( [ 'src' => $params['dst'] ] );
 
 		$this->assertEquals( $info['size'], strlen( $params['content'] ),
@@ -96,7 +96,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 * @depends testCreate
 	 * @covers AmazonS3FileBackend::getFileHttpUrl
 	 */
-	public function xtestFileHttpUrl( array $params ) {
+	public function testFileHttpUrl( array $params ) {
 		$url = $this->backend->getFileHttpUrl( [ 'src' => $params['dst'] ] );
 		$this->assertNotNull( $url, 'No URL returned by getFileHttpUrl()' );
 
@@ -119,44 +119,195 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
+	 * @brief Create multiple objects via doCreateInternal().
+	 * @coversNothing
+	 * @note This test is only needed to pre-create files for dependent tests like testGetLocalCopyMulti().
+	 * @returns array(
+	 *	'contents' => [ 'dst1' => 'content1', ... ],
+	 *	'filenames' => [ 'name1', ... ],
+	 *	'directories' => [ 'dirName1', ... ],
+	 *	'parentDirectory' => 'dirName',
+	 *	'container' => 'containerName'
+	 * );
+	 */
+	public function testCreateMultipleFiles() {
+		$info = [
+			'contents' => [],
+			'filenames' => [],
+			'directories' => [],
+			'parentDirectory' => 'Testdir_' . time() . '_' . rand()
+		];
+
+		foreach ( [ 1, 2, '' ] as $dirSuffix ) {
+			$directoryName = $info['parentDirectory'];
+			if ( $dirSuffix != '' ) {
+				$directoryName .= "/dir${dirSuffix}";
+			}
+
+			$info['directories'][] = $directoryName;
+
+			foreach ( [ 'a', 'b', 'c' ] as $fileSuffix ) {
+				$filename = "$directoryName/file${fileSuffix}.txt";
+				$info['filenames'][] = $filename;
+
+				$dst = $this->getVirtualPath( $filename );
+				$info['contents'][$dst] = "test content ${dirSuffix}-${fileSuffix} " . rand();
+
+				$status = $this->backend->doCreateInternal( [
+					'dst' => $dst,
+					'content' => $info['contents'][$dst]
+				]);
+				$this->assertTrue( $status->isGood(), 'doCreateInternal() failed' );
+			}
+		}
+
+		/* Pass $info to dependent tests */
+		list( $info['container'], ) = $this->backend->resolveStoragePathReal(
+			array_keys( $info['contents'] )[0]
+		);
+		return $info;
+	}
+
+	/**
+	 * @brief Check that doGetLocalCopyMulti() provides correct content.
+	 * @covers AmazonS3FileBackend::doGetLocalCopyMulti
+	 * @depends testCreateMultipleFiles
+	 */
+	public function testGetLocalCopyMulti( array $info ) {
+		/*
+			Test response of doGetLocalCopyMulti.
+		*/
+		$expectedContents = $info['contents'];
+		$result = $this->backend->doGetLocalCopyMulti( [
+			'src' => array_keys( $expectedContents )
+		] );
+		$this->assertInternalType( 'array', $result,
+			'doGetLocalCopyMulti() didn\'t return an array' );
+		$this->assertCount( count( $expectedContents ), $result,
+			'Incorrect number of elements returned by doGetLocalCopyMulti()' );
+
+		foreach ( $expectedContents as $dst => $expectedContent ) {
+			$this->assertArrayHasKey( $dst, $result,
+				"URL $dst not found() in array returned by doGetLocalCopyMulti()" );
+			$this->assertEquals( $expectedContent, file_get_contents( $result[$dst]->getPath() ),
+				"Incorrect contents of $dst returned by doGetLocalCopyMulti()" );
+		}
+	}
+
+	/**
 	 * @brief Check that getDirectoryListInternal() can find the newly created object.
-	 * @depends testCreate
+	 * @depends testCreateMultipleFiles
 	 * @covers AmazonS3FileBackend::getDirectoryListInternal
 	 */
-	public function testDirectoryListInternal( array $params ) {
+	public function testDirectoryListInternal( array $info ) {
+		$directory = $info['parentDirectory'];
 		$iterator = $this->backend->getDirectoryListInternal(
-			$params['container'],
-			$params['directory'],
+			$info['container'],
+			$directory,
 			[]
 		);
 
-		$subdirs = [];
+		$foundDirs = [];
 		foreach ( $iterator as $dir ) {
-			$subdirs[] = $dir;
+			$foundDirs[] = $dir;
 		}
 
-		$expectedSubdirs = [ '.' ]; // Test directory doesn't have any subdirectories
-		$this->assertEquals( $expectedSubdirs, $subdirs );
+		$expectedDirs = $this->getExpectedFilenames( $directory, false, $info['directories'] );
+		$this->assertEquals( $expectedDirs, $foundDirs );
+	}
+
+	/**
+	 * @brief Test getDirectoryListInternal() with topOnly flag.
+	 * @depends testCreateMultipleFiles
+	 * @covers AmazonS3FileBackend::getDirectoryListInternal
+	 */
+	public function testDirectoryListInternal_topOnly( array $info ) {
+		$directory = $info['parentDirectory'];
+		$iterator = $this->backend->getDirectoryListInternal(
+			$info['container'],
+			$directory,
+			[ 'topOnly' => true ]
+		);
+
+		$foundDirs = [];
+		foreach ( $iterator as $dir ) {
+			$foundDirs[] = $dir;
+		}
+
+		$expectedDirs = $this->getExpectedFilenames( $directory, true, $info['directories'] );
+		$this->assertEquals( $expectedDirs, $foundDirs );
+	}
+
+	/**
+		@brief Calculate expected filenames under $directory in $topOnly mode.
+		Used by tests like testDirectoryListInternal_topOnly().
+
+		@param $where Either $info['directories'] or $info['filenames'],
+			where $info is the return value of testCreateMultipleFiles().
+	*/
+	protected function getExpectedFilenames( $directory, $topOnly, array $where ) {
+		return array_filter( array_map( function( $filename ) use ( $directory, $topOnly ) {
+			$prefix = $directory . '/';
+			if ( strpos( $filename, $prefix ) !== 0 ) {
+				return null;
+			}
+
+			$filename = substr( $filename, strlen( $prefix ) );
+			if ( $topOnly && strpos( $filename, '/' ) !== false ) {
+				return null; /* Subdirectory in $filename, not expected in topOnly mode */
+			}
+
+			return $filename;
+		}, $where ) );
 	}
 
 	/**
 	 * @brief Check that getFileListInternal() can find the newly created object.
-	 * @depends testCreate
+	 * @depends testCreateMultipleFiles
 	 * @covers AmazonS3FileBackend::getFileListInternal
 	 */
-	public function testFileListInternal( array $params ) {
+	public function testFileListInternal( array $info ) {
+		$directory = $info['directories'][0];
 		$iterator = $this->backend->getFileListInternal(
-			$params['container'],
-			$params['directory'],
+			$info['container'],
+			$directory,
 			[]
 		);
 
-		$files = [];
+		$foundFiles = [];
 		foreach ( $iterator as $file ) {
-			$files[] = $file;
+			$foundFiles[] = $file;
 		}
 
-		$this->assertContains( $params['filename'], $files );
+		$expectedFiles = $this->getExpectedFilenames( $directory, false, $info['filenames'] );
+
+		$this->assertEquals( $expectedFiles, $foundFiles,
+			'List of files from getFileListInternal( topOnly=false ) doesn\'t match expected'
+		);
+	}
+
+	/**
+	 * @brief Test getFileListInternal() with topOnly flag.
+	 * @depends testCreateMultipleFiles
+	 * @covers AmazonS3FileBackend::getFileListInternal
+	 */
+	public function testFileListInternal_topOnly( array $info ) {
+		$directory = $info['parentDirectory'];
+		$iterator = $this->backend->getFileListInternal(
+			$info['container'],
+			$directory,
+			[ 'topOnly' => true ]
+		);
+
+		$foundFiles = [];
+		foreach ( $iterator as $file ) {
+			$foundFiles[] = $info['parentDirectory'] . '/' . $file;
+		}
+
+		$expectedFiles = $this->getExpectedFilenames( $directory, true, $info['filenames'] );
+
+		$this->assertEquals( sort( $expectedFiles ), sort( $foundFiles ),
+			'List of files from getFileListInternal( topOnly=true ) doesn\'t match expected' );
 	}
 
 	/**
