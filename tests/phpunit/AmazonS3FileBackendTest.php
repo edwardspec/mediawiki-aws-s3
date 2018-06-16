@@ -33,8 +33,8 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	/** @var FileRepo */
 	private $repo;
 
-	protected function setUp () {
-		parent::setUp();
+	public function __construct( $name = null, array $data = [], $dataName = '' ) {
+		parent::__construct( $name, $data, $dataName );
 
 		$this->backend = TestingAccessWrapper::newFromObject(
 			FileBackendGroup::singleton()->get( 'AmazonS3' )
@@ -151,7 +151,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 				$info['filenames'][] = $filename;
 
 				$dst = $this->getVirtualPath( $filename );
-				$info['contents'][$dst] = "test content ${dirSuffix}-${fileSuffix} " . rand();
+				$info['contents'][$dst] = $this->getTestContent( $filename );
 
 				$status = $this->backend->doCreateInternal( [
 					'dst' => $dst,
@@ -194,48 +194,114 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		}
 	}
 
-	/**
-	 * @brief Check that getDirectoryListInternal() can find the newly created object.
-	 * @depends testCreateMultipleFiles
-	 * @covers AmazonS3FileBackend::getDirectoryListInternal
-	 */
-	public function testDirectoryListInternal( array $info ) {
-		$directory = $info['parentDirectory'];
-		$iterator = $this->backend->getDirectoryListInternal(
-			$info['container'],
-			$directory,
-			[]
-		);
-
-		$foundDirs = [];
-		foreach ( $iterator as $dir ) {
-			$foundDirs[] = $dir;
-		}
-
-		$expectedDirs = $this->getExpectedFilenames( $directory, false, $info['directories'] );
-		$this->assertEquals( $expectedDirs, $foundDirs );
+	protected function getTestContent( $filename ) {
+		return 'Content of [' . $filename . '].';
 	}
 
 	/**
-	 * @brief Test getDirectoryListInternal() with topOnly flag.
-	 * @depends testCreateMultipleFiles
-	 * @covers AmazonS3FileBackend::getDirectoryListInternal
-	 */
-	public function testDirectoryListInternal_topOnly( array $info ) {
-		$directory = $info['parentDirectory'];
-		$iterator = $this->backend->getDirectoryListInternal(
-			$info['container'],
-			$directory,
-			[ 'topOnly' => true ]
-		);
-
-		$foundDirs = [];
-		foreach ( $iterator as $dir ) {
-			$foundDirs[] = $dir;
+		@brief Create test pages for testLists().
+		@returns [ 'parentDirectory' => 'dirname', 'container' => 'container-name' ]
+	*/
+	protected function prepareListTest() {
+		static $testinfo = null;
+		if ( !is_null( $testinfo ) ) {
+			return $testinfo;
 		}
 
-		$expectedDirs = $this->getExpectedFilenames( $directory, true, $info['directories'] );
-		$this->assertEquals( $expectedDirs, $foundDirs );
+		$parentDirectory = 'Testdir_' . time() . '_' . rand();
+		$filenames = $this->getFilenamesForListTest();
+
+		foreach ( $filenames as $filename ) {
+			$status = $this->backend->doCreateInternal( [
+				'dst' => $this->getVirtualPath( $parentDirectory . '/' . $filename ),
+				'content' => $this->getTestContent( $filename )
+			] );
+			$this->assertTrue( $status->isGood(), 'doCreateInternal() failed' );
+		}
+
+		list( $container, ) = $this->backend->resolveStoragePathReal(
+			$this->getVirtualPath( $parentDirectory . $filenames[0] )
+		);
+
+		$testinfo = [
+			'container' => $container,
+			'parentDirectory' => $parentDirectory
+		];
+		return $testinfo;
+	}
+
+	/**
+		@brief List of files that must be created before testLists().
+		@see listingTestsDataProvider
+		@see testLists
+	*/
+	public function getFilenamesForListTest() {
+		return [
+			'dir1/file1.txt',
+			'dir1/file2.txt',
+			'dir1/file3.txt',
+			'dir1/subdir1/file1-1-1.txt',
+			'dir1/subdir1/file1-1-2.txt',
+			'dir1/subdir2/file1-2-1.txt',
+			'dir2/file1.txt',
+			'dir2/file2.txt',
+			'dir2/subdir1/file2-1-1.txt',
+			'dir2/file3.txt',
+			'file1_in_topdir.txt',
+			'file2_in_topdir.txt'
+		];
+	}
+
+	/**
+		@brief Provides datasets for testLists().
+	*/
+	public function listingTestsDataProvider() {
+		return [
+			[ 'doDirectoryExists', 'WeNeverCreatedFilesWithThisPrefix', [], false ],
+			[ 'getDirectoryListInternal', '', [], [ 'dir1', 'dir1/subdir1', 'dir1/subdir2', 'dir2', 'dir2/subdir1' ] ],
+			[ 'getDirectoryListInternal', '', [ 'topOnly' => true ], [ 'dir1', 'dir2' ] ],
+			[ 'getDirectoryListInternal', 'dir1', [], [ 'subdir1', 'subdir2' ] ],
+			[ 'getDirectoryListInternal', 'dir2', [], [ 'subdir1' ] ],
+			[ 'getDirectoryListInternal', 'dir1/file2.txt', [], [] ],
+			[ 'getFileListInternal', '', [], $this->getFilenamesForListTest() ],
+			[ 'getFileListInternal', '', [ 'topOnly' => true ], [ 'file1_in_topdir.txt', 'file2_in_topdir.txt' ] ],
+			[ 'getFileListInternal', 'dir1', [],
+				[ 'file1.txt', 'file2.txt', 'file3.txt', 'subdir1/file1-1-1.txt', 'subdir1/file1-1-2.txt', 'subdir2/file1-2-1.txt' ] ],
+			[ 'getFileListInternal', 'dir1', [ 'topOnly' => true ], [ 'file1.txt', 'file2.txt', 'file3.txt' ] ],
+			[ 'getFileListInternal', 'dir1/subdir1', [], [ 'file1-1-1.txt', 'file1-1-2.txt', 'file1-1-3.txt' ] ],
+			[ 'getFileListInternal', 'dir1/subdir1', [ 'topOnly' => true ], [ 'file1-1-1.txt', 'file1-1-2.txt', 'file1-1-3.txt' ] ],
+			[ 'getFileListInternal', 'dir2', [], [ 'file1.txt', 'file2.txt', 'subdir1/file2-1-1.txt', 'file3.txt' ] ],
+			[ 'getFileListInternal', 'dir2', [ 'topOnly' => true ], [ 'file1.txt', 'file2.txt', 'file3.txt' ] ]
+		];
+	}
+
+	/**
+	 * @brief Check that get*ListInternal() works as expected
+	 * @dataProvider listingTestsDataProvider
+	 * @covers AmazonS3FileBackend::getDirectoryListInternal
+	 * @covers AmazonS3FileBackend::getFileListInternal
+	 */
+	public function testList( $method, $directory, $params, $expectedResult ) {
+		$testinfo = $this->prepareListTest();
+
+		$result = $this->backend->$method(
+			$testinfo['container'],
+			$testinfo['parentDirectory'] . ( $directory == '' ? '' : "/$directory" ),
+			$params
+		);
+		if ( $method == 'doDirectoryExists' ) {
+			$this->assertEquals( $result, $expectedResult );
+			return;
+		}
+
+		$foundFilenames = [];
+		foreach ( $result as $dir ) {
+			$foundFilenames[] = $dir;
+		}
+
+		$this->assertEquals( sort( $expectedResult ), sort( $foundFilenames ),
+			"Directory listing doesn't match expected."
+		);
 	}
 
 	/**
@@ -261,65 +327,6 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		}, $where ) );
 	}
 
-	/**
-	 * @brief Check that getFileListInternal() can find the newly created object.
-	 * @depends testCreateMultipleFiles
-	 * @covers AmazonS3FileBackend::getFileListInternal
-	 */
-	public function testFileListInternal( array $info ) {
-		$directory = $info['directories'][0];
-		$iterator = $this->backend->getFileListInternal(
-			$info['container'],
-			$directory,
-			[]
-		);
-
-		$foundFiles = [];
-		foreach ( $iterator as $file ) {
-			$foundFiles[] = $file;
-		}
-
-		$expectedFiles = $this->getExpectedFilenames( $directory, false, $info['filenames'] );
-
-		$this->assertEquals( $expectedFiles, $foundFiles,
-			'List of files from getFileListInternal( topOnly=false ) doesn\'t match expected'
-		);
-	}
-
-	/**
-	 * @brief Test getFileListInternal() with topOnly flag.
-	 * @depends testCreateMultipleFiles
-	 * @covers AmazonS3FileBackend::getFileListInternal
-	 */
-	public function testFileListInternal_topOnly( array $info ) {
-		$directory = $info['parentDirectory'];
-		$iterator = $this->backend->getFileListInternal(
-			$info['container'],
-			$directory,
-			[ 'topOnly' => true ]
-		);
-
-		$foundFiles = [];
-		foreach ( $iterator as $file ) {
-			$foundFiles[] = $info['parentDirectory'] . '/' . $file;
-		}
-
-		$expectedFiles = $this->getExpectedFilenames( $directory, true, $info['filenames'] );
-
-		$this->assertEquals( sort( $expectedFiles ), sort( $foundFiles ),
-			'List of files from getFileListInternal( topOnly=true ) doesn\'t match expected' );
-	}
-
-	/**
-	 * @brief Check that doDirectoryExists() returns false on non-existant directory.
-	 * @depends testCreate
-	 * @covers AmazonS3FileBackend::doDirectoryExists
-	 */
-	public function testDirectoryExists_emptyDir( array $params ) {
-		$fakeDir = 'WeNeverCreatedFilesWithThisPrefix';
-		$this->assertFalse( $this->backend->doDirectoryExists( $params['container'], $fakeDir, [] ),
-			"doDirectoryExists() says that [$fakeDir] exists, but we never created it." );
-	}
 
 	/**
 	 * @brief Check that doCopyInternal() succeeds.
