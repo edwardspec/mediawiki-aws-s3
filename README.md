@@ -55,7 +55,6 @@ $wgLocalFileRepo = array (
 	'name'              => 'local',
 	'backend'           => 'AmazonS3',
 	'scriptDirUrl'      => $wgScriptPath,
-	'scriptExtension'   => $wgScriptExtension,
 	'url'               => $wgScriptPath . '/img_auth.php',
 	'hashLevels'        => 0,
 	'zones'             => array(
