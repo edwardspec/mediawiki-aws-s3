@@ -29,7 +29,7 @@ $wgExtensionCredits['other'][] = array(
 	'path'           => __FILE__,
 	'name'           => 'AWS',
 	'url'            => 'https://www.mediawiki.org/wiki/Extension:AWS',
-	'version'        => '0.8.0',
+	'version'        => '0.8.1',
 	'author'         => array(
 		'Tyler Romeo',
 		'Daniel Friesen @ Redwerks',

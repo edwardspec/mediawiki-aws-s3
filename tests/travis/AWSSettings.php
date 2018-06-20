@@ -48,7 +48,7 @@ $wgFileBackends['s3']['containerPaths'] = [
 	"$wgDBname-local-temp" => "${BUCKET_PREFIX}-temp"
 ];
 
-$wgLocalFileRepo = array (
+$wgLocalFileRepo = [
 	'class'             => 'LocalRepo',
 	'name'              => 'local',
 	'backend'           => 'AmazonS3',
@@ -61,4 +61,4 @@ $wgLocalFileRepo = array (
 		'temp'    => [ 'url' => false ],
 		'deleted' => [ 'url' => false ]
 	]
-);
+];
