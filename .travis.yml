@@ -50,10 +50,10 @@ before_script:
   - echo -en "\n\nrequire_once __DIR__ . '/extensions/AWS/tests/travis/AWSSettings.php';\n" >> ./LocalSettings.php
   - php -l ./LocalSettings.php
   - php maintenance/update.php --quick
-  - export AWS_S3_TEST_TOP_DIRECTORY="test$(LC_ALL=C date +'%s')-$TRAVIS_BUILD_ID"
+  - export AWS_S3_TEST_TOP_DIRECTORY="test$(LC_ALL=C date +'%s')-$TRAVIS_BUILD_ID-$TRAVIS_BUILD_NUMBER"
 
 script:
   - php tests/phpunit/phpunit.php extensions/AWS/tests/phpunit/
 
 after_script:
-  - echo "TODO: clean the S3 directory $AWS_S3_TEST_TOP_DIRECTORY"
+  - echo "TODO - clean the S3 directory $AWS_S3_TEST_TOP_DIRECTORY"
