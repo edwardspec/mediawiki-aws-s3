@@ -15,6 +15,7 @@ if [ ! -f buildcache/mediawiki/COMPLETE ]; then
 		rm -rf mediawiki
 		git clone $GITCLONE_OPTS https://gerrit.wikimedia.org/r/p/mediawiki/core.git mediawiki -b "$branch"
 
+		cd mediawiki
 		[[ -f includes/DevelopmentSettings.php ]] || \
 			wget https://raw.githubusercontent.com/wikimedia/mediawiki/master/includes/DevelopmentSettings.php \
 				-O includes/DevelopmentSettings.php

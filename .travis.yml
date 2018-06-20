@@ -23,10 +23,10 @@ matrix:
   include:
     - env: branch=REL1_31
       php: 7.2
-#    - env: branch=REL1_27
-#      php: 7.1
-#    - env: branch=REL1_27
-#      php: 5.6
+    - env: branch=REL1_27
+      php: 7.1
+    - env: branch=REL1_27
+      php: 5.6
 
 cache:
   directories:
@@ -35,7 +35,7 @@ cache:
 before_script:
   - phpenv config-rm xdebug.ini
   - bash -ex ./tests/travis/build_mediawiki.sh "$branch"
-  - rsync -r * mediawiki/extensions/AWS
+  - rsync -a --exclude buildcache --exclude mediawiki --exclude .git * mediawiki/extensions/AWS/
   - cd mediawiki/extensions/AWS && composer install && cd -
   - cd mediawiki
   - >
