@@ -33,6 +33,12 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	/** @var FileRepo */
 	private $repo;
 
+	/**
+		@brief Test directory (e.g. 'testdir123').
+		All files created during this testrun will be placed in this directory.
+	*/
+	private $topDirectory;
+
 	public function __construct( $name = null, array $data = [], $dataName = '' ) {
 		parent::__construct( $name, $data, $dataName );
 
@@ -40,12 +46,19 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			FileBackendGroup::singleton()->get( 'AmazonS3' )
 		);
 		$this->repo = RepoGroup::singleton()->getLocalRepo();
+		$this->topDirectory = getenv( 'AWS_S3_TEST_TOP_DIRECTORY' ) ?:
+			( 'Testdir_' . time() . '_' . rand() );
 	}
 
 	/**
 		@brief Translate "Hello/world.txt" to mw:// pseudo-URL.
+		@param $prependTopDir If true, filename is prefixed with $topDirectory.
 	*/
-	private function getVirtualPath( $filename ) {
+	private function getVirtualPath( $filename, $prependTopDirectory = false ) {
+		if ( $prependTopDirectory ) {
+			$filename = $this->topDirectory . '/' . $filename;
+		}
+
 		return $this->repo->newFile( $filename )->getPath();
 	}
 
@@ -57,7 +70,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$params = [
 			'content' => 'hello',
 			'headers' => [],
-			'directory' => 'Hello',
+			'directory' => $this->topDirectory . '/Hello',
 			'filename' => 'world.txt',
 		];
 		$params['fullfilename'] = $params['directory'] . '/' . $params['filename'];
@@ -119,7 +132,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			return $testinfo;
 		}
 
-		$parentDirectory = 'Testdir_' . time() . '_' . rand();
+		$parentDirectory = $this->topDirectory . '/ListTest';
 		$filenames = $this->getFilenamesForListTest();
 
 		foreach ( $filenames as $filename ) {
@@ -131,7 +144,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		}
 
 		list( $container, ) = $this->backend->resolveStoragePathReal(
-			$this->getVirtualPath( $parentDirectory . $filenames[0] )
+			$this->getVirtualPath( $parentDirectory . '/' . $filenames[0] )
 		);
 
 		$testinfo = [
