@@ -13,12 +13,14 @@ if [ ! -f buildcache/mediawiki/COMPLETE ]; then
 	(
 		cd buildcache
 		rm -rf mediawiki
-		git clone $GITCLONE_OPTS https://gerrit.wikimedia.org/r/p/mediawiki/core.git mediawiki -b "$branch"
+		git clone $GITCLONE_OPTS https://gerrit.wikimedia.org/r/p/mediawiki/core.git mediawiki
 
 		cd mediawiki
 		[[ -f includes/DevelopmentSettings.php ]] || \
 			wget https://raw.githubusercontent.com/wikimedia/mediawiki/master/includes/DevelopmentSettings.php \
 				-O includes/DevelopmentSettings.php
+
+		find . -name .git | xargs rm -rf
 
 		composer install --prefer-dist --quiet --no-interaction
 		touch COMPLETE # Mark this buildcache as usable
