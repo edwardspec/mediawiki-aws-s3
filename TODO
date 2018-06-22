@@ -1,3 +1,11 @@
 TODO:
 
+* (config) Simplify configuration.
+	Currently the amount of code you must insert into LocalSettings.php
+	is ridiculous (see [tests/travis/AWSSettings.php] for an example).
+	Most users would only set (1) $wgAWSRegion and (2) bucket prefix.
+	Private wikis would additionally set url of public/thumb to false,
+	and add "privateWiki" key to $wgLocalFileRepo
+	(both steps are optional, read-restricted wiki is auto-detected).
+
 * (testsuite) Provide ~100% automated test coverage of all functionality.

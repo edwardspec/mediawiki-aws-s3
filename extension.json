@@ -1,0 +1,51 @@
+{
+	"name": "AWS",
+	"version": "0.8.1",
+	"author": [
+		"Tyler Romeo",
+		"Daniel Friesen @ Redwerks",
+		"Edward Chernenko"
+	],
+	"url": "https://www.mediawiki.org/wiki/Extension:AWS",
+	"descriptionmsg": "aws-desc",
+	"license-name": "GPL-2.0+",
+	"type": "other",
+	"MessagesDirs": {
+		"AWS": [
+			"i18n"
+		]
+	},
+	"AutoloadClasses": {
+		"AmazonS3FileBackend": "s3/AmazonS3FileBackend.php",
+		"AmazonS3FileIterator": "s3/AmazonS3FileBackend.php",
+		"AmazonS3DirectoryIterator": "s3/AmazonS3FileBackend.php"
+	},
+	"config": {
+		"@doc1": "Credentials to connect to AWS. Setting this in LocalSettings.php is NOT NEEDED if your EC2 instance has an IAM instance profile, and its IAM role allows access to Amazon S3 (see README).",
+		"AWSCredentials": {
+			"key": false,
+			"secret": false,
+			"token": false,
+			"_merge_strategy": "array_plus"
+		},
+
+		"@doc2": "Region of AWS to connect to.",
+		"AWSRegion": false,
+
+		"@doc3": "Whether to use HTTPS with AWS.",
+		"AWSUseHTTPS": true,
+
+
+		"@doc4": "INTERNAL (don't configure this in LocalSettings.php): Adds this backend to $wgFileBackends.",
+		"FileBackends": {
+			"s3": {
+				"name": "AmazonS3",
+				"class": "AmazonS3FileBackend",
+				"lockManager": "nullLockManager"
+			},
+			"_merge_strategy": "array_plus_2d"
+		}
+	},
+
+	"manifest_version": 1
+}

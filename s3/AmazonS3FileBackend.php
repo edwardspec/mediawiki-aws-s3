@@ -21,6 +21,8 @@
  * @file
  */
 
+require_once __DIR__ . '/../vendor/autoload.php';
+
 use Aws\S3\S3Client;
 use Aws\S3\Enum\CannedAcl;
 use Aws\S3\Exception\BucketNotEmptyException;
