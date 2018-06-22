@@ -65,4 +65,5 @@ after_script:
   - echo $BUCKET
   - echo $AWS_S3_TEST_TOP_DIRECTORY
   - ~/.local/bin/aws s3 ls --recursive $BUCKET
+  - echo ~/.local/bin/aws s3 rm --recursive s3://$BUCKET/$AWS_S3_TEST_TOP_DIRECTORY
   - ~/.local/bin/aws s3 rm --recursive s3://$BUCKET/$AWS_S3_TEST_TOP_DIRECTORY
