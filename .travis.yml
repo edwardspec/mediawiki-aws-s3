@@ -21,12 +21,12 @@ env:
 
 matrix:
   include:
-#    - env: branch=REL1_31
-#      php: 7.2
+    - env: branch=REL1_31
+      php: 7.2
     - env: branch=REL1_27
       php: 7.1
-#    - env: branch=REL1_27
-#      php: 5.6
+    - env: branch=REL1_27
+      php: 5.6
 
 cache:
   directories:
@@ -49,7 +49,6 @@ before_script:
   - echo -en "\n\nrequire_once __DIR__ . '/includes/DevelopmentSettings.php';\n" >> ./LocalSettings.php
   - echo -en "\n\nrequire_once __DIR__ . '/extensions/AWS/tests/travis/AWSSettings.php';\n" >> ./LocalSettings.php
   - php -l ./LocalSettings.php
-  - php maintenance/update.php --quick
   - export AWS_S3_TEST_TOP_DIRECTORY="Test$(LC_ALL=C date +'%s')-$TRAVIS_JOB_NUMBER"
 
 script:
