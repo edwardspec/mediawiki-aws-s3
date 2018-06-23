@@ -117,14 +117,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$this->memCache = $config['wanCache'];
 		}
 
-		$this->client = S3Client::factory( array(
+		$this->client = S3Client::factory( [
 			'key' => isset( $config['awsKey'] ) ? $config['awsKey'] : $wgAWSCredentials['key'],
 			'secret' => isset( $config['awsSecret'] ) ? $config['awsSecret'] : $wgAWSCredentials['secret'],
 			'token' => isset( $config['awsToken'] ) ? $config['awsToken'] : $wgAWSCredentials['token'],
 			'region' => isset( $config['awsRegion'] ) ? $config['awsRegion'] : $wgAWSRegion,
 			'scheme' => $this->useHTTPS ? 'https' : 'http',
 			'ssl.certificate_authority' => $this->useHTTPS ?: null
-		) );
+		] );
 
 		if ( isset( $config['containerPaths'] ) ) {
 			$this->containerPaths = (array)$config['containerPaths'];
@@ -188,21 +188,21 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$sha1Hash = Wikimedia\base_convert( sha1( $params['content'] ), 16, 36, 31, true, 'auto' );
 		}
 
-		$params['headers'] = isset( $params['headers'] ) ? $params['headers'] : array();
-		$params['headers'] += array_fill_keys( array(
+		$params['headers'] = isset( $params['headers'] ) ? $params['headers'] : [];
+		$params['headers'] += array_fill_keys( [
 			'Cache-Control',
 			'Content-Disposition',
 			'Content-Encoding',
 			'Content-Language',
 			'Expires'
-		), null );
+		], null );
 
 		if ( !isset( $params['headers']['Content-Type'] ) ) {
 			$params['headers']['Content-Type'] = $this->getContentType( $params['dst'], $params['content'], null );
 		}
 
 		try {
-			$res = $this->client->putObject( array(
+			$res = $this->client->putObject( [
 				'ACL' => $this->isSecure( $container ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
 				'Body' => $params['content'],
 				'Bucket' => $container,
@@ -215,7 +215,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'Key' => $key,
 				'Metadata' => array( 'sha1base36' => $sha1Hash ),
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null,
-			) );
+			] );
 		} catch ( NoSuchBucketException $e ) {
 			$status->fatal( 'backend-fail-create', $params['dst'] );
 		} catch ( S3Exception $e ) {
@@ -246,8 +246,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return $status;
 		}
 
-		$params['headers'] = isset( $params['headers'] ) ? $params['headers'] : array();
-		$params['headers'] += array_fill_keys( array(
+		$params['headers'] = isset( $params['headers'] ) ? $params['headers'] : [];
+		$params['headers'] += array_fill_keys( [
 			'Cache-Control',
 			'Content-Disposition',
 			'Content-Encoding',
@@ -256,10 +256,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 			'Expires',
 			'E-Tag',
 			'If-Modified-Since'
-		), null );
+		], null );
 
 		try {
-			$res = $this->client->copyObject( array_filter( array(
+			$res = $this->client->copyObject( array_filter( [
 				'ACL' => $this->isSecure( $dstContainer ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
 				'Bucket' => $dstContainer,
 				'CacheControl' => $params['headers']['Cache-Control'],
@@ -274,7 +274,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'Key' => $dstKey,
 				'MetadataDirective' => 'COPY',
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null
-			) ) );
+			] ) );
 		} catch ( NoSuchBucketException $e ) {
 			$status->fatal( 'backend-fail-copy', $params['src'], $params['dst'] );
 		} catch ( NoSuchKeyException $e ) {
@@ -298,10 +298,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		try {
-			$this->client->deleteObject( array(
+			$this->client->deleteObject( [
 				'Bucket' => $container,
 				'Key' => $key
-			) );
+			] );
 		} catch ( NoSuchBucketException $e ) {
 			$status->fatal( 'backend-fail-delete', $params['src'] );
 		} catch ( NoSuchKeyException $e ) {
@@ -317,7 +317,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 	function doDirectoryExists( $container, $dir, array $params ) {
 		// See if at least one file is in the directory.
-		$it = new AmazonS3FileIterator( $this->client, $container, $dir, array(), 1 );
+		$it = new AmazonS3FileIterator( $this->client, $container, $dir, [], 1 );
 		return $it->valid();
 	}
 
@@ -333,27 +333,26 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		try {
-			$res = $this->client->headObject( array(
+			$res = $this->client->headObject( [
 				'Bucket' => $container,
 				'Key' => $key
-			) );
+			] );
 		} catch ( S3Exception $e ) {
 			$this->handleException( $e, null, __METHOD__, $params );
 			return false;
 		}
 
-        if (array_key_exists('sha1base36',$res['Metadata'])) {
-            $sha1base36 = $res['Metadata']['sha1base36'];
-        } else {
-            $sha1base36 = '';
-        }
+		$sha1 = '';
+		if ( isset( $res['Metadata']['sha1base36'] ) ) {
+			$sha1 = $res['Metadata']['sha1base36'];
+		}
 
-		return array(
+		return [
 			'mtime' => wfTimestamp( TS_MW, $res['LastModified'] ),
 			'size' => (int)$res['ContentLength'],
 			'etag' => $res['Etag'],
-            'sha1' => $sha1base36
-		);
+			'sha1' => $sha1
+		];
 	}
 
 	function getFileHttpUrl( array $params ) {
@@ -379,11 +378,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	function doGetLocalCopyMulti( array $params ) {
-		$fsFiles = array();
-		$params += array(
+		$fsFiles = [];
+		$params += [
 			'srcs' => $params['src'],
 			'concurrency' => isset( $params['srcs'] ) ? count( $params['srcs'] ) : 1
-		);
+		];
 		foreach( array_chunk( $params['srcs'], $params['concurrency'] ) as $pathBatch ) {
 			foreach( $pathBatch as $src ) {
 				list( $container, $key ) = $this->resolveStoragePathReal( $src );
@@ -399,7 +398,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 					continue;
 				}
 
-				$srcPath = $this->getFileHttpUrl( array( 'src' => $src ) );
+				$srcPath = $this->getFileHttpUrl( [ 'src' => $src ] );
 				$dstPath = $tmpFile->getPath();
 				if( !$srcPath ) {
 					$fsFiles[$src] = null;
@@ -422,21 +421,21 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		if( !$this->client->doesBucketExist( $container ) ) {
 			try {
-				$res = $this->client->createBucket( array(
+				$res = $this->client->createBucket( [
 					'ACL' => isset( $params['noListing'] ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
 					'Bucket' => $container
-				) );
+				] );
 			} catch ( S3Exception $e ) {
 				$this->handleException( $e, $status, __METHOD__, $params );
 			}
 		}
 
-		$this->client->waitUntilBucketExists( array( 'Bucket' => $container ) );
+		$this->client->waitUntilBucketExists( [ 'Bucket' => $container ] );
 
-		$params += array(
+		$params += [
 			'access' => empty( $params['noAccess'] ),
 			'listing' => empty( $params['noListing'] )
-		);
+		];
 
 		$status->merge( $this->doPublishInternal( $container, $dir, $params ) );
 		$status->merge( $this->doSecureInternal( $container, $dir, $params ) );
@@ -453,10 +452,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		if( !empty( $params['access'] ) ) {
 			try {
-				$res = $this->client->deleteObject(array(
+				$res = $this->client->deleteObject( [
 					'Bucket' => $container,
 					'Key'    => self::RESTRICT_FILE
-				));
+				] );
 			} catch ( S3Exception $e ) {
 				$this->handleException( $e, $status, __METHOD__, $params );
 			}
@@ -472,11 +471,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		if( !empty( $params['noAccess'] ) ) {
 			try {
-				$res = $this->client->putObject(array(
+				$res = $this->client->putObject( [
 					'Bucket' => $container,
 					'Key'    => self::RESTRICT_FILE,
 					'Body'   => '' /* Empty file */
-				));
+				] );
 			} catch ( S3Exception $e ) {
 				$this->handleException( $e, $status, __METHOD__, $params );
 			}
@@ -492,7 +491,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return true; /* Private wiki: all buckets are secure, even in "public" and "thumb" zones */
 		}
 
-		if(array_key_exists($container, $this->isBucketSecure)) {
+		if ( array_key_exists( $container, $this->isBucketSecure ) ) {
 			/* We've just secured/published this very bucket */
 			return $this->isBucketSecure[$container];
 		}
@@ -592,13 +591,13 @@ class AmazonS3FileIterator implements Iterator {
 		}
 
 		try {
-			$apiResponse = $this->client->listObjects( array(
+			$apiResponse = $this->client->listObjects( [
 				'Bucket' => $this->container,
 				'Delimiter' => $this->topOnly ? '/' : '',
 				'Marker' => $this->marker,
 				'MaxKeys' => $this->limit,
 				'Prefix' => $this->dir
-			) );
+			] );
 		} catch ( NoSuchBucketException $e ) { }
 
 		$this->filenamesArray = $this->extractNamesFromResponse( $apiResponse, $this->topOnly );
