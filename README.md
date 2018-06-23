@@ -23,7 +23,7 @@ Why is this needed: when images are in S3, Amazon EC2 instance which runs MediaW
 # Configuration in LocalSettings.php
 
 ```php
-require_once( "$IP/extensions/AWS/AWS.php" );
+wfLoadExtension( 'AWS' );
 
 // Configure AWS credentials.
 // THIS IS NOT NEEDED if your EC2 instance has an IAM instance profile.
@@ -36,29 +36,7 @@ $wgAWSCredentials = [
 $wgAWSRegion = 'us-east-1'; # Northern Virginia
 
 // Replace <something> with the prefix of your S3 buckets, e.g. wonderfulbali234.
-$wgFileBackends['s3']['containerPaths'] = [
-	"$wgDBname-local-public" => "${BUCKET_PREFIX}-img",
-	"$wgDBname-local-thumb" => "${BUCKET_PREFIX}-thumb",
-	"$wgDBname-local-deleted" => "${BUCKET_PREFIX}-deleted",
-	"$wgDBname-local-temp" => "${BUCKET_PREFIX}-temp"
-];
-
-// Make MediaWiki use Amazon S3 for file storage.
-// Replace <something> with the prefix of your S3 buckets, e.g. wonderfulbali234.
-$wgLocalFileRepo = [
-	'class'             => 'LocalRepo',
-	'name'              => 'local',
-	'backend'           => 'AmazonS3',
-	'scriptDirUrl'      => $wgScriptPath,
-	'url'               => $wgScriptPath . '/img_auth.php',
-	'hashLevels'        => 0,
-	'zones'             => [
-		'public'  => [ 'url' => "http://${BUCKET_PREFIX}.s3.amazonaws.com" ],
-		'thumb'   => [ 'url' => "http://${BUCKET_PREFIX}-thumb.s3.amazonaws.com" ],
-		'temp'    => [ 'url' => false ],
-		'deleted' => [ 'url' => false ]
-	]
-];
+$wgAWSBucketPrefix = "<something>";
 ```
 
 # Needed IAM permissions
