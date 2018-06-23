@@ -56,7 +56,7 @@ before_script:
 script:
   - php tests/phpunit/phpunit.php extensions/AWS/tests/phpunit/
   - >
-      AWS_S3_TEST_TOP_DIRECTORY="AWS_S3_TEST_TOP_DIRECTORY/oldStyle" &&
+      AWS_S3_TEST_TOP_DIRECTORY="${AWS_S3_TEST_TOP_DIRECTORY}/oldStyle" &&
       mv OldStyleLocalSettings.php LocalSettings.php &&
       php tests/phpunit/phpunit.php extensions/AWS/tests/phpunit/
 
