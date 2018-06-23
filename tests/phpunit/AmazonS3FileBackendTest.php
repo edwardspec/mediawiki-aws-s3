@@ -325,4 +325,66 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$this->assertEquals( $expectedContent, $content,
 			'Content downloaded from FileHttpUrl is different from expected' );
 	}
+
+	/**
+	 * @brief Check that doSecureInternal() and doPublishInternal() succeed.
+	 * @covers AmazonS3FileBackend::doSecureInternal
+	 * @covers AmazonS3FileBackend::doPublishInternal
+	 */
+	public function testSecureAndPublish() {
+		$dst = $this->getVirtualPath( $this->topDirectory . '/Stored/File/2.txt' );
+		list( $container, $key ) = $this->backend->resolveStoragePathReal( $dst );
+
+		/* Order of these tests will be different, see below */
+		$subtests = [
+			'noopPublish' => [
+				'doPublishInternal', // method
+				[], // params. Note: call without 'access => true' does nothing
+				true // Expected security after the test: still secure
+			],
+			'publish' => [ 'doPublishInternal', [ 'access' => true ], false ],
+			'noopSecure' => [ 'doSecureInternal', [], false ],
+			'secure' => [ 'doSecureInternal', [ 'noAccess' => true ], true ]
+		];
+
+		/* Because we can't create/delete S3 buckets
+			(we don't want to give these permissions to IAM user
+			used for testing), we use an existing bucket,
+			and the starting state (is secure? Yes/No) can be different.
+
+			Luckily, we have Publish test for "Yes" and Secure test for "No",
+			and they (if successful) switch "Yes" to "No" (and back).
+			So we run them in different order, depending on the starting state.
+		*/
+		$isSecure = $this->backend->isSecure( $container );
+
+		$orderOfTests = [ 'noopSecure', 'secure', 'noopPublish', 'publish' ];
+		if ( $isSecure ) {
+			$orderOfTests = [ 'noopPublish', 'publish', 'noopSecure', 'secure' ];
+		}
+
+		foreach ( $orderOfTests as $subtestName ) {
+			$this->backend->isBucketSecure = []; // Delete cache, so that it won't affect this subtest
+
+			list ( $method, $params, $expectedSecurity ) = $subtests[$subtestName];
+
+			$this->backend->$method( $container, 'unused', $params );
+			$status = $this->backend->doCreateInternal( [
+				'content' => 'Whatever',
+				'dst' => $dst
+			] );
+			$this->assertTrue( $status->isGood(), "$method() failed" );
+
+			# To check security, we try to download this S3 object via the public URL.
+			# Note: getFileHttpUrl() returns presigned URLs and can't be used here.
+			# A non-presigned URL will return HTTP 403 Forbidden
+			# if the ACL of this object is not PUBLIC_READ.
+			$url = $this->backend->client->getObjectUrl( $container, $key );
+			$securityAfterTest = ( Http::get( $url ) === false );
+
+			$this->assertEquals( $expectedSecurity, $securityAfterTest,
+				"Incorrect ACL: S3 Object uploaded after $method() is " .
+				( $expectedSecurity ? "publicly accessible" : "resticted for reading" ) );
+		}
+	}
 }
