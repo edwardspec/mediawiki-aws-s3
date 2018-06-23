@@ -33,7 +33,7 @@ $wgAWSCredentials['secret'] = $SECRET;
 $wgAWSRegion = 'us-east-1'; # Northern Virginia
 
 $wgFileBackends['s3']['containerPaths'] = [
-	"$wgDBname-local-public" => "${BUCKET_PREFIX}-img",
+	"$wgDBname-local-public" => "${BUCKET_PREFIX}",
 	"$wgDBname-local-thumb" => "${BUCKET_PREFIX}-thumb",
 	"$wgDBname-local-deleted" => "${BUCKET_PREFIX}-deleted",
 	"$wgDBname-local-temp" => "${BUCKET_PREFIX}-temp"
