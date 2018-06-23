@@ -298,4 +298,31 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$info = $this->backend->doGetFileStat( [ 'src' => $params['copy-dst'] ] );
 		$this->assertFalse( $info, 'doGetFileStat() says the file still exists after doDeleteInternal()' );
 	}
+
+	/**
+	 * @brief Check that doStoreInternal() succeeds.
+	 * @covers AmazonS3FileBackend::doStoreInternal
+	 *
+	 * Pretty much the same checks as in testCreate().
+	 */
+	public function testStoreInternal() {
+		$src = tempnam( wfTempDir(), 'testupload' );
+		$dst = $this->getVirtualPath( $this->topDirectory . '/Stored/File/1.txt' );
+
+		$expectedContent = '-- whatever --';
+		file_put_contents( $src, $expectedContent );
+
+		$status = $this->backend->doStoreInternal( [
+			'src' => $src,
+			'dst' => $dst
+		] );
+		$this->assertTrue( $status->isGood(), 'doStoreInternal() failed' );
+
+		$url = $this->backend->getFileHttpUrl( [ 'src' => $dst ] );
+		$this->assertNotNull( $url, 'No URL returned by getFileHttpUrl()' );
+
+		$content = Http::get( $url );
+		$this->assertEquals( $expectedContent, $content,
+			'Content downloaded from FileHttpUrl is different from expected' );
+	}
 }
