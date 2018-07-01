@@ -5,7 +5,7 @@
 ###############################################################################
 
 branch=$1
-GITCLONE_OPTS="--depth 1 --recursive -b $branch"
+GITCLONE_OPTS="--depth 1 --recurse-submodules -j 5 -b $branch"
 
 mkdir -p buildcache/mediawiki
 
