@@ -103,4 +103,3 @@ class AmazonS3Hooks {
 		$wgFileBackends['s3']['containerPaths'] = $containerPaths;
 	}
 }
-

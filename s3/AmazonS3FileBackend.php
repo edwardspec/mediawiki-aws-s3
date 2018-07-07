@@ -25,7 +25,6 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use Aws\S3\S3Client;
 use Aws\S3\Enum\CannedAcl;
-use Aws\S3\Exception\BucketNotEmptyException;
 use Aws\S3\Exception\NoSuchBucketException;
 use Aws\S3\Exception\NoSuchKeyException;
 use Aws\S3\Exception\S3Exception;
@@ -135,8 +134,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		if ( isset( $config['privateWiki'] ) ) {
 			/* Explicitly set in LocalSettings.php ($wgLocalFileRepo) */
 			$this->privateWiki = $config['privateWiki'];
-		}
-		else {
+		} else {
 			/* If anonymous users aren't allowed to read articles,
 				then we assume that this wiki is private,
 				and that we want files to be "for registered users only".
@@ -177,7 +175,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$status = Status::newGood();
 
 		list( $container, $key ) = $this->resolveStoragePathReal( $params['dst'] );
-		if( $container === null || $key == null ) {
+		if ( $container === null || $key == null ) {
 			$status->fatal( 'backend-fail-invalidpath', $params['dst'] );
 			return $status;
 		}
@@ -213,7 +211,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'ContentType' => $params['headers']['Content-Type'],
 				'Expires' => $params['headers']['Expires'],
 				'Key' => $key,
-				'Metadata' => array( 'sha1base36' => $sha1Hash ),
+				'Metadata' => [ 'sha1base36' => $sha1Hash ],
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null,
 			] );
 		} catch ( NoSuchBucketException $e ) {
@@ -235,14 +233,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		list( $srcContainer, $srcKey ) = $this->resolveStoragePathReal( $params['src'] );
 		list( $dstContainer, $dstKey ) = $this->resolveStoragePathReal( $params['dst'] );
-		if( $srcContainer === null || $srcKey == null ) {
+		if ( $srcContainer === null || $srcKey == null ) {
 			$status->fatal( 'backend-fail-invalidpath', $params['src'] );
 		}
-		if( $dstContainer === null || $dstKey == null ) {
+		if ( $dstContainer === null || $dstKey == null ) {
 			$status->fatal( 'backend-fail-invalidpath', $params['dst'] );
 		}
 
-		if( !$status->isOK() ) {
+		if ( !$status->isOK() ) {
 			return $status;
 		}
 
@@ -292,7 +290,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$status = Status::newGood();
 
 		list( $container, $key ) = $this->resolveStoragePathReal( $params['src'] );
-		if( $container === null || $key == null ) {
+		if ( $container === null || $key == null ) {
 			$status->fatal( 'backend-fail-invalidpath', $params['src'] );
 			return $status;
 		}
@@ -324,11 +322,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 	function doGetFileStat( array $params ) {
 		list( $container, $key ) = $this->resolveStoragePathReal( $params['src'] );
 
-		if( $container === null || $key == null ) {
+		if ( $container === null || $key == null ) {
 			return null;
-		} elseif( !$this->client->doesBucketExist( $container ) ) {
+		} elseif ( !$this->client->doesBucketExist( $container ) ) {
 			return false;
-		} elseif( !$this->client->doesObjectExist( $container, $key ) ) {
+		} elseif ( !$this->client->doesObjectExist( $container, $key ) ) {
 			return false;
 		}
 
@@ -357,7 +355,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 	function getFileHttpUrl( array $params ) {
 		list( $container, $key ) = $this->resolveStoragePathReal( $params['src'] );
-		if( $container === null ) {
+		if ( $container === null ) {
 			return null;
 		}
 
@@ -383,24 +381,24 @@ class AmazonS3FileBackend extends FileBackendStore {
 			'srcs' => $params['src'],
 			'concurrency' => isset( $params['srcs'] ) ? count( $params['srcs'] ) : 1
 		];
-		foreach( array_chunk( $params['srcs'], $params['concurrency'] ) as $pathBatch ) {
-			foreach( $pathBatch as $src ) {
+		foreach ( array_chunk( $params['srcs'], $params['concurrency'] ) as $pathBatch ) {
+			foreach ( $pathBatch as $src ) {
 				list( $container, $key ) = $this->resolveStoragePathReal( $src );
-				if( $container === null || $key === null ) {
+				if ( $container === null || $key === null ) {
 					$fsFiles[$src] = null;
 					continue;
 				}
 
 				$ext = self::extensionFromPath( $src );
 				$tmpFile = TempFSFile::factory( 'localcopy_', $ext );
-				if( !$tmpFile ) {
+				if ( !$tmpFile ) {
 					$fsFiles[$src] = null;
 					continue;
 				}
 
 				$srcPath = $this->getFileHttpUrl( [ 'src' => $src ] );
 				$dstPath = $tmpFile->getPath();
-				if( !$srcPath ) {
+				if ( !$srcPath ) {
 					$fsFiles[$src] = null;
 					continue;
 				}
@@ -415,11 +413,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $fsFiles;
 	}
 
-
 	function doPrepareInternal( $container, $dir, array $params ) {
 		$status = Status::newGood();
 
-		if( !$this->client->doesBucketExist( $container ) ) {
+		if ( !$this->client->doesBucketExist( $container ) ) {
 			try {
 				$res = $this->client->createBucket( [
 					'ACL' => isset( $params['noListing'] ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
@@ -450,7 +447,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	function doPublishInternal( $container, $dir, array $params ) {
 		$status = Status::newGood();
 
-		if( !empty( $params['access'] ) ) {
+		if ( !empty( $params['access'] ) ) {
 			try {
 				$res = $this->client->deleteObject( [
 					'Bucket' => $container,
@@ -469,7 +466,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	function doSecureInternal( $container, $dir, array $params ) {
 		$status = Status::newGood();
 
-		if( !empty( $params['noAccess'] ) ) {
+		if ( !empty( $params['noAccess'] ) ) {
 			try {
 				$res = $this->client->putObject( [
 					'Bucket' => $container,
@@ -497,8 +494,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		try {
-			$is_secure = $this->client->doesObjectExist($container,
-				self::RESTRICT_FILE);
+			$is_secure = $this->client->doesObjectExist( $container,
+				self::RESTRICT_FILE );
 		} catch ( S3Exception $e ) {
 			/* Assume insecure */
 			return false;
@@ -598,7 +595,8 @@ class AmazonS3FileIterator implements Iterator {
 				'MaxKeys' => $this->limit,
 				'Prefix' => $this->dir
 			] );
-		} catch ( NoSuchBucketException $e ) { }
+		} catch ( NoSuchBucketException $e ) {
+  }
 
 		$this->filenamesArray = $this->extractNamesFromResponse( $apiResponse, $this->topOnly );
 		$this->index = 0;
@@ -607,24 +605,24 @@ class AmazonS3FileIterator implements Iterator {
 	}
 
 	/**
-		@brief Delete first $suffixStart symbols from $path.
-		@returns Filename (what remains of $path).
-	*/
+		 @brief Delete first $suffixStart symbols from $path.
+		 @return Filename (what remains of $path).
+	 */
 	protected function stripDirectorySuffix( $path ) {
 		return substr( $path, $this->suffixStart );
 	}
 
 	/**
-		@brief Extract filenames (but not directories) from $apiResponse.
-		@param $apiResponse Return value of successful listObjects() API call.
-		@returns Array of strings (filenames).
-	*/
+		 @brief Extract filenames (but not directories) from $apiResponse.
+		 @param $apiResponse Return value of successful listObjects() API call.
+		 @return Array of strings (filenames).
+	 */
 	protected function extractNamesFromResponse( $apiResponse, $topOnly ) {
 		if ( !isset( $apiResponse['Contents'] ) ) {
 			return [];
 		}
 
-		return array_map( function( $contentObj ) {
+		return array_map( function ( $contentObj ) {
 			return $this->stripDirectorySuffix( $contentObj['Key'] );
 		}, $apiResponse['Contents'] );
 	}
@@ -638,10 +636,10 @@ class AmazonS3DirectoryIterator extends AmazonS3FileIterator {
 	}
 
 	/**
-		@brief Extract directory names (but not files) from $apiResponse.
-		@param $apiResponse Return value of successful listObjects() API call.
-		@returns Array of strings (filenames).
-	*/
+		 @brief Extract directory names (but not files) from $apiResponse.
+		 @param $apiResponse Return value of successful listObjects() API call.
+		 @return Array of strings (filenames).
+	 */
 	protected function extractNamesFromResponse( $apiResponse, $topOnly ) {
 		if ( $topOnly ) {
 			/* In $topOnly mode, Delimiter=/ was used,
@@ -651,7 +649,7 @@ class AmazonS3DirectoryIterator extends AmazonS3FileIterator {
 				return [];
 			}
 
-			return array_map( function( $prefixObj ) {
+			return array_map( function ( $prefixObj ) {
 				$prefix = $this->stripDirectorySuffix( $prefixObj['Prefix'] );
 
 				/* Strip "/" which is always in the end of CommonPrefixes */

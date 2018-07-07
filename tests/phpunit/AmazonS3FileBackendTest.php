@@ -366,7 +366,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		foreach ( $orderOfTests as $subtestName ) {
 			$this->backend->isBucketSecure = []; // Delete cache, so that it won't affect this subtest
 
-			list ( $method, $params, $expectedSecurity ) = $subtests[$subtestName];
+			list( $method, $params, $expectedSecurity ) = $subtests[$subtestName];
 			$this->backend->$method( $container, 'unused', $params );
 
 			// Delete cache, so that doCreateInternal would actually recheck security,
