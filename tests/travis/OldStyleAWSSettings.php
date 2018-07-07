@@ -25,7 +25,7 @@ $BUCKET_PREFIX = getenv( 'AWS_BUCKET_PREFIX' );
 
 ###############################################################################
 
-require_once( "$IP/extensions/AWS/AWS.php" );
+require_once "$IP/extensions/AWS/AWS.php";
 
 $wgAWSCredentials['key'] = $KEY;
 $wgAWSCredentials['secret'] = $SECRET;

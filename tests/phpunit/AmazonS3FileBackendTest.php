@@ -188,20 +188,28 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			[ 'doDirectoryExists', 'dir2/subdir1', [], true ],
 			[ 'doDirectoryExists', 'dir1/file2.txt', [], false ],
 			[ 'doDirectoryExists', 'WeNeverCreatedFilesWithThisPrefix', [], false ],
-			[ 'getDirectoryListInternal', '', [], [ 'dir1', 'dir1/subdir1', 'dir1/subdir2', 'dir2', 'dir2/subdir1' ] ],
+			[ 'getDirectoryListInternal', '', [],
+				[ 'dir1', 'dir1/subdir1', 'dir1/subdir2', 'dir2', 'dir2/subdir1' ] ],
 			[ 'getDirectoryListInternal', '', [ 'topOnly' => true ], [ 'dir1', 'dir2' ] ],
 			[ 'getDirectoryListInternal', 'dir1', [], [ 'subdir1', 'subdir2' ] ],
 			[ 'getDirectoryListInternal', 'dir2', [], [ 'subdir1' ] ],
 			[ 'getDirectoryListInternal', 'dir1/file2.txt', [], [] ],
 			[ 'getFileListInternal', '', [], $this->getFilenamesForListTest() ],
-			[ 'getFileListInternal', '', [ 'topOnly' => true ], [ 'file1_in_topdir.txt', 'file2_in_topdir.txt' ] ],
+			[ 'getFileListInternal', '', [ 'topOnly' => true ],
+				[ 'file1_in_topdir.txt', 'file2_in_topdir.txt' ] ],
 			[ 'getFileListInternal', 'dir1', [],
-				[ 'file1.txt', 'file2.txt', 'file3.txt', 'subdir1/file1-1-1.txt', 'subdir1/file1-1-2.txt', 'subdir2/file1-2-1.txt' ] ],
-			[ 'getFileListInternal', 'dir1', [ 'topOnly' => true ], [ 'file1.txt', 'file2.txt', 'file3.txt' ] ],
-			[ 'getFileListInternal', 'dir1/subdir1', [], [ 'file1-1-1.txt', 'file1-1-2.txt', 'file1-1-3.txt' ] ],
-			[ 'getFileListInternal', 'dir1/subdir1', [ 'topOnly' => true ], [ 'file1-1-1.txt', 'file1-1-2.txt', 'file1-1-3.txt' ] ],
-			[ 'getFileListInternal', 'dir2', [], [ 'file1.txt', 'file2.txt', 'subdir1/file2-1-1.txt', 'file3.txt' ] ],
-			[ 'getFileListInternal', 'dir2', [ 'topOnly' => true ], [ 'file1.txt', 'file2.txt', 'file3.txt' ] ]
+				[ 'file1.txt', 'file2.txt', 'file3.txt', 'subdir1/file1-1-1.txt',
+					'subdir1/file1-1-2.txt', 'subdir2/file1-2-1.txt' ] ],
+			[ 'getFileListInternal', 'dir1', [ 'topOnly' => true ],
+				[ 'file1.txt', 'file2.txt', 'file3.txt' ] ],
+			[ 'getFileListInternal', 'dir1/subdir1', [],
+				[ 'file1-1-1.txt', 'file1-1-2.txt', 'file1-1-3.txt' ] ],
+			[ 'getFileListInternal', 'dir1/subdir1', [ 'topOnly' => true ],
+				[ 'file1-1-1.txt', 'file1-1-2.txt', 'file1-1-3.txt' ] ],
+			[ 'getFileListInternal', 'dir2', [],
+				[ 'file1.txt', 'file2.txt', 'subdir1/file2-1-1.txt', 'file3.txt' ] ],
+			[ 'getFileListInternal', 'dir2', [ 'topOnly' => true ],
+				[ 'file1.txt', 'file2.txt', 'file3.txt' ] ]
 		];
 	}
 
@@ -296,7 +304,8 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$this->assertTrue( $status->isGood(), 'doDeleteInternal() failed' );
 
 		$info = $this->backend->doGetFileStat( [ 'src' => $params['copy-dst'] ] );
-		$this->assertFalse( $info, 'doGetFileStat() says the file still exists after doDeleteInternal()' );
+		$this->assertFalse( $info,
+			'doGetFileStat() says the file still exists after doDeleteInternal()' );
 	}
 
 	/**
@@ -366,7 +375,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		foreach ( $orderOfTests as $subtestName ) {
 			$this->backend->isBucketSecure = []; // Delete cache, so that it won't affect this subtest
 
-			list ( $method, $params, $expectedSecurity ) = $subtests[$subtestName];
+			list( $method, $params, $expectedSecurity ) = $subtests[$subtestName];
 			$this->backend->$method( $container, 'unused', $params );
 
 			// Delete cache, so that doCreateInternal would actually recheck security,
