@@ -196,7 +196,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 		], null );
 
 		if ( !isset( $params['headers']['Content-Type'] ) ) {
-			$params['headers']['Content-Type'] = $this->getContentType( $params['dst'], $params['content'], null );
+			$params['headers']['Content-Type'] =
+				$this->getContentType( $params['dst'], $params['content'], null );
 		}
 
 		try {
