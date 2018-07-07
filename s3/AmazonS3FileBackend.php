@@ -614,9 +614,10 @@ class AmazonS3FileIterator implements Iterator {
 	}
 
 	/**
-		 @brief Extract filenames (but not directories) from $apiResponse.
-		 @param $apiResponse Return value of successful listObjects() API call.
-		 @return Array of strings (filenames).
+	 * @brief Extract filenames (but not directories) from $apiResponse.
+	 * @param array $apiResponse Return value of successful listObjects() API call.
+	 * @param bool $topOnly
+	 * @return Array of strings (filenames).
 	 */
 	protected function extractNamesFromResponse( $apiResponse, $topOnly ) {
 		if ( !isset( $apiResponse['Contents'] ) ) {
@@ -637,9 +638,10 @@ class AmazonS3DirectoryIterator extends AmazonS3FileIterator {
 	}
 
 	/**
-		 @brief Extract directory names (but not files) from $apiResponse.
-		 @param $apiResponse Return value of successful listObjects() API call.
-		 @return Array of strings (filenames).
+	 * @brief Extract directory names (but not files) from $apiResponse.
+	 * @param array $apiResponse Return value of successful listObjects() API call.
+	 * @param bool $topOnly
+	 * @return Array of strings (filenames).
 	 */
 	protected function extractNamesFromResponse( $apiResponse, $topOnly ) {
 		if ( $topOnly ) {
