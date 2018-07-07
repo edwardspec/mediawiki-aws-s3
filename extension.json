@@ -16,9 +16,9 @@
 		]
 	},
 	"AutoloadClasses": {
-		"AmazonS3DirectoryIterator": "s3/AmazonS3FileBackend.php",
+		"AmazonS3DirectoryIterator": "s3/AmazonS3DirectoryIterator.php",
 		"AmazonS3FileBackend": "s3/AmazonS3FileBackend.php",
-		"AmazonS3FileIterator": "s3/AmazonS3FileBackend.php",
+		"AmazonS3FileIterator": "s3/AmazonS3FileIterator.php",
 		"AmazonS3Hooks": "includes/AmazonS3Hooks.php"
 	},
 	"ExtensionFunctions": [
