@@ -14,6 +14,8 @@ Why is this needed: when images are in S3, Amazon EC2 instance which runs MediaW
 
 4\) Choose a unique name (not taken by another AWS user) for your Amazon S3 buckets, e.g. `wonderfulbali234`. Create four S3 buckets: `wonderfulbali234`, `wonderfulbali234-thumb`, `wonderfulbali234-deleted`, `wonderfulbali234-temp`. Note: this name will be seen in URL of images.
 
+4a\) If you use a custom S3 domain, such as for a CDN, see the Custom S3 domain section below
+
 5a\) If your EC2 instance has an IAM instance profile (recommended), copy everything from "Needed IAM permissions" (see below) to inline policy of the IAM role. See https://console.aws.amazon.com/iam/home#/roles
 
 5b\) If your EC2 instance doesn't have an IAM profile, obtain key/secret for AWS API. You'll need to write it in LocalSettings.php (see below).
@@ -37,6 +39,8 @@ $wgAWSRegion = 'us-east-1'; # Northern Virginia
 
 // Replace <something> with the prefix of your S3 buckets, e.g. wonderfulbali234.
 $wgAWSBucketPrefix = "<something>";
+
+// If you have a custom S3 domain, set $wgAWSBucketDomain = "domain.com";
 ```
 
 # Needed IAM permissions
@@ -71,3 +75,15 @@ Note: you must create S3 buckets yourself (not wait for MediaWiki to do it).
         ]
 }
 ```
+
+# Custom S3 Domain
+
+You can set a custom S3 domain, which is useful if you use a CDN such as CloudFlare to cache your images. 
+
+See https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html for further information
+
+1\) When you create your four S3 buckets, you must include your full domain in their names, eg: `files.example.com`, `files-thumb.example.com`, `files-temp.example.com`, `files-deleted.example.com`
+
+2\) At your DNS provider, set a CNAME for each bucket, eg `files-thumb` points to `files-thumb.example.com.s3.amazonaws.com`
+
+3\) In LocalSettings.php, add the configuration  `$wgAWSBucketDomain = "example.com";`

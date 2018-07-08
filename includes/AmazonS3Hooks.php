@@ -34,7 +34,7 @@ class AmazonS3Hooks {
 	 * and $wgContLang only gets defined after SetupAfterCache.
 	 */
 	public static function installBackend() {
-		global $wgFileBackends, $wgAWSBucketPrefix;
+		global $wgFileBackends, $wgAWSBucketPrefix, $wgAWSBucketDomain;
 
 		if ( !isset( $wgFileBackends['s3'] ) ) {
 			$wgFileBackends['s3'] = [];
@@ -50,9 +50,16 @@ class AmazonS3Hooks {
 
 			In this case we'll still provide AmazonS3FileBackend,
 			but MediaWiki won't use it for storing uploads.
+			
+			
+			
+			* This also sends $wgAWSBucketDomain. If it's not set, use 's3.amazonaws.com' as the default
 		*/
-		if ( $wgAWSBucketPrefix ) {
-			self::replaceLocalRepo( $wgAWSBucketPrefix );
+		
+		if ( $wgAWSBucketPrefix && $wgAWSBucketDomain ) {
+			self::replaceLocalRepo( $wgAWSBucketPrefix, $wgAWSBucketDomain );
+		} elseif ( $wgAWSBucketPrefix ) {
+			self::replaceLocalRepo( $wgAWSBucketPrefix, 's3.amazonaws.com' );
 		}
 
 		return true;
@@ -61,9 +68,9 @@ class AmazonS3Hooks {
 	/**
 	 * Replace $wfLocalRepo with Amazon S3.
 	 */
-	protected static function replaceLocalRepo( $prefix ) {
+	protected static function replaceLocalRepo( $prefix, $s3domain  ) {
 		global $wgFileBackends, $wgLocalFileRepo, $wgDBname;
-
+		
 		/* Needed zones */
 		$zones = [ 'public', 'thumb', 'deleted', 'temp' ];
 		$publicZones = [ 'public', 'thumb' ];
@@ -91,7 +98,7 @@ class AmazonS3Hooks {
 				$bucket = $prefix .
 					( $zone == 'public' ? '' : "-$zone" );
 				$wgLocalFileRepo['zones'][$zone] = [
-					'url' => "https://${bucket}.s3.amazonaws.com"
+					'url' => "https://${bucket}.${s3domain}"
 				];
 			}
 		}
