@@ -59,10 +59,10 @@ class AmazonS3Hooks {
 	}
 
 	/**
-	 * Replace $wfLocalRepo with Amazon S3.
+	 * Replace $wgLocalRepo with Amazon S3.
 	 */
 	protected static function replaceLocalRepo( $prefix ) {
-		global $wgFileBackends, $wgLocalFileRepo, $wgDBname;
+		global $wgFileBackends, $wgLocalFileRepo, $wgDBname, $wgAWSBucketDomain;
 
 		/* Needed zones */
 		$zones = [ 'public', 'thumb', 'deleted', 'temp' ];
@@ -91,7 +91,7 @@ class AmazonS3Hooks {
 				$bucket = $prefix .
 					( $zone == 'public' ? '' : "-$zone" );
 				$wgLocalFileRepo['zones'][$zone] = [
-					'url' => "https://${bucket}.s3.amazonaws.com"
+					'url' => "https://${bucket}.${wgAWSBucketDomain}"
 				];
 			}
 		}
