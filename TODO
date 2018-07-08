@@ -1,2 +1,8 @@
 TODO:
+* (feature) Improve the syntax of $wgAWSBucketDomain (too restrictive).
+	E.g. we might want to have S3 bucket "mysite-media-thumb" available under
+	the URL "media.example.com" (where $wgAWSBucketPrefix="mysite-media").
 * (testsuite) Provide ~100% automated test coverage of all functionality.
+
+Tests needed:
+* Configuration test (calculation of $wgLocalFileRepo from $wgAWSBucketPrefix, etc.).
