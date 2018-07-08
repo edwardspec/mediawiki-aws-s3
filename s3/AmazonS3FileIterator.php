@@ -31,10 +31,10 @@ use Aws\S3\Exception\NoSuchBucketException;
  */
 class AmazonS3FileIterator implements Iterator {
 	private $client, $container, $dir, $topOnly, $limit;
-	private $index, $marker, $finished;
+	private $index, $marker, $finished, $suffixStart;
 
-	private $filenamesArray = []; /**< Array of filenames obtained by the last listObjects() call */
-	private $suffixStart;
+	/** @var array Filenames obtained by the last listObjects() call */
+	private $filenamesArray = [];
 
 	public function __construct( S3Client $client, $container, $dir, array $params, $limit = 500 ) {
 		/* "Directory" must end with the slash,
