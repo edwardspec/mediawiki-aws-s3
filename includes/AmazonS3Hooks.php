@@ -52,7 +52,7 @@ class AmazonS3Hooks {
 			but MediaWiki won't use it for storing uploads.
 		*/
 		if ( $wgAWSBucketPrefix ) {
-			self::replaceLocalRepo( $wgAWSBucketPrefix );
+			self::replaceLocalRepo();
 		}
 
 		return true;
@@ -61,20 +61,12 @@ class AmazonS3Hooks {
 	/**
 	 * Replace $wgLocalRepo with Amazon S3.
 	 */
-	protected static function replaceLocalRepo( $prefix ) {
-		global $wgFileBackends, $wgLocalFileRepo, $wgDBname, $wgAWSBucketDomain;
+	protected static function replaceLocalRepo() {
+		global $wgFileBackends, $wgLocalFileRepo, $wgDBname;
 
 		/* Needed zones */
 		$zones = [ 'public', 'thumb', 'deleted', 'temp' ];
 		$publicZones = [ 'public', 'thumb' ];
-
-		/*
-			Determine S3 buckets that contain the images.
-		*/
-		$bucketNames = [];
-		foreach ( $zones as $zone ) {
-			$bucketNames[$zone] = $prefix . ( $zone == 'public' ? '' : "-$zone" );
-		}
 
 		$wgLocalFileRepo = [
 			'class'             => 'LocalRepo',
@@ -88,18 +80,71 @@ class AmazonS3Hooks {
 		if ( User::isEveryoneAllowed( 'read' ) ) {
 			/* Not a private wiki: $publicZones must have an URL */
 			foreach ( $publicZones as $zone ) {
-				$bucket = $prefix .
-					( $zone == 'public' ? '' : "-$zone" );
 				$wgLocalFileRepo['zones'][$zone] = [
-					'url' => "https://${bucket}.${wgAWSBucketDomain}"
+					'url' => self::getBucketUrl( $zone )
 				];
 			}
 		}
 
 		$containerPaths = [];
 		foreach ( $zones as $zone ) {
-			$containerPaths["$wgDBname-local-$zone"] = $bucketNames[$zone];
+			$containerPaths["$wgDBname-local-$zone"] = self::getBucketName( $zone );
 		}
 		$wgFileBackends['s3']['containerPaths'] = $containerPaths;
+	}
+
+	/**
+	 * Returns S3 bucket name for $zone, based on $wgAWSBucketPrefix.
+	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
+	 * @return string Name of S3 bucket, e.g. "mysite-media-thumb".
+	 */
+	protected static function getBucketName( $zone ) {
+		global $wgAWSBucketPrefix;
+		return $wgAWSBucketPrefix . self::getZoneSuffix( $zone );
+	}
+
+	/**
+	 * Returns zone suffix (string which is appended to S3 bucket names) of $zone.
+	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
+	 * @return string
+	 */
+	protected static function getZoneSuffix( $zone ) {
+		return ( $zone == 'public' ? '' : "-$zone" );
+	}
+
+	/**
+	 * Returns external URL of the bucket.
+	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
+	 * @return string URL, e.g. "https://something.s3.amazonaws.com".
+	 */
+	protected static function getBucketUrl( $zone ) {
+		global $wgAWSBucketDomain;
+
+		if ( is_array( $wgAWSBucketDomain ) ) {
+			if ( !isset( $wgAWSBucketDomain[$zone] ) ) {
+				throw new MWException(
+					"\$wgAWSBucketDomain is an array without the required key \"$zone\"" );
+			}
+
+			$domain = $wgAWSBucketDomain[$zone];
+		} else {
+			$domain = $wgAWSBucketDomain;
+
+			// Sanity check to avoid the same domain being used for both 'public' and 'thumb'
+			if ( !$domain || !preg_match( '/\$[12]/', $domain ) ) {
+				throw new MWException( '$wgAWSBucketDomain string must contain either $1 or $2.' );
+			}
+		}
+
+		// Apply replacements:
+		// $1 - full S3 bucket name (e.g. mysite-media-thumb)
+		// $2 - zone suffix (e.g. "-thumb" for "thumb" zone, "" for public zone)
+		$domain = str_replace(
+			[ '$1', '$2' ],
+			[ self::getBucketName( $zone ), self::getZoneSuffix( $zone ) ],
+			$domain
+		);
+
+		return 'https://' . $domain;
 	}
 }
