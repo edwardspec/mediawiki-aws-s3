@@ -1,8 +1,12 @@
 TODO:
-* (feature) Improve the syntax of $wgAWSBucketDomain (too restrictive).
-	E.g. we might want to have S3 bucket "mysite-media-thumb" available under
-	the URL "media.example.com" (where $wgAWSBucketPrefix="mysite-media").
-* (testsuite) Provide ~100% automated test coverage of all functionality.
 
-Tests needed:
-* Configuration test (calculation of $wgLocalFileRepo from $wgAWSBucketPrefix, etc.).
+Medium-prio:
+* (testsuite) Provide ~100% automated test coverage of all functionality.
+* (feature) Detect absence of any of the 4 needed S3 buckets,
+	create them all immediately,
+	throw MWException "please create them manually" if createBucket() fails.
+
+Low-prio:
+* (third-party) Update AWS PHP SDK to version 3.
+	This can only be done in a release version, because current installations
+	would require "composer install" after updating Extension:AWS.
