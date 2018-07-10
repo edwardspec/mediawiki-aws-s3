@@ -122,7 +122,7 @@ class AmazonS3Hooks {
 
 		if ( is_array( $wgAWSBucketDomain ) ) {
 			if ( !isset( $wgAWSBucketDomain[$zone] ) ) {
-				throw new MWException(
+				throw new AmazonS3MisconfiguredException(
 					"\$wgAWSBucketDomain is an array without the required key \"$zone\"" );
 			}
 
@@ -132,7 +132,8 @@ class AmazonS3Hooks {
 
 			// Sanity check to avoid the same domain being used for both 'public' and 'thumb'
 			if ( !$domain || !preg_match( '/\$[12]/', $domain ) ) {
-				throw new MWException( '$wgAWSBucketDomain string must contain either $1 or $2.' );
+				throw new AmazonS3MisconfiguredException(
+					'$wgAWSBucketDomain string must contain either $1 or $2.' );
 			}
 		}
 

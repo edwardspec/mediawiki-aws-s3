@@ -57,7 +57,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 
 		try {
 			AmazonS3Hooks::installBackend();
-		} catch ( MWException $e ) {
+		} catch ( AmazonS3MisconfiguredException $e ) {
 			$text = MWExceptionHandler::getLogMessage( $e );
 			$this->assertContains( $expectedExceptionText, $e->getText(),
 				"Unexpected exception from installBackend()" );
@@ -153,7 +153,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 				]
 			],
 
-			// Part 3. Incorrect configurations that should throw MwException.
+			// Part 3. Incorrect configurations that should throw AmazonS3MisconfiguredException.
 			[
 				[
 					'wgAWSBucketPrefix' => 'mysite',
