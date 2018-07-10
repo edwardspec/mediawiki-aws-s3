@@ -24,6 +24,7 @@ use Wikimedia\TestingAccessWrapper;
 /**
  * @group FileRepo
  * @group FileBackend
+ * @group SkippedWithoutAwsCredentials
  * @group medium
  */
 class AmazonS3FileBackendTest extends MediaWikiTestCase {
