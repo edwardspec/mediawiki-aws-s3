@@ -155,7 +155,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$this->logger->info(
 			'S3FileBackend: found backend with S3 buckets: {buckets}.{isPrivateWiki}',
 			[
-				'buckets' => join( ', ', array_keys( $config['containerPaths'] ) ),
+				'buckets' => join( ', ', array_values( $config['containerPaths'] ) ),
 				'isPrivateWiki' => $this->privateWiki ?
 					' (private wiki, new S3 objects will be private)' : ''
 			]
