@@ -36,3 +36,5 @@ $wgAWSRegion = 'us-east-1'; # Northern Virginia
 $wgAWSCredentials['key'] = getenv( 'AWS_KEY' );
 $wgAWSCredentials['secret'] = getenv( 'AWS_SECRET' );
 $wgAWSBucketPrefix = getenv( 'AWS_BUCKET_PREFIX' );
+
+$wgDebugLogGroups['FileOperation'] = getenv( 'TRAVIS_BUILD_DIR' ) . '/s3.log';

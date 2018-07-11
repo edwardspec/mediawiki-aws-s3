@@ -52,3 +52,5 @@ $wgLocalFileRepo = [
 		'deleted' => [ 'url' => false ]
 	]
 ];
+
+$wgDebugLogGroups['FileOperation'] = getenv( 'TRAVIS_BUILD_DIR' ) . '/oldstyle-s3.log';

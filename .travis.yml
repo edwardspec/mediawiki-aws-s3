@@ -61,6 +61,8 @@ script:
       AWS_S3_TEST_TOP_DIRECTORY="$topdir/oldStyle" php tests/phpunit/phpunit.php $PHPUNIT_OPTS extensions/AWS/tests/phpunit/
 
 after_script:
+  - cat "{$TRAVIS_BUILD_DIR}/s3.log"
+  - cat "{$TRAVIS_BUILD_DIR}/oldstyle-s3.log"
   - ./vendor/bin/phpcs -ps extensions/AWS/
   - pip install --user awscli
   - mkdir -p ~/.aws
