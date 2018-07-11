@@ -220,7 +220,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		$this->logger->debug(
-			'S3FileBackend: doCreateInternal(): saving {key} in S3 bucket {container} (sha1 of the original file: {sha1})',
+			'S3FileBackend: doCreateInternal(): saving {key} in S3 bucket {container} ' .
+			'(sha1 of the original file: {sha1})',
 			[
 				'container' => $container,
 				'key' => $key,
@@ -653,7 +654,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$this->logger->error(
 			'S3FileBackend: exception {exception} in {func}({params}): $errorMessage',
 			[
-				'exception' => get_class($e),
+				'exception' => get_class( $e ),
 				'func' => $func,
 				'params' => $params,
 				'errorMessage' => $e->getMessage() ?: ""

@@ -23,7 +23,7 @@ $KEY = getenv( 'AWS_KEY' );
 $SECRET = getenv( 'AWS_SECRET' );
 $BUCKET_PREFIX = getenv( 'AWS_BUCKET_PREFIX' );
 
-###############################################################################
+/*---------------------------------------------------------------------------*/
 
 require_once "$IP/extensions/AWS/AWS.php";
 
