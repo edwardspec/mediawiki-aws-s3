@@ -523,6 +523,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 			}
 		}
 
+		if ( !$status->isOK() ) {
+			return $status;
+		}
+
 		$this->client->waitUntilBucketExists( [ 'Bucket' => $container ] );
 
 		$this->logger->debug(
