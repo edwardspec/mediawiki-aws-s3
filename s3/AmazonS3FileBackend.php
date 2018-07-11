@@ -28,6 +28,7 @@ use Aws\S3\Enum\CannedAcl;
 use Aws\S3\Exception\NoSuchBucketException;
 use Aws\S3\Exception\NoSuchKeyException;
 use Aws\S3\Exception\S3Exception;
+use Psr\Log\LogLevel;
 
 /**
  * FileBackend for Amazon S3
@@ -74,11 +75,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 	private $isBucketSecure = [];
 
 	/**
-		@var boolean
-		@brief If true, then all S3 objects are private.
-		NOTE: for images to work in private mode, $wgUploadPath should point to img_auth.php.
+	 * @var bool If true, then all S3 objects are private.
+	 * NOTE: for images to work in private mode, $wgUploadPath should point to img_auth.php.
 	*/
 	protected $privateWiki = null;
+
+	/** @var LoggerInterface. B/C for MediaWiki 1.27 (already defined in FileBackend class) */
+	protected $logger = null;
 
 	/**
 	 * Construct the backend. Doesn't take any extra config parameters.
@@ -94,7 +97,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 *  * awsEncryption - Whether to turn on server-side encryption on AWS (implies awsHttps=true)
 	 *
 	 * @param array $config
-	 * @throws MWException if no containerPaths is set
+	 * @throws AmazonS3MisconfiguredException if no containerPaths is set
 	 */
 	function __construct( array $config ) {
 		global $wgAWSCredentials, $wgAWSRegion, $wgAWSUseHTTPS;
@@ -128,7 +131,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 		if ( isset( $config['containerPaths'] ) ) {
 			$this->containerPaths = (array)$config['containerPaths'];
 		} else {
-			throw new MWException( __METHOD__ . " : containerPaths array must be set for S3." );
+			throw new AmazonS3MisconfiguredException(
+				__METHOD__ . " : containerPaths array must be set for S3." );
 		}
 
 		if ( isset( $config['privateWiki'] ) ) {
@@ -141,6 +145,21 @@ class AmazonS3FileBackend extends FileBackendStore {
 			*/
 			$this->privateWiki = !( User::isEveryoneAllowed( 'read' ) );
 		}
+
+		if ( !$this->logger ) {
+			// B/C with MediaWiki 1.27.
+			// Modern MediaWiki creates a logger in parent::__construct().
+			$this->logger = MediaWiki\Logger\LoggerFactory::getInstance( 'FileOperation' );
+		}
+
+		$this->logger->info(
+			'S3FileBackend: found backend with S3 buckets: {buckets}.{isPrivateWiki}',
+			[
+				'buckets' => join( ', ', array_keys( $config['containerPaths'] ) ),
+				'isPrivateWiki' => $this->privateWiki ?
+					' (private wiki, new S3 objects will be private)' : ''
+			]
+		);
 	}
 
 	function directoriesAreVirtual() {
@@ -200,6 +219,15 @@ class AmazonS3FileBackend extends FileBackendStore {
 				$this->getContentType( $params['dst'], $params['content'], null );
 		}
 
+		$this->logger->debug(
+			'S3FileBackend: doCreateInternal(): saving {key} in S3 bucket {container} (sha1 of the original file: {sha1})',
+			[
+				'container' => $container,
+				'key' => $key,
+				'sha1' => $sha1Hash
+			]
+		);
+
 		try {
 			$res = $this->client->putObject( [
 				'ACL' => $this->isSecure( $container ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
@@ -244,6 +272,17 @@ class AmazonS3FileBackend extends FileBackendStore {
 		if ( !$status->isOK() ) {
 			return $status;
 		}
+
+		$this->logger->debug(
+			'S3FileBackend: doCopyInternal(): copying {srcKey} from S3 bucket {srcContainer} ' .
+			'to {dstKey} from S3 bucket {dstContainer}.',
+			[
+				'dstKey' => $dstKey,
+				'dstContainer' => $dstContainer,
+				'srcKey' => $srcKey,
+				'srcContainer' => $srcContainer
+			]
+		);
 
 		$params['headers'] = isset( $params['headers'] ) ? $params['headers'] : [];
 		$params['headers'] += array_fill_keys( [
@@ -296,6 +335,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return $status;
 		}
 
+		$this->logger->debug(
+			'S3FileBackend: doDeleteInternal(): deleting {key} from S3 bucket {container}',
+			[
+				'key' => $key,
+				'container' => $container
+			]
+		);
+
 		try {
 			$this->client->deleteObject( [
 				'Bucket' => $container,
@@ -322,6 +369,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 	function doGetFileStat( array $params ) {
 		list( $container, $key ) = $this->resolveStoragePathReal( $params['src'] );
+
+		$this->logger->debug(
+			'S3FileBackend: doGetFileStat(): obtaining information about {key} in S3 bucket {container}',
+			[
+				'key' => $key,
+				'container' => $container
+			]
+		);
 
 		if ( $container === null || $key == null ) {
 			return null;
@@ -359,6 +414,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 		if ( $container === null ) {
 			return null;
 		}
+
+		$this->logger->debug(
+			'S3FileBackend: getFileHttpUrl(): obtaining presigned S3 URL of {key} in S3 bucket {container}',
+			[
+				'key' => $key,
+				'container' => $container
+			]
+		);
 
 		try {
 			$request = $this->client->get( "$container/$key" );
@@ -408,6 +471,19 @@ class AmazonS3FileBackend extends FileBackendStore {
 				$ok = copy( $srcPath, $dstPath );
 				wfRestoreWarnings();
 
+				$this->logger->log(
+					$ok ? LogLevel::DEBUG : LogLevel::ERROR,
+					'S3FileBackend: doGetLocalCopyMulti: {result} {key} from S3 bucket ' .
+					'{container} (presigned S3 URL: {src}) to temporary file {dst}',
+					[
+						'result' => $ok ? 'copied' : 'failed to copy',
+						'key' => $key,
+						'container' => $container,
+						'src' => $srcPath,
+						'dst' => $dstPath
+					]
+				);
+
 				$fsFiles[$src] = $ok ? $tmpFile : null;
 			}
 		}
@@ -417,7 +493,26 @@ class AmazonS3FileBackend extends FileBackendStore {
 	function doPrepareInternal( $container, $dir, array $params ) {
 		$status = Status::newGood();
 
+		$this->logger->debug(
+			'S3FileBackend: doPrepareInternal: S3 bucket {container}, dir={dir}, params={params}',
+			[
+				'container' => $container,
+				'dir' => $dir,
+
+				// String, e.g. 'noAccess, noListing'
+				'params' => implode( ', ', array_keys( array_filter( $params ) ) )
+			]
+		);
+
 		if ( !$this->client->doesBucketExist( $container ) ) {
+			$this->logger->warning(
+				'S3FileBackend: doPrepareInternal: found non-existent S3 bucket {container}, ' .
+				'going to create it',
+				[
+					'container' => $container
+				]
+			);
+
 			try {
 				$res = $this->client->createBucket( [
 					'ACL' => isset( $params['noListing'] ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
@@ -429,6 +524,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		$this->client->waitUntilBucketExists( [ 'Bucket' => $container ] );
+
+		$this->logger->debug(
+			'S3FileBackend: doPrepareInternal: S3 bucket {container} exists',
+			[
+				'container' => $container
+			]
+		);
 
 		$params += [
 			'access' => empty( $params['noAccess'] ),
@@ -449,6 +551,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$status = Status::newGood();
 
 		if ( !empty( $params['access'] ) ) {
+			$this->logger->debug(
+				'S3FileBackend: doPublishInternal: deleting {file} from S3 bucket {container}',
+				[
+					'container' => $container,
+					'file' => self::RESTRICT_FILE
+				]
+			);
+
 			try {
 				$res = $this->client->deleteObject( [
 					'Bucket' => $container,
@@ -468,6 +578,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$status = Status::newGood();
 
 		if ( !empty( $params['noAccess'] ) ) {
+			$this->logger->debug(
+				'S3FileBackend: doSecureInternal: creating {file} in S3 bucket {container}',
+				[
+					'container' => $container,
+					'file' => self::RESTRICT_FILE
+				]
+			);
+
 			try {
 				$res = $this->client->putObject( [
 					'Bucket' => $container,
@@ -494,6 +612,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return $this->isBucketSecure[$container];
 		}
 
+		$this->logger->debug(
+			'S3FileBackend: isSecure: checking the presence of {file} in S3 bucket {container}',
+			[
+				'container' => $container,
+				'file' => self::RESTRICT_FILE
+			]
+		);
+
 		try {
 			$is_secure = $this->client->doesObjectExist( $container,
 				self::RESTRICT_FILE );
@@ -519,9 +645,15 @@ class AmazonS3FileBackend extends FileBackendStore {
 		if ( $e->getMessage() ) {
 			trigger_error( "$func : {$e->getMessage()}", E_USER_WARNING );
 		}
-		wfDebugLog( 'S3Backend',
-			get_class( $e ) . "in '{$func}' (given '" . FormatJson::encode( $params ) . "')" .
-			( $e->getMessage() ? ": {$e->getMessage()}" : "" )
+
+		$this->logger->error(
+			'S3FileBackend: exception {exception} in {func}({params}): $errorMessage',
+			[
+				'exception' => get_class($e),
+				'func' => $func,
+				'params' => $params,
+				'errorMessage' => $e->getMessage() ?: ""
+			]
 		);
 	}
 }
