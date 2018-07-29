@@ -78,11 +78,17 @@ class AmazonS3Hooks {
 		];
 
 		if ( User::isEveryoneAllowed( 'read' ) ) {
-			/* Not a private wiki: $publicZones must have an URL */
+			// Not a private wiki: $publicZones must have an URL
 			foreach ( $publicZones as $zone ) {
 				$wgLocalFileRepo['zones'][$zone] = [
 					'url' => self::getBucketUrl( $zone )
 				];
+			}
+		} else {
+			// Private wiki: $publicZones must use img_auth.php
+			foreach ( $publicZones as $zone ) {
+				// Use default value from $wgLocalFileRepo['url']
+				unset( $wgLocalFileRepo['zones'][$zone]['url'] );
 			}
 		}
 
