@@ -729,7 +729,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$this->logger->error(
 			'S3FileBackend: exception {exception} in {func}({params}): {errorMessage}',
 			[
-				'exception' => get_class( $e ),
+				'exception' => $e->getAwsErrorCode(),
 				'func' => $func,
 				'params' => FormatJson::encode( $params ),
 				'errorMessage' => $e->getMessage() ?: ""
