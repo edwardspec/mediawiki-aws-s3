@@ -380,6 +380,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$dir .= '/';
 		}
 
+		$this->logger->debug(
+			'S3FileBackend: checking existence of directory {dir} in S3 bucket {container}',
+			[
+				'dir' => $dir,
+				'container' => $container
+			]
+		);
+
 		return $this->getS3ListPaginator( $container, $dir, false, [ 'Limit' => 1 ] )
 			->search( 'Contents' )->valid();
 	}
@@ -469,7 +477,18 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	function getDirectoryListInternal( $container, $dir, array $params ) {
-		if ( !empty( $params['topOnly'] ) ) {
+		$topOnly = !empty( $params['topOnly'] );
+
+		$this->logger->debug(
+			'S3FileBackend: checking DirectoryList(topOnly={topOnly}) of directory {dir} in S3 bucket {container}',
+			[
+				'dir' => $dir,
+				'container' => $container,
+				'topOnly' => $topOnly ? 1 : 0
+			]
+		);
+
+		if ( $topOnly ) {
 			return $this->getS3ListPaginator( $container, $dir, true )
 				->search( 'CommonPrefixes[].Prefix' );
 		}
@@ -480,7 +499,18 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	function getFileListInternal( $container, $dir, array $params ) {
-		return $this->getS3ListPaginator( $container, $dir, !empty( $params['topOnly'] ) )
+		$topOnly = !empty( $params['topOnly'] );
+
+		$this->logger->debug(
+			'S3FileBackend: checking FileList(topOnly={topOnly}) of directory {dir} in S3 bucket {container}',
+			[
+				'dir' => $dir,
+				'container' => $container,
+				'topOnly' => $topOnly ? 1 : 0
+			]
+		);
+
+		return $this->getS3ListPaginator( $container, $dir, $topOnly )
 			->search( 'Contents[].Key' );
 	}
 
