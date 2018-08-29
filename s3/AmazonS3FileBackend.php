@@ -24,7 +24,6 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Aws\S3\S3Client;
-use Aws\S3\Enum\CannedAcl;
 use Aws\S3\Exception\NoSuchBucketException;
 use Aws\S3\Exception\NoSuchKeyException;
 use Aws\S3\Exception\S3Exception;
@@ -119,13 +118,15 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$this->memCache = $config['wanCache'];
 		}
 
-		$this->client = S3Client::factory( [
-			'key' => isset( $config['awsKey'] ) ? $config['awsKey'] : $wgAWSCredentials['key'],
-			'secret' => isset( $config['awsSecret'] ) ? $config['awsSecret'] : $wgAWSCredentials['secret'],
-			'token' => isset( $config['awsToken'] ) ? $config['awsToken'] : $wgAWSCredentials['token'],
+		$this->client = new S3Client( [
+			'version' => '2006-03-01',
 			'region' => isset( $config['awsRegion'] ) ? $config['awsRegion'] : $wgAWSRegion,
-			'scheme' => $this->useHTTPS ? 'https' : 'http',
-			'ssl.certificate_authority' => $this->useHTTPS ?: null
+			'credentials' => [
+				'key' => isset( $config['awsKey'] ) ? $config['awsKey'] : $wgAWSCredentials['key'],
+				'secret' => isset( $config['awsSecret'] ) ? $config['awsSecret'] : $wgAWSCredentials['secret'],
+				'token' => isset( $config['awsToken'] ) ? $config['awsToken'] : $wgAWSCredentials['token'],
+			],
+			'scheme' => $this->useHTTPS ? 'https' : 'http'
 		] );
 
 		if ( isset( $config['containerPaths'] ) ) {
@@ -172,14 +173,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	function resolveContainerName( $container ) {
-		if (
-			isset( $this->containerPaths[$container] ) &&
-			$this->client->isValidBucketName( $this->containerPaths[$container] )
-		) {
+		if ( !empty( $this->containerPaths[$container] ) ) {
 			return $this->containerPaths[$container];
-		} else {
-			return null;
 		}
+
+		return null;
 	}
 
 	function resolveContainerPath( $container, $relStoragePath ) {
@@ -230,8 +228,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 
 		try {
-			$res = $this->client->putObject( [
-				'ACL' => $this->isSecure( $container ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
+			$res = $this->client->putObject( array_filter( [
+				'ACL' => $this->isSecure( $container ) ? 'private' : 'public-read',
 				'Body' => $params['content'],
 				'Bucket' => $container,
 				'CacheControl' => $params['headers']['Cache-Control'],
@@ -243,7 +241,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'Key' => $key,
 				'Metadata' => [ 'sha1base36' => $sha1Hash ],
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null,
-			] );
+			] ) );
 		} catch ( NoSuchBucketException $e ) {
 			$status->fatal( 'backend-fail-create', $params['dst'] );
 		} catch ( S3Exception $e ) {
@@ -299,7 +297,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		try {
 			$res = $this->client->copyObject( array_filter( [
-				'ACL' => $this->isSecure( $dstContainer ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
+				'ACL' => $this->isSecure( $dstContainer ) ? 'private' : 'public-read',
 				'Bucket' => $dstContainer,
 				'CacheControl' => $params['headers']['Cache-Control'],
 				'ContentDisposition' => $params['headers']['Content-Disposition'],
@@ -425,8 +423,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 
 		try {
-			$request = $this->client->get( "$container/$key" );
-			return $this->client->createPresignedUrl( $request, '+1 day' );
+			$request = $this->client->getCommand('GetObject', [
+				'Bucket' => $container,
+				'Key' => $key
+			] );
+			$presigned = $this->client->createPresignedRequest( $request, '+1 day' );
+			return (string)$presigned->getUri();
 		} catch ( S3Exception $e ) {
 			return null;
 		}
@@ -516,7 +518,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 			try {
 				$res = $this->client->createBucket( [
-					'ACL' => isset( $params['noListing'] ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
+					'ACL' => isset( $params['noListing'] ) ? 'private' : 'public-read',
 					'Bucket' => $container
 				] );
 			} catch ( S3Exception $e ) {
