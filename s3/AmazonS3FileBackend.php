@@ -448,16 +448,34 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 	}
 
+	/**
+	 * Obtain Paginator for listing S3 objects with certain prefix.
+	 * @param string $container Name of S3 bucket.
+	 * @param string $prefix If filename doesn't start with $prefix, it won't be listed.
+	 * @param bool $topOnly If true, filenames with "/" won't be listed.
+	 * @return Aws\ResultPaginator
+	 */
+	private function getS3ListPaginator( $container, $prefix, $topOnly ) {
+		return $this->client->getPaginator( 'ListObjects', [
+			'Bucket' => $container,
+			'Prefix' => $prefix,
+			'Delimiter' => $topOnly ? '/' : ''
+		] );
+	}
+
 	function getDirectoryListInternal( $container, $dir, array $params ) {
+		$topOnly = !empty( $params['topOnly'] );
+		if ( $topOnly ) {
+			return $this->getS3ListPaginator( $container, $dir, $topOnly )
+				->search( 'CommonPrefixes[].Prefix' );
+		}
+
 		return new AmazonS3DirectoryIterator( $this->client, $container, $dir, $params );
 	}
 
 	function getFileListInternal( $container, $dir, array $params ) {
-		return $this->client->getPaginator( 'ListObjects', [
-			'Bucket' => $container,
-			'Prefix' => $dir,
-			'Delimiter' => !empty( $params['topOnly'] ) ? '/' : ''
-		] )->search( 'Contents[].Key' );
+		return $this->getS3ListPaginator( $container, $dir, !empty( $params['topOnly'] ) )
+			->search( 'Contents[].Key' );
 	}
 
 	function doGetLocalCopyMulti( array $params ) {
