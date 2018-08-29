@@ -376,8 +376,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 	function doDirectoryExists( $container, $dir, array $params ) {
 		// See if at least one file is in the directory.
-		$it = new AmazonS3FileIterator( $this->client, $container, $dir, [], 1 );
-		return $it->valid();
+		if ( $dir && substr( $dir, -1 ) !== '/' ) {
+			$dir .= '/';
+		}
+
+		return $this->getS3ListPaginator( $container, $dir, false, [ 'Limit' => 1 ] )
+			->search( 'Contents' )->valid();
 	}
 
 	function doGetFileStat( array $params ) {
@@ -453,10 +457,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @param string $container Name of S3 bucket.
 	 * @param string $prefix If filename doesn't start with $prefix, it won't be listed.
 	 * @param bool $topOnly If true, filenames with "/" won't be listed.
+	 * @param array $extraParams Additional arguments of ListObjects call (if any).
 	 * @return Aws\ResultPaginator
 	 */
-	private function getS3ListPaginator( $container, $prefix, $topOnly ) {
-		return $this->client->getPaginator( 'ListObjects', [
+	private function getS3ListPaginator( $container, $prefix, $topOnly, array $extraParams = [] ) {
+		return $this->client->getPaginator( 'ListObjects', $extraParams + [
 			'Bucket' => $container,
 			'Prefix' => $prefix,
 			'Delimiter' => $topOnly ? '/' : ''
