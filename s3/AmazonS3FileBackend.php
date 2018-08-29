@@ -559,10 +559,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 			);
 
 			try {
-				$res = $this->client->createBucket( [
+				$this->client->createBucket( [
 					'ACL' => isset( $params['noListing'] ) ? 'private' : 'public-read',
 					'Bucket' => $container
 				] );
+
+				$waiter = $this->client->getWaiter( 'BucketExists', [ 'Bucket' => $container ] );
+				$waiter->promise()->wait();
 			} catch ( S3Exception $e ) {
 				$this->handleException( $e, $status, __METHOD__, $params );
 			}
@@ -571,8 +574,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 		if ( !$status->isOK() ) {
 			return $status;
 		}
-
-		$this->client->waitUntilBucketExists( [ 'Bucket' => $container ] );
 
 		$this->logger->debug(
 			'S3FileBackend: doPrepareInternal: S3 bucket {container} exists',
