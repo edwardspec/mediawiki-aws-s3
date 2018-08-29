@@ -24,8 +24,6 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Aws\S3\S3Client;
-use Aws\S3\Exception\NoSuchBucketException;
-use Aws\S3\Exception\NoSuchKeyException;
 use Aws\S3\Exception\S3Exception;
 use Psr\Log\LogLevel;
 
@@ -242,10 +240,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'Metadata' => [ 'sha1base36' => $sha1Hash ],
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null,
 			] ) );
-		} catch ( NoSuchBucketException $e ) {
-			$status->fatal( 'backend-fail-create', $params['dst'] );
 		} catch ( S3Exception $e ) {
-			$this->handleException( $e, $status, __METHOD__, $params );
+			if ( $e->getAwsErrorCode() == 'NoSuchBucket' ) {
+				$status->fatal( 'backend-fail-create', $params['dst'] );
+			} else {
+				$this->handleException( $e, $status, __METHOD__, $params );
+			}
 		}
 
 		return $status;
@@ -312,14 +312,21 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'MetadataDirective' => 'COPY',
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null
 			] ) );
-		} catch ( NoSuchBucketException $e ) {
-			$status->fatal( 'backend-fail-copy', $params['src'], $params['dst'] );
-		} catch ( NoSuchKeyException $e ) {
-			if ( empty( $params['ignoreMissingSource'] ) ) {
-				$status->fatal( 'backend-fail-copy', $params['src'], $params['dst'] );
-			}
 		} catch ( S3Exception $e ) {
-			$this->handleException( $e, $status, __METHOD__, $params );
+			switch ( $e->getAwsErrorCode() ) {
+				case 'NoSuchBucket':
+					$status->fatal( 'backend-fail-copy', $params['src'], $params['dst'] );
+					break;
+
+				case 'NoSuchKey':
+					if ( empty( $params['ignoreMissingSource'] ) ) {
+						$status->fatal( 'backend-fail-copy', $params['src'], $params['dst'] );
+					}
+					break;
+
+				default:
+					$this->handleException( $e, $status, __METHOD__, $params );
+			}
 		}
 
 		return $status;
@@ -347,14 +354,21 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'Bucket' => $container,
 				'Key' => $key
 			] );
-		} catch ( NoSuchBucketException $e ) {
-			$status->fatal( 'backend-fail-delete', $params['src'] );
-		} catch ( NoSuchKeyException $e ) {
-			if ( empty( $params['ignoreMissingSource'] ) ) {
-				$status->fatal( 'backend-fail-delete', $params['src'] );
-			}
 		} catch ( S3Exception $e ) {
-			$this->handleException( $e, $status, __METHOD__, $params );
+			switch ( $e->getAwsErrorCode() ) {
+				case 'NoSuchBucket':
+					$status->fatal( 'backend-fail-delete', $params['src'] );
+					break;
+
+				case 'NoSuchKey':
+					if ( empty( $params['ignoreMissingSource'] ) ) {
+						$status->fatal( 'backend-fail-delete', $params['src'] );
+					}
+					break;
+
+				default:
+					$this->handleException( $e, $status, __METHOD__, $params );
+			}
 		}
 
 		return $status;
