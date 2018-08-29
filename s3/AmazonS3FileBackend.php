@@ -453,7 +453,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	function getFileListInternal( $container, $dir, array $params ) {
-		return new AmazonS3FileIterator( $this->client, $container, $dir, $params );
+		return $this->client->getPaginator( 'ListObjects', [
+			'Bucket' => $container,
+			'Prefix' => $dir,
+			'Delimiter' => !empty( $params['topOnly'] ) ? '/' : ''
+		] )->search( 'Contents[].Key' );
 	}
 
 	function doGetLocalCopyMulti( array $params ) {
