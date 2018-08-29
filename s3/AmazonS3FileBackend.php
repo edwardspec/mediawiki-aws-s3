@@ -469,13 +469,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	function getDirectoryListInternal( $container, $dir, array $params ) {
-		$topOnly = !empty( $params['topOnly'] );
-		if ( $topOnly ) {
-			return $this->getS3ListPaginator( $container, $dir, $topOnly )
+		if ( !empty( $params['topOnly'] ) ) {
+			return $this->getS3ListPaginator( $container, $dir, true )
 				->search( 'CommonPrefixes[].Prefix' );
 		}
 
-		return new AmazonS3DirectoryIterator( $this->client, $container, $dir, $params );
+		return new AmazonS3SubdirectoryIterator(
+			$this->getFileListInternal( $container, $dir, [] )
+		);
 	}
 
 	function getFileListInternal( $container, $dir, array $params ) {
