@@ -184,7 +184,9 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		return [
 			[ 'doDirectoryExists', '', [], true ],
 			[ 'doDirectoryExists', 'dir1', [], true ],
+			[ 'doDirectoryExists', 'dir1/', [], true ],
 			[ 'doDirectoryExists', 'dir2', [], true ],
+			[ 'doDirectoryExists', 'dir2/', [], true ],
 			[ 'doDirectoryExists', 'dir1/subdir1', [], true ],
 			[ 'doDirectoryExists', 'dir2/subdir1', [], true ],
 			[ 'doDirectoryExists', 'dir1/file2.txt', [], false ],

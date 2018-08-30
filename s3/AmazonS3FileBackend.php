@@ -24,9 +24,6 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Aws\S3\S3Client;
-use Aws\S3\Enum\CannedAcl;
-use Aws\S3\Exception\NoSuchBucketException;
-use Aws\S3\Exception\NoSuchKeyException;
 use Aws\S3\Exception\S3Exception;
 use Psr\Log\LogLevel;
 
@@ -119,13 +116,15 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$this->memCache = $config['wanCache'];
 		}
 
-		$this->client = S3Client::factory( [
-			'key' => isset( $config['awsKey'] ) ? $config['awsKey'] : $wgAWSCredentials['key'],
-			'secret' => isset( $config['awsSecret'] ) ? $config['awsSecret'] : $wgAWSCredentials['secret'],
-			'token' => isset( $config['awsToken'] ) ? $config['awsToken'] : $wgAWSCredentials['token'],
+		$this->client = new S3Client( [
+			'version' => '2006-03-01',
 			'region' => isset( $config['awsRegion'] ) ? $config['awsRegion'] : $wgAWSRegion,
-			'scheme' => $this->useHTTPS ? 'https' : 'http',
-			'ssl.certificate_authority' => $this->useHTTPS ?: null
+			'credentials' => [
+				'key' => isset( $config['awsKey'] ) ? $config['awsKey'] : $wgAWSCredentials['key'],
+				'secret' => isset( $config['awsSecret'] ) ? $config['awsSecret'] : $wgAWSCredentials['secret'],
+				'token' => isset( $config['awsToken'] ) ? $config['awsToken'] : $wgAWSCredentials['token'],
+			],
+			'scheme' => $this->useHTTPS ? 'https' : 'http'
 		] );
 
 		if ( isset( $config['containerPaths'] ) ) {
@@ -172,14 +171,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	function resolveContainerName( $container ) {
-		if (
-			isset( $this->containerPaths[$container] ) &&
-			$this->client->isValidBucketName( $this->containerPaths[$container] )
-		) {
+		if ( !empty( $this->containerPaths[$container] ) ) {
 			return $this->containerPaths[$container];
-		} else {
-			return null;
 		}
+
+		return null;
 	}
 
 	function resolveContainerPath( $container, $relStoragePath ) {
@@ -230,8 +226,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 
 		try {
-			$res = $this->client->putObject( [
-				'ACL' => $this->isSecure( $container ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
+			$res = $this->client->putObject( array_filter( [
+				'ACL' => $this->isSecure( $container ) ? 'private' : 'public-read',
 				'Body' => $params['content'],
 				'Bucket' => $container,
 				'CacheControl' => $params['headers']['Cache-Control'],
@@ -243,11 +239,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'Key' => $key,
 				'Metadata' => [ 'sha1base36' => $sha1Hash ],
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null,
-			] );
-		} catch ( NoSuchBucketException $e ) {
-			$status->fatal( 'backend-fail-create', $params['dst'] );
+			] ) );
 		} catch ( S3Exception $e ) {
-			$this->handleException( $e, $status, __METHOD__, $params );
+			if ( $e->getAwsErrorCode() == 'NoSuchBucket' ) {
+				$status->fatal( 'backend-fail-create', $params['dst'] );
+			} else {
+				$this->handleException( $e, $status, __METHOD__, $params );
+			}
 		}
 
 		return $status;
@@ -299,7 +297,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		try {
 			$res = $this->client->copyObject( array_filter( [
-				'ACL' => $this->isSecure( $dstContainer ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
+				'ACL' => $this->isSecure( $dstContainer ) ? 'private' : 'public-read',
 				'Bucket' => $dstContainer,
 				'CacheControl' => $params['headers']['Cache-Control'],
 				'ContentDisposition' => $params['headers']['Content-Disposition'],
@@ -314,14 +312,21 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'MetadataDirective' => 'COPY',
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null
 			] ) );
-		} catch ( NoSuchBucketException $e ) {
-			$status->fatal( 'backend-fail-copy', $params['src'], $params['dst'] );
-		} catch ( NoSuchKeyException $e ) {
-			if ( empty( $params['ignoreMissingSource'] ) ) {
-				$status->fatal( 'backend-fail-copy', $params['src'], $params['dst'] );
-			}
 		} catch ( S3Exception $e ) {
-			$this->handleException( $e, $status, __METHOD__, $params );
+			switch ( $e->getAwsErrorCode() ) {
+				case 'NoSuchBucket':
+					$status->fatal( 'backend-fail-copy', $params['src'], $params['dst'] );
+					break;
+
+				case 'NoSuchKey':
+					if ( empty( $params['ignoreMissingSource'] ) ) {
+						$status->fatal( 'backend-fail-copy', $params['src'], $params['dst'] );
+					}
+					break;
+
+				default:
+					$this->handleException( $e, $status, __METHOD__, $params );
+			}
 		}
 
 		return $status;
@@ -349,14 +354,21 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'Bucket' => $container,
 				'Key' => $key
 			] );
-		} catch ( NoSuchBucketException $e ) {
-			$status->fatal( 'backend-fail-delete', $params['src'] );
-		} catch ( NoSuchKeyException $e ) {
-			if ( empty( $params['ignoreMissingSource'] ) ) {
-				$status->fatal( 'backend-fail-delete', $params['src'] );
-			}
 		} catch ( S3Exception $e ) {
-			$this->handleException( $e, $status, __METHOD__, $params );
+			switch ( $e->getAwsErrorCode() ) {
+				case 'NoSuchBucket':
+					$status->fatal( 'backend-fail-delete', $params['src'] );
+					break;
+
+				case 'NoSuchKey':
+					if ( empty( $params['ignoreMissingSource'] ) ) {
+						$status->fatal( 'backend-fail-delete', $params['src'] );
+					}
+					break;
+
+				default:
+					$this->handleException( $e, $status, __METHOD__, $params );
+			}
 		}
 
 		return $status;
@@ -364,8 +376,20 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 	function doDirectoryExists( $container, $dir, array $params ) {
 		// See if at least one file is in the directory.
-		$it = new AmazonS3FileIterator( $this->client, $container, $dir, [], 1 );
-		return $it->valid();
+		if ( $dir && substr( $dir, -1 ) !== '/' ) {
+			$dir .= '/';
+		}
+
+		$this->logger->debug(
+			'S3FileBackend: checking existence of directory {dir} in S3 bucket {container}',
+			[
+				'dir' => $dir,
+				'container' => $container
+			]
+		);
+
+		return $this->getS3ListPaginator( $container, $dir, false, [ 'Limit' => 1 ] )
+			->search( 'Contents' )->valid();
 	}
 
 	function doGetFileStat( array $params ) {
@@ -425,19 +449,69 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 
 		try {
-			$request = $this->client->get( "$container/$key" );
-			return $this->client->createPresignedUrl( $request, '+1 day' );
+			$request = $this->client->getCommand('GetObject', [
+				'Bucket' => $container,
+				'Key' => $key
+			] );
+			$presigned = $this->client->createPresignedRequest( $request, '+1 day' );
+			return (string)$presigned->getUri();
 		} catch ( S3Exception $e ) {
 			return null;
 		}
 	}
 
+	/**
+	 * Obtain Paginator for listing S3 objects with certain prefix.
+	 * @param string $container Name of S3 bucket.
+	 * @param string $prefix If filename doesn't start with $prefix, it won't be listed.
+	 * @param bool $topOnly If true, filenames with "/" won't be listed.
+	 * @param array $extraParams Additional arguments of ListObjects call (if any).
+	 * @return Aws\ResultPaginator
+	 */
+	private function getS3ListPaginator( $container, $prefix, $topOnly, array $extraParams = [] ) {
+		return $this->client->getPaginator( 'ListObjects', $extraParams + [
+			'Bucket' => $container,
+			'Prefix' => $prefix,
+			'Delimiter' => $topOnly ? '/' : ''
+		] );
+	}
+
 	function getDirectoryListInternal( $container, $dir, array $params ) {
-		return new AmazonS3DirectoryIterator( $this->client, $container, $dir, $params );
+		$topOnly = !empty( $params['topOnly'] );
+
+		$this->logger->debug(
+			'S3FileBackend: checking DirectoryList(topOnly={topOnly}) of directory {dir} in S3 bucket {container}',
+			[
+				'dir' => $dir,
+				'container' => $container,
+				'topOnly' => $topOnly ? 1 : 0
+			]
+		);
+
+		if ( $topOnly ) {
+			return $this->getS3ListPaginator( $container, $dir, true )
+				->search( 'CommonPrefixes[].Prefix' );
+		}
+
+		return new AmazonS3SubdirectoryIterator(
+			$this->getFileListInternal( $container, $dir, [] )
+		);
 	}
 
 	function getFileListInternal( $container, $dir, array $params ) {
-		return new AmazonS3FileIterator( $this->client, $container, $dir, $params );
+		$topOnly = !empty( $params['topOnly'] );
+
+		$this->logger->debug(
+			'S3FileBackend: checking FileList(topOnly={topOnly}) of directory {dir} in S3 bucket {container}',
+			[
+				'dir' => $dir,
+				'container' => $container,
+				'topOnly' => $topOnly ? 1 : 0
+			]
+		);
+
+		return $this->getS3ListPaginator( $container, $dir, $topOnly )
+			->search( 'Contents[].Key' );
 	}
 
 	function doGetLocalCopyMulti( array $params ) {
@@ -515,10 +589,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 			);
 
 			try {
-				$res = $this->client->createBucket( [
-					'ACL' => isset( $params['noListing'] ) ? CannedAcl::PRIVATE_ACCESS : CannedAcl::PUBLIC_READ,
+				$this->client->createBucket( [
+					'ACL' => isset( $params['noListing'] ) ? 'private' : 'public-read',
 					'Bucket' => $container
 				] );
+
+				$waiter = $this->client->getWaiter( 'BucketExists', [ 'Bucket' => $container ] );
+				$waiter->promise()->wait();
 			} catch ( S3Exception $e ) {
 				$this->handleException( $e, $status, __METHOD__, $params );
 			}
@@ -527,8 +604,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 		if ( !$status->isOK() ) {
 			return $status;
 		}
-
-		$this->client->waitUntilBucketExists( [ 'Bucket' => $container ] );
 
 		$this->logger->debug(
 			'S3FileBackend: doPrepareInternal: S3 bucket {container} exists',
@@ -652,11 +727,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		$this->logger->error(
-			'S3FileBackend: exception {exception} in {func}({params}): $errorMessage',
+			'S3FileBackend: exception {exception} in {func}({params}): {errorMessage}',
 			[
-				'exception' => get_class( $e ),
+				'exception' => $e->getAwsErrorCode(),
 				'func' => $func,
-				'params' => $params,
+				'params' => FormatJson::encode( $params ),
 				'errorMessage' => $e->getMessage() ?: ""
 			]
 		);

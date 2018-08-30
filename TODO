@@ -5,8 +5,3 @@ Medium-prio:
 * (feature) Detect absence of any of the 4 needed S3 buckets,
 	create them all immediately,
 	throw MWException "please create them manually" if createBucket() fails.
-
-Low-prio:
-* (third-party) Update AWS PHP SDK to version 3.
-	This can only be done in a release version, because current installations
-	would require "composer install" after updating Extension:AWS.
