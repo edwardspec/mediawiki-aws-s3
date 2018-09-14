@@ -62,7 +62,7 @@ class AmazonS3Hooks {
 	 * Replace $wgLocalRepo with Amazon S3.
 	 */
 	protected static function replaceLocalRepo() {
-		global $wgFileBackends, $wgLocalFileRepo, $wgDBname;
+		global $wgFileBackends, $wgLocalFileRepo;
 
 		/* Needed zones */
 		$zones = [ 'public', 'thumb', 'deleted', 'temp' ];
