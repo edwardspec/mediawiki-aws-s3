@@ -154,7 +154,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$this->logger->info(
 			'S3FileBackend: found backend with S3 buckets: {buckets}.{isPrivateWiki}',
 			[
-				'buckets' => join( ', ', array_values( $config['containerPaths'] ) ),
+				'buckets' => implode( ', ', array_values( $config['containerPaths'] ) ),
 				'isPrivateWiki' => $this->privateWiki ?
 					' (private wiki, new S3 objects will be private)' : ''
 			]
@@ -449,7 +449,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 
 		try {
-			$request = $this->client->getCommand('GetObject', [
+			$request = $this->client->getCommand( 'GetObject', [
 				'Bucket' => $container,
 				'Key' => $key
 			] );
@@ -480,7 +480,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$topOnly = !empty( $params['topOnly'] );
 
 		$this->logger->debug(
-			'S3FileBackend: checking DirectoryList(topOnly={topOnly}) of directory {dir} in S3 bucket {container}',
+			'S3FileBackend: checking DirectoryList(topOnly={topOnly}) ' .
+			'of directory {dir} in S3 bucket {container}',
 			[
 				'dir' => $dir,
 				'container' => $container,
@@ -502,7 +503,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$topOnly = !empty( $params['topOnly'] );
 
 		$this->logger->debug(
-			'S3FileBackend: checking FileList(topOnly={topOnly}) of directory {dir} in S3 bucket {container}',
+			'S3FileBackend: checking FileList(topOnly={topOnly}) ' .
+			'of directory {dir} in S3 bucket {container}',
 			[
 				'dir' => $dir,
 				'container' => $container,

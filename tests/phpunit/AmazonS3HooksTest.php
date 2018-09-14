@@ -51,7 +51,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 		array $expectedZoneUrl = null,
 		$expectedExceptionText = null
 	) {
-		global $wgLocalFileRepo, $wgFileBackends, $wgAWSBucketPrefix, $wgDBname;
+		global $wgLocalFileRepo, $wgFileBackends, $wgAWSBucketPrefix;
 
 		$this->setMwGlobals( $inputConfigs );
 
