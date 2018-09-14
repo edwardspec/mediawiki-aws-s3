@@ -91,10 +91,11 @@ class AmazonS3Hooks {
 				unset( $wgLocalFileRepo['zones'][$zone]['url'] );
 			}
 		}
-
+		//use wfWikiID() to cover using of $wfWikiID
+		$wikiId = wfWikiID();
 		$containerPaths = [];
 		foreach ( $zones as $zone ) {
-			$containerPaths["$wgDBname-local-$zone"] = self::getBucketName( $zone );
+			$containerPaths["$wikiId-local-$zone"] = self::getBucketName( $zone );
 		}
 		$wgFileBackends['s3']['containerPaths'] = $containerPaths;
 	}
