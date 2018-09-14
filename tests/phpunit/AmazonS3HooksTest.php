@@ -71,12 +71,13 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 			'lockManager' => 'nullLockManager',
 
 		];
+		$wikiId = wfWikiID();
 		if ( $wgAWSBucketPrefix ) {
 			$expectedBackend['containerPaths'] = [
-				"$wgDBname-local-public" => "$wgAWSBucketPrefix",
-				"$wgDBname-local-thumb" => "$wgAWSBucketPrefix-thumb",
-				"$wgDBname-local-deleted" => "$wgAWSBucketPrefix-deleted",
-				"$wgDBname-local-temp" => "$wgAWSBucketPrefix-temp",
+				"$wikiId-local-public" => "$wgAWSBucketPrefix",
+				"$wikiId-local-thumb" => "$wgAWSBucketPrefix-thumb",
+				"$wikiId-local-deleted" => "$wgAWSBucketPrefix-deleted",
+				"$wikiId-local-temp" => "$wgAWSBucketPrefix-temp",
 			];
 		}
 
