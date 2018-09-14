@@ -91,7 +91,8 @@ class AmazonS3Hooks {
 				unset( $wgLocalFileRepo['zones'][$zone]['url'] );
 			}
 		}
-		//use wfWikiID() to cover using of $wfWikiID
+
+		// Container names are prefixed by wfWikiID(), which depends on $wgDBPrefix and $wgDBname.
 		$wikiId = wfWikiID();
 		$containerPaths = [];
 		foreach ( $zones as $zone ) {
