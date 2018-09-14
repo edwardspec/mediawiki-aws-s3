@@ -33,7 +33,7 @@ cache:
     - buildcache
 
 before_script:
-  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then export PHPUNIT_OPTS="--exclude-group SkippedWithoutAwsCredentials"; fi
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then export PHPUNIT_OPTS="--exclude-group SkippedWithoutAwsCredentials" AWS_BUCKET_PREFIX="unknown-prefix-for-pull-requests"; fi
   - phpenv config-rm xdebug.ini
   - bash -ex ./tests/travis/build_mediawiki.sh "$branch"
   - rsync -a --exclude buildcache --exclude mediawiki --exclude .git * mediawiki/extensions/AWS/
