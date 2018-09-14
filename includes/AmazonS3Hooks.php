@@ -62,7 +62,7 @@ class AmazonS3Hooks {
 	 * Replace $wgLocalRepo with Amazon S3.
 	 */
 	protected static function replaceLocalRepo() {
-		global $wgFileBackends, $wgLocalFileRepo, $wgDBname;
+		global $wgFileBackends, $wgLocalFileRepo;
 
 		/* Needed zones */
 		$zones = [ 'public', 'thumb', 'deleted', 'temp' ];
@@ -92,9 +92,11 @@ class AmazonS3Hooks {
 			}
 		}
 
+		// Container names are prefixed by wfWikiID(), which depends on $wgDBPrefix and $wgDBname.
+		$wikiId = wfWikiID();
 		$containerPaths = [];
 		foreach ( $zones as $zone ) {
-			$containerPaths["$wgDBname-local-$zone"] = self::getBucketName( $zone );
+			$containerPaths["$wikiId-local-$zone"] = self::getBucketName( $zone );
 		}
 		$wgFileBackends['s3']['containerPaths'] = $containerPaths;
 	}
