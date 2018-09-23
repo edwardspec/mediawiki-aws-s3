@@ -121,13 +121,16 @@ class AmazonS3FileBackend extends FileBackendStore {
 			'region' => isset( $config['awsRegion'] ) ? $config['awsRegion'] : $wgAWSRegion,
 			'scheme' => $this->useHTTPS ? 'https' : 'http'
 		];
-		if ( $wgAWSCredentials['key'] ) {
+		if ( !empty( $wgAWSCredentials['key'] ) ) {
+			$params['credentials'] = $wgAWSCredentials;
+		} elseif ( isset( $config['awsKey'] ) ) {
 			$params['credentials'] = [
-				'key' => isset( $config['awsKey'] ) ? $config['awsKey'] : $wgAWSCredentials['key'],
-				'secret' => isset( $config['awsSecret'] ) ? $config['awsSecret'] : $wgAWSCredentials['secret'],
-				'token' => isset( $config['awsToken'] ) ? $config['awsToken'] : $wgAWSCredentials['token'],
+				'key' => $config['awsKey'],
+				'secret' => $config['awsSecret'],
+				'token' => isset( $config['awsToken'] ) ? $config['awsToken'] : false
 			];
 		}
+
 		$this->client = new S3Client( $params );
 
 		if ( isset( $config['containerPaths'] ) ) {
