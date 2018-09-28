@@ -43,7 +43,10 @@
 		"AWSBucketPrefix": null,
 
 		"@doc5": "Subdomain of Amazon S3. Can be replaced with the URL of CDN. $1 is replaced with bucket name (see README.md for more customization).",
-		"AWSBucketDomain": "$1.s3.amazonaws.com"
+		"AWSBucketDomain": "$1.s3.amazonaws.com",
+
+		"@doc6": "Number of prefix subdirectories. Value \"2\" means that S3 objects will be named a/ab/Filename.png (same as when MediaWiki stores files in local directories). Default value: 0 (objects are named Filename.png without any prefix).",
+		"AWSRepoHashLevels": 0
 	},
 
 	"manifest_version": 1

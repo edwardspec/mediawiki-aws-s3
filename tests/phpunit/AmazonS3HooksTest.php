@@ -34,7 +34,8 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 		$this->setMwGlobals( [
 			'wgLocalFileRepo' => $this->untouchedFakeLocalRepo,
 			'wgFileBackends' => [],
-			'wgAWSBucketPrefix' => null
+			'wgAWSBucketPrefix' => null,
+			'wgAWSRepoHashLevels' => 0
 		] );
 	}
 
@@ -87,12 +88,15 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 			"Unexpected value of \$wgFileBackends['s3']" );
 
 		// Step 2. Check $wgLocalFileRepo.
+		$expectedHashLevels = isset( $inputConfigs['wgAWSRepoHashLevels'] ) ?
+			$inputConfigs['wgAWSRepoHashLevels'] : 0;
+
 		$expectedRepo = $expectedZoneUrl ? [
 			'class' => 'LocalRepo',
 			'name' => 'local',
 			'backend' => 'AmazonS3',
 			'url' => wfScript( 'img_auth' ),
-			'hashLevels' => 0,
+			'hashLevels' => $expectedHashLevels,
 			'zones' => [
 				'public' => [ 'url' => $expectedZoneUrl['public'] ],
 				'thumb' => [ 'url' => $expectedZoneUrl['thumb'] ],
@@ -115,6 +119,26 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 			// Part 2. Correct configurations.
 			[
 				[ 'wgAWSBucketPrefix' => 'mysite-images' ],
+				[
+					'public' => 'https://mysite-images.s3.amazonaws.com',
+					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
+				]
+			],
+			[
+				[
+					'wgAWSBucketPrefix' => 'mysite-images',
+					'wgAWSRepoHashLevels' => 0
+				],
+				[
+					'public' => 'https://mysite-images.s3.amazonaws.com',
+					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
+				]
+			],
+			[
+				[
+					'wgAWSBucketPrefix' => 'mysite-images',
+					'wgAWSRepoHashLevels' => 2
+				],
 				[
 					'public' => 'https://mysite-images.s3.amazonaws.com',
 					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
