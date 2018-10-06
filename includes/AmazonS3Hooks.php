@@ -34,7 +34,7 @@ class AmazonS3Hooks {
 	 * and $wgContLang only gets defined after SetupAfterCache.
 	 */
 	public static function installBackend() {
-		global $wgFileBackends, $wgAWSBucketPrefix;
+		global $wgFileBackends, $wgAWSBucketName, $wgAWSBucketPrefix;
 
 		if ( !isset( $wgFileBackends['s3'] ) ) {
 			$wgFileBackends['s3'] = [];
@@ -43,7 +43,7 @@ class AmazonS3Hooks {
 		$wgFileBackends['s3']['class'] = 'AmazonS3FileBackend';
 		$wgFileBackends['s3']['lockManager'] = 'nullLockManager';
 
-		/* When $wgAWSBucketPrefix is not set, it can mean:
+		/* When $wgAWSBucketName is not set, it can mean:
 			1) the extension is not configured in LocalSettings.php,
 			2) administrator didn't set it on purpose
 			(to customize $wgLocalFileRepo in LocalSettings.php).
@@ -51,7 +51,7 @@ class AmazonS3Hooks {
 			In this case we'll still provide AmazonS3FileBackend,
 			but MediaWiki won't use it for storing uploads.
 		*/
-		if ( $wgAWSBucketPrefix ) {
+		if ( $wgAWSBucketName || $wgAWSBucketPrefix ) {
 			self::replaceLocalRepo();
 		}
 
@@ -83,7 +83,7 @@ class AmazonS3Hooks {
 			// Not a private wiki: $publicZones must have an URL
 			foreach ( $publicZones as $zone ) {
 				$wgLocalFileRepo['zones'][$zone] = [
-					'url' => self::getBucketUrl( $zone )
+					'url' => self::getZoneUrl( $zone )
 				];
 			}
 		} else {
@@ -98,36 +98,84 @@ class AmazonS3Hooks {
 		$wikiId = wfWikiID();
 		$containerPaths = [];
 		foreach ( $zones as $zone ) {
-			$containerPaths["$wikiId-local-$zone"] = self::getBucketName( $zone );
+			$containerPaths["$wikiId-local-$zone"] = self::getContainerPath( $zone );
 		}
 		$wgFileBackends['s3']['containerPaths'] = $containerPaths;
 	}
 
 	/**
-	 * Returns S3 bucket name for $zone, based on $wgAWSBucketPrefix.
+	 * Returns container path for $zone, based on $wgAWSBucketName or B/C $wgAWSBucketPrefix.
 	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
-	 * @return string Name of S3 bucket, e.g. "mysite-media-thumb".
+	 * @return string Container path, e.g. "BucketName" or "BucketName/thumb".
 	 */
-	protected static function getBucketName( $zone ) {
-		global $wgAWSBucketPrefix;
-		return $wgAWSBucketPrefix . self::getZoneSuffix( $zone );
+	protected static function getContainerPath( $zone ) {
+		return self::getS3BucketName( $zone ) . self::getS3RootDir( $zone );
 	}
 
 	/**
-	 * Returns zone suffix (string which is appended to S3 bucket names) of $zone.
+	 * Returns S3 bucket name for $zone, based on $wgAWSBucketName.
+	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
+	 * @return string Container path, e.g. "BucketName" or "BucketName/thumb".
+	 */
+	protected static function getS3BucketName( $zone ) {
+		global $wgAWSBucketName, $wgAWSBucketPrefix;
+
+		if ( $wgAWSBucketName ) {
+			// Only one S3 bucket
+			return $wgAWSBucketName;
+		}
+
+		// B/C config, four S3 buckets (one per zone).
+		return $wgAWSBucketPrefix . self::getDashZoneString( $zone );
+	}
+
+	/**
+	 * Returns root directory within S3 bucket name for $zone.
+	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
+	 * @return string|false Relative path, e.g. "" or "/thumb" (without trailing slash).
+	 */
+	protected static function getS3RootDir( $zone ) {
+		global $wgAWSBucketName;
+		if ( !$wgAWSBucketName ) {
+			// Backward compatibility mode (4 S3 buckets): when we use more than one bucket,
+			// there is no need for extra subdirectories within the bucket.
+			return "";
+		}
+
+		// Modern config, one S3 bucket for all zones.
+		switch ( $zone ) {
+			case 'public':
+				return '';
+
+			case 'thumb':
+				return '/thumb';
+
+			case 'deleted':
+				return '/deleted';
+
+			case 'temp':
+				return '/temp';
+		}
+
+		return "/$zone"; # Fallback value for unknown zone (added in recent version of MediaWiki?)
+	}
+
+	/**
+	 * Returns zone suffix (value of $2 replacement in $wgAWSBucketDomain).
+	 * Used for S3 bucket names in configuration with 4 different buckets ($wgAWSBucketPrefix).
 	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
 	 * @return string
 	 */
-	protected static function getZoneSuffix( $zone ) {
+	protected static function getDashZoneString( $zone ) {
 		return ( $zone == 'public' ? '' : "-$zone" );
 	}
 
 	/**
-	 * Returns external URL of the bucket.
+	 * Returns external URL of the zone.
 	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
-	 * @return string URL, e.g. "https://something.s3.amazonaws.com".
+	 * @return string URL, e.g. "https://something.s3.amazonaws.com/thumb".
 	 */
-	protected static function getBucketUrl( $zone ) {
+	protected static function getZoneUrl( $zone ) {
 		global $wgAWSBucketDomain;
 
 		if ( is_array( $wgAWSBucketDomain ) ) {
@@ -140,10 +188,13 @@ class AmazonS3Hooks {
 		} else {
 			$domain = $wgAWSBucketDomain;
 
-			// Sanity check to avoid the same domain being used for both 'public' and 'thumb'
-			if ( !$domain || !preg_match( '/\$[12]/', $domain ) ) {
+			// Sanity check: avoid the same domain being used for both 'public' and 'thumb',
+			// unless only one S3 bucket is used.
+			global $wgAWSBucketPrefix;
+			if ( $wgAWSBucketPrefix && !preg_match( '/\$[12]/', $domain ) ) {
 				throw new AmazonS3MisconfiguredException(
-					'$wgAWSBucketDomain string must contain either $1 or $2.' );
+					'If $wgAWSBucketPrefix is used, $wgAWSBucketDomain must ' .
+					'contain either $1 or $2.' );
 			}
 		}
 
@@ -152,10 +203,10 @@ class AmazonS3Hooks {
 		// $2 - zone suffix (e.g. "-thumb" for "thumb" zone, "" for public zone)
 		$domain = str_replace(
 			[ '$1', '$2' ],
-			[ self::getBucketName( $zone ), self::getZoneSuffix( $zone ) ],
+			[ self::getS3BucketName( $zone ), self::getDashZoneString( $zone ) ],
 			$domain
 		);
 
-		return 'https://' . $domain;
+		return 'https://' . $domain . self::getS3RootDir( $zone );
 	}
 }

@@ -39,7 +39,10 @@
 		"@doc3": "Whether to use HTTPS with AWS.",
 		"AWSUseHTTPS": true,
 
-		"@doc4": "MUST BE SET in LocalSettings.php. Prefix of S3 buckets (e.g. if set to \"wonderfulbali\", then four S3 buckets will be used: wonderfulbali, wonderfulbali-thumb, wonderfulbali-deleted, wonderfulbali-temp). Please choose a unique prefix (not taken by another AWS user) and create these 4 buckets manually (not wait for MediaWiki to do it). Note: this prefix will be seen in the URL of images.",
+		"@doc4": "MUST BE SET in LocalSettings.php. Name of S3 bucket (e.g. \"wonderfulbali\"). Note: it will be seen in the URL of images.",
+		"AWSBucketName": null,
+
+		"@doc4.1": "[deprecated] Backward-compatibility option to use 4 S3 buckets (public, thumb, deleted, temp) instead of one $wgAWSBucketName. Shouldn't be used in new wikis. If set to \"wonderfulbali\", buckets [wonderfulbali], [wonderfulbali-thumb], [wonderfulbali-deleted] and [wonderfulbali-temp] are used.",
 		"AWSBucketPrefix": null,
 
 		"@doc5": "Subdomain of Amazon S3. Can be replaced with the URL of CDN. $1 is replaced with bucket name (see README.md for more customization).",

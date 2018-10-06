@@ -16,7 +16,7 @@
 
 /**
 	@file
-	@brief Checks calculation of $wgLocalRepo from $wgAWSBucketPrefix/$wgAWSBucketDomain.
+	Checks calculation of $wgLocalRepo from $wgAWSBucketPrefix/$wgAWSBucketDomain.
 */
 
 /**
@@ -34,6 +34,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 		$this->setMwGlobals( [
 			'wgLocalFileRepo' => $this->untouchedFakeLocalRepo,
 			'wgFileBackends' => [],
+			'wgAWSBucketName' => null,
 			'wgAWSBucketPrefix' => null,
 			'wgAWSRepoHashLevels' => 0,
 			'wgAWSRepoDeletedHashLevels' => 0
@@ -41,7 +42,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * @brief Check that $wgAWSBucketPrefix and $wgAWSBucketDomain work as expected.
+	 * Check that $wgAWSBucketName and $wgAWSBucketDomain work as expected.
 	 * @covers AmazonS3Hooks
 	 * @dataProvider configDataProvider
 	 * @param array $inputConfigs [ 'wgAWSBucketPrefix' => 'value', ... ]
@@ -53,7 +54,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 		array $expectedZoneUrl = null,
 		$expectedExceptionText = null
 	) {
-		global $wgLocalFileRepo, $wgFileBackends, $wgAWSBucketPrefix;
+		global $wgLocalFileRepo, $wgFileBackends, $wgAWSBucketName, $wgAWSBucketPrefix;
 
 		$this->setMwGlobals( $inputConfigs );
 
@@ -74,7 +75,16 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 
 		];
 		$wikiId = wfWikiID();
-		if ( $wgAWSBucketPrefix ) {
+		if ( $wgAWSBucketName ) {
+			// 1 bucket (modern configuration)
+			$expectedBackend['containerPaths'] = [
+				"$wikiId-local-public" => "$wgAWSBucketName",
+				"$wikiId-local-thumb" => "$wgAWSBucketName/thumb",
+				"$wikiId-local-deleted" => "$wgAWSBucketName/deleted",
+				"$wikiId-local-temp" => "$wgAWSBucketName/temp",
+			];
+		} elseif ( $wgAWSBucketPrefix ) {
+			// 4 buckets (deprecated configuration)
 			$expectedBackend['containerPaths'] = [
 				"$wikiId-local-public" => "$wgAWSBucketPrefix",
 				"$wikiId-local-thumb" => "$wgAWSBucketPrefix-thumb",
@@ -112,23 +122,116 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 	}
 
 	/**
-		@brief Provides datasets for testConfig().
-	*/
+	 *
+	 * Provides datasets for testConfig().
+	 */
 	public function configDataProvider() {
 		return [
-			// Part 1. Configuration without $wgAWSBucketPrefix - shouldn't modify $wgLocalFileRepo
+			// Part 1. Configuration without $wgAWSBucketName - shouldn't modify $wgLocalFileRepo
 			// or populate 'containerPaths' under $wgFileBackends['s3']
 			[ [] ],
 
-			// Part 2. Correct configurations.
-			[
+			// Part 2a. Correct configurations with $wgAWSBucketName.
+			'Modern configuration with $wgAWSBucketName (one S3 bucket)' => [
+				[ 'wgAWSBucketName' => 'mysite-images' ],
+				[
+					'public' => 'https://mysite-images.s3.amazonaws.com',
+					'thumb' => 'https://mysite-images.s3.amazonaws.com/thumb'
+				]
+			],
+			'Modern configuration with $wgAWSBucketName and $wgAWSRepoHashLevels=0' => [
+				[
+					'wgAWSBucketName' => 'mysite-images',
+					'wgAWSRepoHashLevels' => 0
+				],
+				[
+					'public' => 'https://mysite-images.s3.amazonaws.com',
+					'thumb' => 'https://mysite-images.s3.amazonaws.com/thumb'
+				]
+			],
+			'Modern configuration with $wgAWSBucketName and $wgAWSRepoHashLevels=2' => [
+				[
+					'wgAWSBucketName' => 'mysite-images',
+					'wgAWSRepoHashLevels' => 2
+				],
+				[
+					'public' => 'https://mysite-images.s3.amazonaws.com',
+					'thumb' => 'https://mysite-images.s3.amazonaws.com/thumb'
+				]
+			],
+			'Modern configuration with $wgAWSBucketName and $wgAWSRepoDeletedHashLevels=0' => [
+				[
+					'wgAWSBucketName' => 'mysite-images',
+					'wgAWSRepoDeletedHashLevels' => 0
+				],
+				[
+					'public' => 'https://mysite-images.s3.amazonaws.com',
+					'thumb' => 'https://mysite-images.s3.amazonaws.com/thumb'
+				]
+			],
+			'Modern configuration with $wgAWSBucketName and $wgAWSRepoDeletedHashLevels=2' => [
+				[
+					'wgAWSBucketName' => 'mysite-images',
+					'wgAWSRepoDeletedHashLevels' => 2
+				],
+				[
+					'public' => 'https://mysite-images.s3.amazonaws.com',
+					'thumb' => 'https://mysite-images.s3.amazonaws.com/thumb'
+				]
+			],
+			'Modern configuration with $wgAWSBucketName and fixed $wgAWSBucketDomain' => [
+				[
+					'wgAWSBucketName' => 'anothersite-images',
+					'wgAWSBucketDomain' => 'myimages.example.com',
+				],
+				[
+					'public' => 'https://myimages.example.com',
+					'thumb' => 'https://myimages.example.com/thumb'
+				]
+			],
+			'Configuration with $wgAWSBucketName, but $wgAWSBucketDomain uses "$1" syntax' => [
+				[
+					'wgAWSBucketName' => 'anothersite-images',
+					'wgAWSBucketDomain' => '$1.example.com',
+				],
+				[
+					'public' => 'https://anothersite-images.example.com',
+					'thumb' => 'https://anothersite-images.example.com/thumb'
+				]
+			],
+			'Configuration with $wgAWSBucketName: semi-obsolete "$2" in $wgAWSBucketDomain' => [
+				[
+					'wgAWSBucketName' => 'thirdsite',
+					'wgAWSBucketDomain' => 'media$2.example.com',
+				],
+				[
+					'public' => 'https://media.example.com',
+					'thumb' => 'https://media-thumb.example.com/thumb'
+				]
+			],
+			'Weird configuration with different custom domains pointing to the same S3 bucket' => [
+				[
+					'wgAWSBucketName' => 'site-number-four',
+					'wgAWSBucketDomain' => [
+						'public' => 'img.example.com',
+						'thumb' => 'thumb.example.com'
+					]
+				],
+				[
+					'public' => 'https://img.example.com',
+					'thumb' => 'https://thumb.example.com/thumb'
+				]
+			],
+
+			// Part 2b. Correct configurations with deprecated $wgAWSBucketPrefix.
+			'B/C configuration with $wgAWSBucketPrefix (four S3 buckets, no $wgAWSBucketName)' => [
 				[ 'wgAWSBucketPrefix' => 'mysite-images' ],
 				[
 					'public' => 'https://mysite-images.s3.amazonaws.com',
 					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
 				]
 			],
-			[
+			'B/C configuration with $wgAWSBucketPrefix and $wgAWSRepoHashLevels=0' => [
 				[
 					'wgAWSBucketPrefix' => 'mysite-images',
 					'wgAWSRepoHashLevels' => 0
@@ -138,7 +241,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
 				]
 			],
-			[
+			'B/C configuration with $wgAWSBucketPrefix and $wgAWSRepoHashLevels=2' => [
 				[
 					'wgAWSBucketPrefix' => 'mysite-images',
 					'wgAWSRepoHashLevels' => 2
@@ -148,7 +251,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
 				]
 			],
-			[
+			'B/C configuration with $wgAWSBucketPrefix and $wgAWSRepoDeletedHashLevels=0' => [
 				[
 					'wgAWSBucketPrefix' => 'mysite-images',
 					'wgAWSRepoDeletedHashLevels' => 0
@@ -158,7 +261,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
 				]
 			],
-			[
+			'B/C configuration with $wgAWSBucketPrefix and $wgAWSRepoDeletedHashLevels=2' => [
 				[
 					'wgAWSBucketPrefix' => 'mysite-images',
 					'wgAWSRepoDeletedHashLevels' => 2
@@ -168,7 +271,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
 				]
 			],
-			[
+			'B/C configuration with $wgAWSBucketPrefix. $wgAWSBucketDomain uses "$1" syntax' => [
 				[
 					'wgAWSBucketPrefix' => 'anothersite-images',
 					'wgAWSBucketDomain' => '$1.example.com',
@@ -178,7 +281,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 					'thumb' => 'https://anothersite-images-thumb.example.com'
 				]
 			],
-			[
+			'B/C configuration with $wgAWSBucketPrefix. $wgAWSBucketDomain uses "$2" syntax' => [
 				[
 					'wgAWSBucketPrefix' => 'thirdsite',
 					'wgAWSBucketDomain' => 'media$2.example.com',
@@ -188,7 +291,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 					'thumb' => 'https://media-thumb.example.com'
 				]
 			],
-			[
+			'B/C configuration with $wgAWSBucketPrefix. $wgAWSBucketDomain is an array' => [
 				[
 					'wgAWSBucketPrefix' => 'site-number-four',
 					'wgAWSBucketDomain' => [
@@ -203,15 +306,17 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 			],
 
 			// Part 3. Incorrect configurations that should throw AmazonS3MisconfiguredException.
-			[
+			'Incorrect configuration with $wgAWSBucketPrefix ' .
+			'where $wgAWSBucketDomain is a fixed string' => [
 				[
 					'wgAWSBucketPrefix' => 'mysite',
 					'wgAWSBucketDomain' => 'same-for-public-and-thumb.example.com'
 				],
 				null,
-				'$wgAWSBucketDomain string must contain either $1 or $2.'
+				'If $wgAWSBucketPrefix is used, $wgAWSBucketDomain must contain either $1 or $2.'
 			],
-			[
+			'Incorrect configuration with $wgAWSBucketPrefix ' .
+			'where $wgAWSBucketDomain is an array without required key "thumb"' => [
 				[
 					'wgAWSBucketPrefix' => 'mysite',
 					'wgAWSBucketDomain' => [ 'public' => 'thumb-zone-was-forgotten.example.com' ]
