@@ -26,6 +26,14 @@
  */
 class AmazonS3Hooks {
 	/**
+	 * Call installBackend() from $wgExtensionFunctions.
+	 */
+	public static function setup() {
+		$hooks = new self;
+		$hooks->installBackend();
+	}
+
+	/**
 	 * Let MediaWiki know that AmazonS3Backend is available.
 	 *
 	 * Note: we call this from $wgExtensionFunctions, not from SetupAfterCache hook,
@@ -33,7 +41,7 @@ class AmazonS3Hooks {
 	 * which (for some reason) needs $wgContLang,
 	 * and $wgContLang only gets defined after SetupAfterCache.
 	 */
-	public static function installBackend() {
+	public function installBackend() {
 		global $wgFileBackends, $wgAWSBucketName, $wgAWSBucketPrefix;
 
 		if ( !isset( $wgFileBackends['s3'] ) ) {
@@ -61,7 +69,7 @@ class AmazonS3Hooks {
 	/**
 	 * Replace $wgLocalRepo with Amazon S3.
 	 */
-	protected static function replaceLocalRepo() {
+	protected function replaceLocalRepo() {
 		global $wgFileBackends, $wgLocalFileRepo, $wgAWSRepoHashLevels,
 			$wgAWSRepoDeletedHashLevels;
 
@@ -108,7 +116,7 @@ class AmazonS3Hooks {
 	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
 	 * @return string Container path, e.g. "BucketName" or "BucketName/thumb".
 	 */
-	protected static function getContainerPath( $zone ) {
+	protected function getContainerPath( $zone ) {
 		return self::getS3BucketName( $zone ) . self::getS3RootDir( $zone );
 	}
 
@@ -117,7 +125,7 @@ class AmazonS3Hooks {
 	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
 	 * @return string Container path, e.g. "BucketName" or "BucketName/thumb".
 	 */
-	protected static function getS3BucketName( $zone ) {
+	protected function getS3BucketName( $zone ) {
 		global $wgAWSBucketName, $wgAWSBucketPrefix;
 
 		if ( $wgAWSBucketName ) {
@@ -134,7 +142,7 @@ class AmazonS3Hooks {
 	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
 	 * @return string|false Relative path, e.g. "" or "/thumb" (without trailing slash).
 	 */
-	protected static function getS3RootDir( $zone ) {
+	protected function getS3RootDir( $zone ) {
 		global $wgAWSBucketName;
 		if ( !$wgAWSBucketName ) {
 			// Backward compatibility mode (4 S3 buckets): when we use more than one bucket,
@@ -166,7 +174,7 @@ class AmazonS3Hooks {
 	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
 	 * @return string
 	 */
-	protected static function getDashZoneString( $zone ) {
+	protected function getDashZoneString( $zone ) {
 		return ( $zone == 'public' ? '' : "-$zone" );
 	}
 
@@ -175,7 +183,7 @@ class AmazonS3Hooks {
 	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
 	 * @return string URL, e.g. "https://something.s3.amazonaws.com/thumb".
 	 */
-	protected static function getZoneUrl( $zone ) {
+	protected function getZoneUrl( $zone ) {
 		global $wgAWSBucketDomain;
 
 		if ( is_array( $wgAWSBucketDomain ) ) {

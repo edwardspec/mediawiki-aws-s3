@@ -22,7 +22,7 @@
 		"AmazonS3SubdirectoryIterator": "s3/AmazonS3SubdirectoryIterator.php"
 	},
 	"ExtensionFunctions": [
-		"AmazonS3Hooks::installBackend"
+		"AmazonS3Hooks::setup"
 	],
 	"config": {
 		"@doc1": "Credentials to connect to AWS. Setting this in LocalSettings.php is NOT NEEDED if your EC2 instance has an IAM instance profile, and its IAM role allows access to Amazon S3 (see README).",

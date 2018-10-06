@@ -42,8 +42,42 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 	}
 
 	/**
+	 * Verify that installBackend() is called during initialization of MediaWiki.
+	 * @covers AmazonS3Hooks::setup
+	 */
+	public function testConfigIsLoaded() {
+		global $IP;
+
+		$tmpFilename = tempnam( sys_get_temp_dir(), '.configtest' );
+		file_put_contents( $tmpFilename,
+			'echo ( isset( $wgFileBackends["s3"] ) && ' .
+			'isset( $wgFileBackends["s3"]["class"] ) && ' .
+			'$wgFileBackends["s3"]["class"] == "AmazonS3FileBackend" ) ? "LOADED" : "FAILED";' );
+
+		$wgFileBackends['s3']['class'] = 'AmazonS3FileBackend';
+
+		// Spawn a new PHP process with eval.php.
+		// This way we can be sure that $wgFileBackends wasn't set by our previous tests,
+		// but was indeed initialized by installBackend().
+		$cmd = wfEscapeShellArg(
+			PHP_BINARY,
+			"$IP/maintenance/runScript.php",
+			"$IP/maintenance/eval.php"
+		) . ' <' . wfEscapeShellArg( $tmpFilename );
+
+		$retval = false;
+		$output = wfShellExecWithStderr( $cmd, $retval, [], [ 'memory' => -1 ] );
+
+		unlink( $tmpFilename ); // Cleanup
+
+		$this->assertContains( 'LOADED', $output,
+			'testConfigIsLoaded(): $wgFileBackends["s3"] is not defined, ' .
+			'which means installBackend() hasn\'t been called on initialization.' );
+	}
+
+	/**
 	 * Check that $wgAWSBucketName and $wgAWSBucketDomain work as expected.
-	 * @covers AmazonS3Hooks
+	 * @covers AmazonS3Hooks::installBackend
 	 * @dataProvider configDataProvider
 	 * @param array $inputConfigs [ 'wgAWSBucketPrefix' => 'value', ... ]
 	 * @param array|null $expectedZoneUrl [ 'public' => URL1, 'thumb' => URL2 ]
@@ -59,7 +93,8 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 		$this->setMwGlobals( $inputConfigs );
 
 		try {
-			AmazonS3Hooks::installBackend();
+			$hooks = new AmazonS3Hooks;
+			$hooks->installBackend();
 		} catch ( AmazonS3MisconfiguredException $e ) {
 			$text = MWExceptionHandler::getLogMessage( $e );
 			$this->assertContains( $expectedExceptionText, $e->getText(),
