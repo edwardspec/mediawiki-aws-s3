@@ -62,7 +62,8 @@ class AmazonS3Hooks {
 	 * Replace $wgLocalRepo with Amazon S3.
 	 */
 	protected static function replaceLocalRepo() {
-		global $wgFileBackends, $wgLocalFileRepo, $wgAWSRepoHashLevels;
+		global $wgFileBackends, $wgLocalFileRepo, $wgAWSRepoHashLevels,
+			$wgAWSRepoDeletedHashLevels;
 
 		/* Needed zones */
 		$zones = [ 'public', 'thumb', 'deleted', 'temp' ];
@@ -74,6 +75,7 @@ class AmazonS3Hooks {
 			'backend'           => 'AmazonS3',
 			'url'               => wfScript( 'img_auth' ),
 			'hashLevels'        => $wgAWSRepoHashLevels,
+			'deletedHashLevels' => $wgAWSRepoDeletedHashLevels,
 			'zones'             => array_fill_keys( $zones, [ 'url' => false ] )
 		];
 

@@ -35,7 +35,8 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 			'wgLocalFileRepo' => $this->untouchedFakeLocalRepo,
 			'wgFileBackends' => [],
 			'wgAWSBucketPrefix' => null,
-			'wgAWSRepoHashLevels' => 0
+			'wgAWSRepoHashLevels' => 0,
+			'wgAWSRepoDeletedHashLevels' => 0
 		] );
 	}
 
@@ -90,6 +91,8 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 		// Step 2. Check $wgLocalFileRepo.
 		$expectedHashLevels = isset( $inputConfigs['wgAWSRepoHashLevels'] ) ?
 			$inputConfigs['wgAWSRepoHashLevels'] : 0;
+		$expectedDeletedHashLevels = isset( $inputConfigs['wgAWSRepoDeletedHashLevels'] ) ?
+			$inputConfigs['wgAWSRepoDeletedHashLevels'] : 0;
 
 		$expectedRepo = $expectedZoneUrl ? [
 			'class' => 'LocalRepo',
@@ -97,6 +100,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 			'backend' => 'AmazonS3',
 			'url' => wfScript( 'img_auth' ),
 			'hashLevels' => $expectedHashLevels,
+			'deletedHashLevels' => $expectedDeletedHashLevels,
 			'zones' => [
 				'public' => [ 'url' => $expectedZoneUrl['public'] ],
 				'thumb' => [ 'url' => $expectedZoneUrl['thumb'] ],
@@ -138,6 +142,26 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 				[
 					'wgAWSBucketPrefix' => 'mysite-images',
 					'wgAWSRepoHashLevels' => 2
+				],
+				[
+					'public' => 'https://mysite-images.s3.amazonaws.com',
+					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
+				]
+			],
+			[
+				[
+					'wgAWSBucketPrefix' => 'mysite-images',
+					'wgAWSRepoDeletedHashLevels' => 0
+				],
+				[
+					'public' => 'https://mysite-images.s3.amazonaws.com',
+					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
+				]
+			],
+			[
+				[
+					'wgAWSBucketPrefix' => 'mysite-images',
+					'wgAWSRepoDeletedHashLevels' => 2
 				],
 				[
 					'public' => 'https://mysite-images.s3.amazonaws.com',
