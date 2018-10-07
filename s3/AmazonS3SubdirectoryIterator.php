@@ -30,6 +30,7 @@ class AmazonS3SubdirectoryIterator extends FilterIterator {
 
 	public function rewind() {
 		$this->seenDirectories = [];
+		parent::rewind();
 	}
 
 	/**
