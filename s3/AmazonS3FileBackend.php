@@ -580,9 +580,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$dir .= '/';
 		}
 
-		// FIXME: $dir should be stripped from the results
-		return $this->getS3ListPaginator( $bucket, $dir, $topOnly )
-			->search( 'Contents[].Key' );
+		return new StripPrefixIterator(
+			$this->getS3ListPaginator( $bucket, $dir, $topOnly )->search( 'Contents[].Key' ),
+			strlen( $dir ) // Remove $dir from listed filenames
+		);
 	}
 
 	function doGetLocalCopyMulti( array $params ) {
