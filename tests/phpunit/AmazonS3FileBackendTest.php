@@ -240,7 +240,9 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			$foundFilenames[] = $dir;
 		}
 
-		$this->assertArrayEquals( $expectedResult, $foundFilenames,
+		sort( $expectedResult );
+		sort( $foundFilenames );
+		$this->assertEquals( $expectedResult, $foundFilenames,
 			"Directory listing doesn't match expected."
 		);
 	}
