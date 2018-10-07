@@ -186,7 +186,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	/**
-	 * @brief Determine S3 bucket of $container and prefix of S3 objects in $container.
+	 * Determine S3 bucket of $container and prefix of S3 objects in $container.
 	 * @param string $container Internal container name (e.g. mywiki-local-thumb).
 	 * @return array|null Array of two strings: bucket, prefix.
 	 * @see getBucketAndObject
@@ -214,9 +214,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return [ $bucket, $prefix ];
 	}
 
-
 	/**
-	 * @brief Calculate names of S3 bucket and S3 object of $storagePath.
+	 * Calculate names of S3 bucket and S3 object of $storagePath.
 	 * @param string $storagePath Internal storage URL (mwstore://something/).
 	 * @return array|null Array of three strings: bucket, object and internal container.
 	 */
@@ -227,7 +226,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	/**
-	 * @brief Determine S3 bucket and S3 object name of RESTRICT_FILE in $container.
+	 * Determine S3 bucket and S3 object name of RESTRICT_FILE in $container.
 	 * @param string $container Internal container name (e.g. mywiki-local-thumb).
 	 * @return array|null Array of two strings: bucket, object name.
 	 */

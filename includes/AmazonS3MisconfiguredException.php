@@ -25,5 +25,4 @@
  * Exception thrown when LocalSettings.php has an incorrect AWS configuration.
  */
 class AmazonS3MisconfiguredException extends MWException {
-
-};
+}

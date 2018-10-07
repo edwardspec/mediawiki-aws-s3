@@ -16,7 +16,7 @@
 
 /**
 	@file
-	@brief Old-style version of [AWSSettings.php]. Doesn't use $wgAWSBucketName.
+	Old-style version of [AWSSettings.php]. Doesn't use $wgAWSBucketName.
 */
 
 $KEY = getenv( 'AWS_KEY' );

@@ -16,7 +16,7 @@
 
 /**
 	@file
-	@brief Additional LocalSettings.php for Travis testing of Extension:AWS.
+	Additional LocalSettings.php for Travis testing of Extension:AWS.
 
 	Expects the following environment variables:
 		AWS_KEY=

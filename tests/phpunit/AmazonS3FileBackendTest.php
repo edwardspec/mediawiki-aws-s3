@@ -16,7 +16,7 @@
 
 /**
 	@file
-	@brief Integration test for AmazonS3FileBackend.
+	Integration test for AmazonS3FileBackend.
 */
 
 use Wikimedia\TestingAccessWrapper;
@@ -34,7 +34,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	private $repo;
 
 	/**
-		@brief Test directory (e.g. 'testdir123').
+		Test directory (e.g. 'testdir123').
 		All files created during this testrun will be placed in this directory.
 	*/
 	private $topDirectory;
@@ -56,7 +56,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		@brief Translate "Hello/world.txt" to mw:// pseudo-URL.
+		Translate "Hello/world.txt" to mw:// pseudo-URL.
 	*/
 	private function getVirtualPath( $filename ) {
 		return $this->repo->getZonePath( getenv( 'AWS_S3_TEST_ZONE' ) ?: 'public' ) . '/' .
@@ -64,7 +64,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * @brief Check that doCreateInternal() succeeds.
+	 * Check that doCreateInternal() succeeds.
 	 * @covers AmazonS3FileBackend::doCreateInternal
 	 */
 	public function testCreate() {
@@ -90,7 +90,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * @brief Check that doGetFileStat() returns correct information about the file.
+	 * Check that doGetFileStat() returns correct information about the file.
 	 * @depends testCreate
 	 * @covers AmazonS3FileBackend::doGetFileStat
 	 */
@@ -106,7 +106,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * @brief Check that the file can be downloaded via getFileHttpUrl().
+	 * Check that the file can be downloaded via getFileHttpUrl().
 	 * @depends testCreate
 	 * @covers AmazonS3FileBackend::getFileHttpUrl
 	 */
@@ -124,7 +124,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		@brief Create test pages for testLists().
+		Create test pages for testLists().
 		@returns [ 'parentDirectory' => 'dirname', 'container' => 'container-name' ]
 	*/
 	protected function prepareListTest() {
@@ -156,7 +156,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		@brief List of files that must be created before testLists().
+		List of files that must be created before testLists().
 		@see listingTestsDataProvider
 		@see testLists
 	*/
@@ -178,7 +178,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		@brief Provides datasets for testList().
+		Provides datasets for testList().
 	*/
 	public function listingTestsDataProvider() {
 		return [
@@ -217,7 +217,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * @brief Check that get*ListInternal() works as expected
+	 * Check that get*ListInternal() works as expected
 	 * @dataProvider listingTestsDataProvider
 	 * @covers AmazonS3FileBackend::getDirectoryListInternal
 	 * @covers AmazonS3FileBackend::getFileListInternal
@@ -246,7 +246,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * @brief Check that doGetLocalCopyMulti() provides correct content.
+	 * Check that doGetLocalCopyMulti() provides correct content.
 	 * @covers AmazonS3FileBackend::doGetLocalCopyMulti
 	 */
 	public function testGetLocalCopyMulti() {
@@ -277,7 +277,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * @brief Check that doCopyInternal() succeeds.
+	 * Check that doCopyInternal() succeeds.
 	 * @depends testCreate
 	 * @covers AmazonS3FileBackend::doCopyInternal
 	 */
@@ -296,7 +296,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * @brief Check that doDeleteInternal() succeeds.
+	 * Check that doDeleteInternal() succeeds.
 	 * @depends testCopyInternal
 	 * @covers AmazonS3FileBackend::doDeleteInternal
 	 */
@@ -312,7 +312,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * @brief Check that doStoreInternal() succeeds.
+	 * Check that doStoreInternal() succeeds.
 	 * @covers AmazonS3FileBackend::doStoreInternal
 	 *
 	 * Pretty much the same checks as in testCreate().
@@ -339,7 +339,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * @brief Check that doSecureInternal() and doPublishInternal() succeed.
+	 * Check that doSecureInternal() and doPublishInternal() succeed.
 	 * @covers AmazonS3FileBackend::doSecureInternal
 	 * @covers AmazonS3FileBackend::doPublishInternal
 	 */

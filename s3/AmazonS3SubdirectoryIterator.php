@@ -33,7 +33,7 @@ class AmazonS3SubdirectoryIterator extends FilterIterator {
 	}
 
 	/**
-	 * @brief Ignore the directories which were already listed.
+	 * Ignore the directories which were already listed.
 	 * The original iterator can contain keys like "dir1/file1" and "dir1/file2",
 	 * but this iterator should return "dir1" only once.
 	 */
