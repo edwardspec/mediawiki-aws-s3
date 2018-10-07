@@ -64,6 +64,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 	const RESTRICT_FILE = '.htsecure';
 
 	/**
+	 * Maximum length of S3 object name.
+	 * See https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingMetadata.html for details.
+	 */
+	const MAX_S3_OBJECT_NAME_LENGTH = 1024;
+
+	/**
 	 * Temporary cache used in isSecure().
 	 * Avoids extra request to doesObjectExist(), unless MediaWiki core
 	 * has forgotten to call prepare() before storing/copying a file.
@@ -177,8 +183,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	function resolveContainerPath( $container, $relStoragePath ) {
-		// FIXME: old code investigation: why urlencode()?
-		if ( strlen( urlencode( $relStoragePath ) ) <= 1024 ) {
+		if ( strlen( $relStoragePath ) <= self::MAX_S3_OBJECT_NAME_LENGTH ) {
 			return $relStoragePath;
 		} else {
 			return null;
