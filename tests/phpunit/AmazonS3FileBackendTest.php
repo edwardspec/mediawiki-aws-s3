@@ -124,7 +124,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		Create test pages for testLists().
+		Create test pages for testList().
 		@returns [ 'parentDirectory' => 'dirname', 'container' => 'container-name' ]
 	*/
 	protected function prepareListTest() {
@@ -156,9 +156,9 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		List of files that must be created before testLists().
+		List of files that must be created before testList().
 		@see listingTestsDataProvider
-		@see testLists
+		@see testList
 	*/
 	public function getFilenamesForListTest() {
 		return [
@@ -235,10 +235,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			return;
 		}
 
-		$foundFilenames = [];
-		foreach ( $result as $dir ) {
-			$foundFilenames[] = $dir;
-		}
+		$foundFilenames = iterator_to_array( $result );
 
 		sort( $expectedResult );
 		sort( $foundFilenames );
