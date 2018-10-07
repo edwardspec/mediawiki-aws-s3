@@ -39,9 +39,9 @@ class AmazonS3SubdirectoryIterator extends FilterIterator {
 	 */
 	public function accept() {
 		$dirname = $this->current();
-		if ( !isset( $seenDirectories[$dirname] ) ) {
+		if ( !isset( $this->seenDirectories[$dirname] ) ) {
 			/* New directory found */
-			$seenDirectories[$dirname] = true;
+			$this->seenDirectories[$dirname] = true;
 
 			if ( $dirname !== '.' ) { // Skip ".", as FSFileBackend does
 				return true;
