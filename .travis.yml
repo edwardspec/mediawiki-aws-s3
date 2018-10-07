@@ -60,7 +60,7 @@ before_script:
   - php -l ./LocalSettings.php
 
 script:
-  - php tests/phpunit/phpunit.php $PHPUNIT_OPTS extensions/AWS/tests/phpunit/AmazonS3HooksTest.php
+  - php tests/phpunit/phpunit.php --group TestsWithNoNeedForAwsCredentials extensions/AWS/tests/phpunit/
   - >
         if [ "x$BUCKET" != "x" ]; then
             # Real AWS credentials are available, so we can run the FileBackendTest.

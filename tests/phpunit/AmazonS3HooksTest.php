@@ -23,6 +23,7 @@
  * @group FileRepo
  * @group FileBackend
  * @group medium
+ * @group TestsWithNoNeedForAwsCredentials
  */
 class AmazonS3HooksTest extends MediaWikiTestCase {
 
