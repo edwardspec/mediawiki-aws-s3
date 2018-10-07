@@ -59,7 +59,8 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		@brief Translate "Hello/world.txt" to mw:// pseudo-URL.
 	*/
 	private function getVirtualPath( $filename ) {
-		return $this->repo->newFile( $filename )->getPath();
+		return $this->repo->getZonePath( getenv( 'AWS_S3_TEST_ZONE' ) ?: 'public' ) . '/' .
+			$this->repo->newFile( $filename )->getRel();
 	}
 
 	/**

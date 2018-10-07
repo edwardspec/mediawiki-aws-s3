@@ -67,8 +67,8 @@ script:
             # We do this twice: one for container path "NameOfBucket" (public zone),
             # one for container path "NameOfBucket/AdditionalPrefix" (e.g. within the "thumb" zone),
             # to ensure that paths are properly calculated in both cases.
-            for topdir in 'SubdirectoryWithinPublicZone' 'thumb'; do
-                AWS_S3_TEST_TOP_DIRECTORY="$topdir" php tests/phpunit/phpunit.php extensions/AWS/tests/phpunit/AmazonS3FileBackendTest.php
+            for zone in public thumb; do
+                AWS_S3_TEST_ZONE="$zone" php tests/phpunit/phpunit.php extensions/AWS/tests/phpunit/AmazonS3FileBackendTest.php
             done
         fi
 
