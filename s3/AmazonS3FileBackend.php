@@ -554,7 +554,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		return new AmazonS3SubdirectoryIterator(
-			$this->getFileListInternal( $bucket, $dir, [] )
+			$this->getFileListInternal( $container, $dir, [] )
 		);
 	}
 
