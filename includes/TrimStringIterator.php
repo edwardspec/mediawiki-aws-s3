@@ -22,23 +22,32 @@
  */
 
 /**
- * Iterator that strips N bytes from the beginning of strings returned by inner Iterator.
+ * Iterator that removes N bytes from the beginning and end of strings returned by inner Iterator.
  * Used in getFileListInternal() and getDirectoryListInternal().
  */
-class StripPrefixIterator extends IteratorIterator {
+class TrimStringIterator extends IteratorIterator {
 	/** @var Iterator */
 	private $innerIterator;
 
 	/** @var int */
-	private $bytesToStrip;
+	private $firstBytesToStrip;
 
-	public function __construct( Iterator $iterator, $bytesToStrip ) {
+	/** @var int */
+	private $lastBytesToStrip;
+
+	public function __construct( Iterator $iterator, $firstBytesToStrip, $lastBytesToStrip = 0 ) {
 		parent::__construct( $iterator );
 
-		$this->bytesToStrip = $bytesToStrip;
+		$this->firstBytesToStrip = $firstBytesToStrip;
+		$this->lastBytesToStrip = $lastBytesToStrip;
 	}
 
 	public function current() {
-		return substr( parent::current(), $this->bytesToStrip );
+		$string = substr( parent::current(), $this->firstBytesToStrip );
+		if ( $this->lastBytesToStrip ) {
+			$string = substr( $string, 0, -$this->lastBytesToStrip );
+		}
+
+		return $string;
 	}
 }

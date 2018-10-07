@@ -20,7 +20,7 @@
 		"AmazonS3Hooks": "includes/AmazonS3Hooks.php",
 		"AmazonS3MisconfiguredException": "includes/AmazonS3MisconfiguredException.php",
 		"AmazonS3SubdirectoryIterator": "s3/AmazonS3SubdirectoryIterator.php",
-		"StripPrefixIterator": "includes/StripPrefixIterator.php"
+		"TrimStringIterator": "includes/TrimStringIterator.php"
 	},
 	"ExtensionFunctions": [
 		"AmazonS3Hooks::setup"

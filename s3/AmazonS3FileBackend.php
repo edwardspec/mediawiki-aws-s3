@@ -550,8 +550,17 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		if ( $topOnly ) {
 			// FIXME: $bucketDir should be stripped from the results
-			return $this->getS3ListPaginator( $bucket, $bucketDir, true )
-				->search( 'CommonPrefixes[].Prefix' );
+			if ( $bucketDir && substr( $bucketDir, -1 ) !== '/' ) {
+				// Add trailing slash to avoid CommonPrefixes response instead of Contents.
+				$bucketDir .= '/';
+			}
+
+			$paginator = $this->getS3ListPaginator( $bucket, $bucketDir, true );
+			return new TrimStringIterator(
+				$paginator->search( 'CommonPrefixes[].Prefix' ),
+				strlen( $bucketDir ), // Remove $bucketDir in the beginning
+				1 // Remove trailing slash, CommonPrefixes always have it
+			);
 		}
 
 		return new AmazonS3SubdirectoryIterator(
@@ -580,9 +589,9 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$dir .= '/';
 		}
 
-		return new StripPrefixIterator(
+		return new TrimStringIterator(
 			$this->getS3ListPaginator( $bucket, $dir, $topOnly )->search( 'Contents[].Key' ),
-			strlen( $dir ) // Remove $dir from listed filenames
+			strlen( $dir ) // Remove $dir from the beginning of listed filenames
 		);
 	}
 
