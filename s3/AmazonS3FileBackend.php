@@ -536,20 +536,20 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$topOnly = !empty( $params['topOnly'] );
 
 		list( $bucket, $prefix ) = $this->findContainer( $container );
-		$dir = $prefix . $dir;
+		$bucketDir = $prefix . $dir; // Relative to S3 bucket $bucket, not $container
 
 		$this->logger->debug(
 			'S3FileBackend: checking DirectoryList(topOnly={topOnly}) ' .
 			'of directory {dir} in S3 bucket {bucket}',
 			[
-				'dir' => $dir,
+				'dir' => $bucketDir,
 				'bucket' => $bucket,
 				'topOnly' => $topOnly ? 1 : 0
 			]
 		);
 
 		if ( $topOnly ) {
-			return $this->getS3ListPaginator( $bucket, $dir, true )
+			return $this->getS3ListPaginator( $bucket, $bucketDir, true )
 				->search( 'CommonPrefixes[].Prefix' );
 		}
 
