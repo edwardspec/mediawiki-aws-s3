@@ -24,7 +24,6 @@ use Wikimedia\TestingAccessWrapper;
 /**
  * @group FileRepo
  * @group FileBackend
- * @group SkippedWithoutAwsCredentials
  * @group medium
  */
 class AmazonS3FileBackendTest extends MediaWikiTestCase {
@@ -53,7 +52,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			$topDir = 'Testdir_' . time() . '_' . rand();
 		}
 
-		$this->topDirectory = ucfirst( $topDir );
+		$this->topDirectory = $topDir;
 	}
 
 	/**

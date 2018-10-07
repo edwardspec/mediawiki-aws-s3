@@ -21,13 +21,12 @@
 	Expects the following environment variables:
 		AWS_KEY=
 		AWS_SECRET=
-		AWS_BUCKET_PREFIX=
+		BUCKET=
+		TRAVIS_BUILD_DIR=
 
-	Note: Amazon S3 buckets (all 4 of them) must be pre-created before the test.
+	Note: Amazon S3 bucket must be pre-created before the test.
 	Note: IAM user (who owns key/secret) must have no other permissions
-	except the access to affected S3 buckets. See README.md for details.
-
-	See also: [OldStyleAWSSettings.php] (for customized $wgLocalFileRepo).
+	except the access to affected S3 bucket. See README.md for details.
 */
 
 wfLoadExtension( 'AWS' );
@@ -35,6 +34,6 @@ $wgAWSRegion = 'us-east-1'; # Northern Virginia
 
 $wgAWSCredentials['key'] = getenv( 'AWS_KEY' );
 $wgAWSCredentials['secret'] = getenv( 'AWS_SECRET' );
-$wgAWSBucketPrefix = getenv( 'AWS_BUCKET_PREFIX' );
+$wgAWSBucketName = getenv( 'BUCKET' );
 
 $wgDebugLogGroups['FileOperation'] = getenv( 'TRAVIS_BUILD_DIR' ) . '/s3.log';
