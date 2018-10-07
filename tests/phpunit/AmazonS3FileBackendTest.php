@@ -124,7 +124,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		Create test pages for testLists().
+		Create test pages for testList().
 		@returns [ 'parentDirectory' => 'dirname', 'container' => 'container-name' ]
 	*/
 	protected function prepareListTest() {
@@ -156,9 +156,9 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		List of files that must be created before testLists().
+		List of files that must be created before testList().
 		@see listingTestsDataProvider
-		@see testLists
+		@see testList
 	*/
 	public function getFilenamesForListTest() {
 		return [
@@ -206,9 +206,9 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			[ 'getFileListInternal', 'dir1', [ 'topOnly' => true ],
 				[ 'file1.txt', 'file2.txt', 'file3.txt' ] ],
 			[ 'getFileListInternal', 'dir1/subdir1', [],
-				[ 'file1-1-1.txt', 'file1-1-2.txt', 'file1-1-3.txt' ] ],
+				[ 'file1-1-1.txt', 'file1-1-2.txt' ] ],
 			[ 'getFileListInternal', 'dir1/subdir1', [ 'topOnly' => true ],
-				[ 'file1-1-1.txt', 'file1-1-2.txt', 'file1-1-3.txt' ] ],
+				[ 'file1-1-1.txt', 'file1-1-2.txt' ] ],
 			[ 'getFileListInternal', 'dir2', [],
 				[ 'file1.txt', 'file2.txt', 'subdir1/file2-1-1.txt', 'file3.txt' ] ],
 			[ 'getFileListInternal', 'dir2', [ 'topOnly' => true ],
@@ -235,12 +235,11 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			return;
 		}
 
-		$foundFilenames = [];
-		foreach ( $result as $dir ) {
-			$foundFilenames[] = $dir;
-		}
+		$foundFilenames = iterator_to_array( $result );
 
-		$this->assertEquals( sort( $expectedResult ), sort( $foundFilenames ),
+		sort( $expectedResult );
+		sort( $foundFilenames );
+		$this->assertEquals( $expectedResult, $foundFilenames,
 			"Directory listing doesn't match expected."
 		);
 	}

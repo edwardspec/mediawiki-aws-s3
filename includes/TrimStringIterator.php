@@ -22,37 +22,32 @@
  */
 
 /**
- * Recursively lists CommonPrefixes based on the Iterator of S3 object names,
- * as returned by getFileListInternal($topOnly=false).
+ * Iterator that removes N bytes from the beginning and end of strings returned by inner Iterator.
+ * Used in getFileListInternal() and getDirectoryListInternal().
  */
-class AmazonS3SubdirectoryIterator extends FilterIterator {
-	private $seenDirectories = [];
+class TrimStringIterator extends IteratorIterator {
+	/** @var Iterator */
+	private $innerIterator;
 
-	public function rewind() {
-		$this->seenDirectories = [];
-		parent::rewind();
-	}
+	/** @var int */
+	private $firstBytesToStrip;
 
-	/**
-	 * Ignore the directories which were already listed.
-	 * The original iterator can contain keys like "dir1/file1" and "dir1/file2",
-	 * but this iterator should return "dir1" only once.
-	 */
-	public function accept() {
-		$dirname = $this->current();
-		if ( !isset( $this->seenDirectories[$dirname] ) ) {
-			/* New directory found */
-			$this->seenDirectories[$dirname] = true;
+	/** @var int */
+	private $lastBytesToStrip;
 
-			if ( $dirname !== '.' ) { // Skip ".", as FSFileBackend does
-				return true;
-			}
-		}
+	public function __construct( Iterator $iterator, $firstBytesToStrip, $lastBytesToStrip = 0 ) {
+		parent::__construct( $iterator );
 
-		return false;
+		$this->firstBytesToStrip = $firstBytesToStrip;
+		$this->lastBytesToStrip = $lastBytesToStrip;
 	}
 
 	public function current() {
-		return dirname( $this->getInnerIterator()->current() );
+		$string = substr( parent::current(), $this->firstBytesToStrip );
+		if ( $this->lastBytesToStrip ) {
+			$string = substr( $string, 0, -$this->lastBytesToStrip );
+		}
+
+		return $string;
 	}
 }
