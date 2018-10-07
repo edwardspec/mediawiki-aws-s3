@@ -60,7 +60,7 @@ class AmazonS3Hooks {
 			but MediaWiki won't use it for storing uploads.
 		*/
 		if ( $wgAWSBucketName || $wgAWSBucketPrefix ) {
-			self::replaceLocalRepo();
+			$this->replaceLocalRepo();
 		}
 
 		return true;
@@ -91,7 +91,7 @@ class AmazonS3Hooks {
 			// Not a private wiki: $publicZones must have an URL
 			foreach ( $publicZones as $zone ) {
 				$wgLocalFileRepo['zones'][$zone] = [
-					'url' => self::getZoneUrl( $zone )
+					'url' => $this->getZoneUrl( $zone )
 				];
 			}
 		} else {
@@ -106,7 +106,7 @@ class AmazonS3Hooks {
 		$wikiId = wfWikiID();
 		$containerPaths = [];
 		foreach ( $zones as $zone ) {
-			$containerPaths["$wikiId-local-$zone"] = self::getContainerPath( $zone );
+			$containerPaths["$wikiId-local-$zone"] = $this->getContainerPath( $zone );
 		}
 		$wgFileBackends['s3']['containerPaths'] = $containerPaths;
 	}
@@ -117,7 +117,7 @@ class AmazonS3Hooks {
 	 * @return string Container path, e.g. "BucketName" or "BucketName/thumb".
 	 */
 	protected function getContainerPath( $zone ) {
-		return self::getS3BucketName( $zone ) . self::getS3RootDir( $zone );
+		return $this->getS3BucketName( $zone ) . $this->getS3RootDir( $zone );
 	}
 
 	/**
@@ -134,7 +134,7 @@ class AmazonS3Hooks {
 		}
 
 		// B/C config, four S3 buckets (one per zone).
-		return $wgAWSBucketPrefix . self::getDashZoneString( $zone );
+		return $wgAWSBucketPrefix . $this->getDashZoneString( $zone );
 	}
 
 	/**
@@ -211,10 +211,10 @@ class AmazonS3Hooks {
 		// $2 - zone suffix (e.g. "-thumb" for "thumb" zone, "" for public zone)
 		$domain = str_replace(
 			[ '$1', '$2' ],
-			[ self::getS3BucketName( $zone ), self::getDashZoneString( $zone ) ],
+			[ $this->getS3BucketName( $zone ), $this->getDashZoneString( $zone ) ],
 			$domain
 		);
 
-		return 'https://' . $domain . self::getS3RootDir( $zone );
+		return 'https://' . $domain . $this->getS3RootDir( $zone );
 	}
 }
