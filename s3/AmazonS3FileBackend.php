@@ -549,6 +549,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 
 		if ( $topOnly ) {
+			// FIXME: $bucketDir should be stripped from the results
 			return $this->getS3ListPaginator( $bucket, $bucketDir, true )
 				->search( 'CommonPrefixes[].Prefix' );
 		}
@@ -574,6 +575,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 			]
 		);
 
+		if ( $dir && substr( $dir, -1 ) !== '/' ) {
+			// Add trailing slash to avoid CommonPrefixes response instead of Contents.
+			$dir .= '/';
+		}
+
+		// FIXME: $dir should be stripped from the results
 		return $this->getS3ListPaginator( $bucket, $dir, $topOnly )
 			->search( 'Contents[].Key' );
 	}
