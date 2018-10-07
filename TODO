@@ -2,6 +2,5 @@ TODO:
 
 Medium-prio:
 * (testsuite) Provide ~100% automated test coverage of all functionality.
-* (feature) Detect absence of any of the 4 needed S3 buckets,
-	create them all immediately,
-	throw MWException "please create them manually" if createBucket() fails.
+* (feature) Throw MWException "please create the bucket manually"
+	if S3 bucket doesn't exist and createBucket() fails.

@@ -56,20 +56,20 @@ class AmazonS3FileBackend extends FileBackendStore {
 	private $containerPaths;
 
 	/**
-	 * Presence of this file in the bucket means that this bucket is used
-	 * for private zone (e.g. 'deleted'), meaning PRIVATE_ACCESS should be
-	 * used in putObject() and CopyObject() into this bucket.
+	 * Presence of this file in the top of container path
+	 * means that this container is used for private zone (e.g. 'deleted'),
+	 * meaning ACL=private should be used in putObject() and CopyObject() into this bucket.
 	 * See isSecure() below.
 	 */
 	const RESTRICT_FILE = '.htsecure';
 
 	/**
-	 * Temporary cache used in isSecure()/setSecure().
+	 * Temporary cache used in isSecure().
 	 * Avoids extra request to doesObjectExist(), unless MediaWiki core
 	 * has forgotten to call prepare() before storing/copying a file.
-	 * @var array(bucket_name => true/false, ...)
+	 * @var array($container => true/false, ...)
 	 */
-	private $isBucketSecure = [];
+	private $isContainerSecure = [];
 
 	/**
 	 * @var bool If true, then all S3 objects are private.
@@ -172,19 +172,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	function isPathUsableInternal( $storagePath ) {
-		list( $container, $rel ) = $this->resolveStoragePathReal( $storagePath );
-		return $container !== null && $this->client->doesBucketExist( $container );
-	}
-
-	function resolveContainerName( $container ) {
-		if ( !empty( $this->containerPaths[$container] ) ) {
-			return $this->containerPaths[$container];
-		}
-
-		return null;
+		list( $bucket, $key, ) = $this->getBucketAndObject( $storagePath );
+		return ( $bucket && $this->client->doesBucketExist( $bucket ) );
 	}
 
 	function resolveContainerPath( $container, $relStoragePath ) {
+		// FIXME: old code investigation: why urlencode()?
 		if ( strlen( urlencode( $relStoragePath ) ) <= 1024 ) {
 			return $relStoragePath;
 		} else {
@@ -192,11 +185,65 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 	}
 
+	/**
+	 * @brief Determine S3 bucket of $container and prefix of S3 objects in $container.
+	 * @param string $container Internal container name (e.g. mywiki-local-thumb).
+	 * @return array|null Array of two strings: bucket, prefix.
+	 * @see getBucketAndObject
+	 */
+	protected function findContainer( $container ) {
+		if ( empty( $this->containerPaths[$container] ) ) {
+			return null; // Not configured
+		}
+
+		// $containerPath can be either "BucketName" or "BucketName/dir1/dir2".
+		// In latter case, "dir1/dir2/" will be prepended to $filename.
+		$containerPath = $this->containerPaths[$container];
+		$firstSlashPos = strpos( $containerPath, '/' );
+		if ( $firstSlashPos === false ) {
+			return [ $containerPath, "" ];
+		}
+
+		$prefix = substr( $containerPath, $firstSlashPos + 1 );
+		$bucket = substr( $containerPath, 0, $firstSlashPos );
+
+		if ( $prefix && substr( $prefix, -1 ) !== '/' ) {
+			$prefix .= '/'; # Add trailing slash, e.g. "thumb/".
+		}
+
+		return [ $bucket, $prefix ];
+	}
+
+
+	/**
+	 * @brief Calculate names of S3 bucket and S3 object of $storagePath.
+	 * @param string $storagePath Internal storage URL (mwstore://something/).
+	 * @return array|null Array of three strings: bucket, object and internal container.
+	 */
+	protected function getBucketAndObject( $storagePath ) {
+		list( $container, $filename ) = $this->resolveStoragePathReal( $storagePath );
+		list( $bucket, $prefix ) = $this->findContainer( $container );
+		return [ $bucket, $prefix . $filename, $container ];
+	}
+
+	/**
+	 * @brief Determine S3 bucket and S3 object name of RESTRICT_FILE in $container.
+	 * @param string $container Internal container name (e.g. mywiki-local-thumb).
+	 * @return array|null Array of two strings: bucket, object name.
+	 */
+	protected function getRestrictFilePath( $container ) {
+		list( $bucket, $prefix ) = $this->findContainer( $container );
+		$restrictFile = $prefix . self::RESTRICT_FILE;
+
+		return [ $bucket, $restrictFile ];
+	}
+
 	function doCreateInternal( array $params ) {
 		$status = Status::newGood();
 
-		list( $container, $key ) = $this->resolveStoragePathReal( $params['dst'] );
-		if ( $container === null || $key == null ) {
+		list( $bucket, $key, $container ) = $this->getBucketAndObject( $params['dst'] );
+
+		if ( $bucket === null || $key == null ) {
 			$status->fatal( 'backend-fail-invalidpath', $params['dst'] );
 			return $status;
 		}
@@ -222,10 +269,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		$this->logger->debug(
-			'S3FileBackend: doCreateInternal(): saving {key} in S3 bucket {container} ' .
+			'S3FileBackend: doCreateInternal(): saving {key} in S3 bucket {bucket} ' .
 			'(sha1 of the original file: {sha1})',
 			[
-				'container' => $container,
+				'bucket' => $bucket,
 				'key' => $key,
 				'sha1' => $sha1Hash
 			]
@@ -235,7 +282,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$res = $this->client->putObject( array_filter( [
 				'ACL' => $this->isSecure( $container ) ? 'private' : 'public-read',
 				'Body' => $params['content'],
-				'Bucket' => $container,
+				'Bucket' => $bucket,
 				'CacheControl' => $params['headers']['Cache-Control'],
 				'ContentDisposition' => $params['headers']['Content-Disposition'],
 				'ContentEncoding' => $params['headers']['Content-Encoding'],
@@ -265,12 +312,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 	function doCopyInternal( array $params ) {
 		$status = Status::newGood();
 
-		list( $srcContainer, $srcKey ) = $this->resolveStoragePathReal( $params['src'] );
-		list( $dstContainer, $dstKey ) = $this->resolveStoragePathReal( $params['dst'] );
-		if ( $srcContainer === null || $srcKey == null ) {
+		list( $srcBucket, $srcKey, ) = $this->getBucketAndObject( $params['src'] );
+		list( $dstBucket, $dstKey, $dstContainer ) = $this->getBucketAndObject( $params['dst'] );
+
+		if ( $srcBucket === null || $srcKey == null ) {
 			$status->fatal( 'backend-fail-invalidpath', $params['src'] );
 		}
-		if ( $dstContainer === null || $dstKey == null ) {
+		if ( $dstBucket === null || $dstKey == null ) {
 			$status->fatal( 'backend-fail-invalidpath', $params['dst'] );
 		}
 
@@ -279,13 +327,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		$this->logger->debug(
-			'S3FileBackend: doCopyInternal(): copying {srcKey} from S3 bucket {srcContainer} ' .
-			'to {dstKey} from S3 bucket {dstContainer}.',
+			'S3FileBackend: doCopyInternal(): copying {srcKey} from S3 bucket {dstBucket} ' .
+			'to {dstKey} from S3 bucket {dstBucket}.',
 			[
 				'dstKey' => $dstKey,
-				'dstContainer' => $dstContainer,
+				'dstBucket' => $dstBucket,
 				'srcKey' => $srcKey,
-				'srcContainer' => $srcContainer
+				'srcBucket' => $srcBucket
 			]
 		);
 
@@ -304,13 +352,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 		try {
 			$res = $this->client->copyObject( array_filter( [
 				'ACL' => $this->isSecure( $dstContainer ) ? 'private' : 'public-read',
-				'Bucket' => $dstContainer,
+				'Bucket' => $dstBucket,
 				'CacheControl' => $params['headers']['Cache-Control'],
 				'ContentDisposition' => $params['headers']['Content-Disposition'],
 				'ContentEncoding' => $params['headers']['Content-Encoding'],
 				'ContentLanguage' => $params['headers']['Content-Language'],
 				'ContentType' => $params['headers']['Content-Type'],
-				'CopySource' => $srcContainer . '/' . $this->client->encodeKey( $srcKey ),
+				'CopySource' => $srcBucket . '/' . $this->client->encodeKey( $srcKey ),
 				'CopySourceIfMatch' => $params['headers']['E-Tag'],
 				'CopySourceIfModifiedSince' => $params['headers']['If-Modified-Since'],
 				'Expires' => $params['headers']['Expires'],
@@ -341,23 +389,23 @@ class AmazonS3FileBackend extends FileBackendStore {
 	function doDeleteInternal( array $params ) {
 		$status = Status::newGood();
 
-		list( $container, $key ) = $this->resolveStoragePathReal( $params['src'] );
-		if ( $container === null || $key == null ) {
+		list( $bucket, $key, ) = $this->getBucketAndObject( $params['src'] );
+		if ( $bucket === null || $key == null ) {
 			$status->fatal( 'backend-fail-invalidpath', $params['src'] );
 			return $status;
 		}
 
 		$this->logger->debug(
-			'S3FileBackend: doDeleteInternal(): deleting {key} from S3 bucket {container}',
+			'S3FileBackend: doDeleteInternal(): deleting {key} from S3 bucket {bucket}',
 			[
 				'key' => $key,
-				'container' => $container
+				'bucket' => $bucket
 			]
 		);
 
 		try {
 			$this->client->deleteObject( [
-				'Bucket' => $container,
+				'Bucket' => $bucket,
 				'Key' => $key
 			] );
 		} catch ( S3Exception $e ) {
@@ -386,40 +434,43 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$dir .= '/';
 		}
 
+		list( $bucket, $prefix ) = $this->findContainer( $container );
+		$dir = $prefix . $dir;
+
 		$this->logger->debug(
-			'S3FileBackend: checking existence of directory {dir} in S3 bucket {container}',
+			'S3FileBackend: checking existence of directory {dir} in S3 bucket {bucket}',
 			[
 				'dir' => $dir,
-				'container' => $container
+				'bucket' => $bucket
 			]
 		);
 
-		return $this->getS3ListPaginator( $container, $dir, false, [ 'Limit' => 1 ] )
+		return $this->getS3ListPaginator( $bucket, $dir, false, [ 'Limit' => 1 ] )
 			->search( 'Contents' )->valid();
 	}
 
 	function doGetFileStat( array $params ) {
-		list( $container, $key ) = $this->resolveStoragePathReal( $params['src'] );
+		list( $bucket, $key, ) = $this->getBucketAndObject( $params['src'] );
 
 		$this->logger->debug(
-			'S3FileBackend: doGetFileStat(): obtaining information about {key} in S3 bucket {container}',
+			'S3FileBackend: doGetFileStat(): obtaining information about {key} in S3 bucket {bucket}',
 			[
 				'key' => $key,
-				'container' => $container
+				'bucket' => $bucket
 			]
 		);
 
-		if ( $container === null || $key == null ) {
+		if ( $bucket === null || $key == null ) {
 			return null;
-		} elseif ( !$this->client->doesBucketExist( $container ) ) {
+		} elseif ( !$this->client->doesBucketExist( $bucket ) ) {
 			return false;
-		} elseif ( !$this->client->doesObjectExist( $container, $key ) ) {
+		} elseif ( !$this->client->doesObjectExist( $bucket, $key ) ) {
 			return false;
 		}
 
 		try {
 			$res = $this->client->headObject( [
-				'Bucket' => $container,
+				'Bucket' => $bucket,
 				'Key' => $key
 			] );
 		} catch ( S3Exception $e ) {
@@ -441,22 +492,22 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	function getFileHttpUrl( array $params ) {
-		list( $container, $key ) = $this->resolveStoragePathReal( $params['src'] );
-		if ( $container === null ) {
+		list( $bucket, $key, ) = $this->getBucketAndObject( $params['src'] );
+		if ( $bucket === null ) {
 			return null;
 		}
 
 		$this->logger->debug(
-			'S3FileBackend: getFileHttpUrl(): obtaining presigned S3 URL of {key} in S3 bucket {container}',
+			'S3FileBackend: getFileHttpUrl(): obtaining presigned S3 URL of {key} in S3 bucket {bucket}',
 			[
 				'key' => $key,
-				'container' => $container
+				'bucket' => $bucket
 			]
 		);
 
 		try {
 			$request = $this->client->getCommand( 'GetObject', [
-				'Bucket' => $container,
+				'Bucket' => $bucket,
 				'Key' => $key
 			] );
 			$presigned = $this->client->createPresignedRequest( $request, '+1 day' );
@@ -468,15 +519,15 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 	/**
 	 * Obtain Paginator for listing S3 objects with certain prefix.
-	 * @param string $container Name of S3 bucket.
+	 * @param string $bucket Name of S3 bucket.
 	 * @param string $prefix If filename doesn't start with $prefix, it won't be listed.
 	 * @param bool $topOnly If true, filenames with "/" won't be listed.
 	 * @param array $extraParams Additional arguments of ListObjects call (if any).
 	 * @return Aws\ResultPaginator
 	 */
-	private function getS3ListPaginator( $container, $prefix, $topOnly, array $extraParams = [] ) {
+	private function getS3ListPaginator( $bucket, $prefix, $topOnly, array $extraParams = [] ) {
 		return $this->client->getPaginator( 'ListObjects', $extraParams + [
-			'Bucket' => $container,
+			'Bucket' => $bucket,
 			'Prefix' => $prefix,
 			'Delimiter' => $topOnly ? '/' : ''
 		] );
@@ -485,40 +536,46 @@ class AmazonS3FileBackend extends FileBackendStore {
 	function getDirectoryListInternal( $container, $dir, array $params ) {
 		$topOnly = !empty( $params['topOnly'] );
 
+		list( $bucket, $prefix ) = $this->findContainer( $container );
+		$dir = $prefix . $dir;
+
 		$this->logger->debug(
 			'S3FileBackend: checking DirectoryList(topOnly={topOnly}) ' .
-			'of directory {dir} in S3 bucket {container}',
+			'of directory {dir} in S3 bucket {bucket}',
 			[
 				'dir' => $dir,
-				'container' => $container,
+				'bucket' => $bucket,
 				'topOnly' => $topOnly ? 1 : 0
 			]
 		);
 
 		if ( $topOnly ) {
-			return $this->getS3ListPaginator( $container, $dir, true )
+			return $this->getS3ListPaginator( $bucket, $dir, true )
 				->search( 'CommonPrefixes[].Prefix' );
 		}
 
 		return new AmazonS3SubdirectoryIterator(
-			$this->getFileListInternal( $container, $dir, [] )
+			$this->getFileListInternal( $bucket, $dir, [] )
 		);
 	}
 
 	function getFileListInternal( $container, $dir, array $params ) {
 		$topOnly = !empty( $params['topOnly'] );
 
+		list( $bucket, $prefix ) = $this->findContainer( $container );
+		$dir = $prefix . $dir;
+
 		$this->logger->debug(
 			'S3FileBackend: checking FileList(topOnly={topOnly}) ' .
-			'of directory {dir} in S3 bucket {container}',
+			'of directory {dir} in S3 bucket {bucket}',
 			[
 				'dir' => $dir,
-				'container' => $container,
+				'bucket' => $bucket,
 				'topOnly' => $topOnly ? 1 : 0
 			]
 		);
 
-		return $this->getS3ListPaginator( $container, $dir, $topOnly )
+		return $this->getS3ListPaginator( $bucket, $dir, $topOnly )
 			->search( 'Contents[].Key' );
 	}
 
@@ -530,8 +587,9 @@ class AmazonS3FileBackend extends FileBackendStore {
 		];
 		foreach ( array_chunk( $params['srcs'], $params['concurrency'] ) as $pathBatch ) {
 			foreach ( $pathBatch as $src ) {
-				list( $container, $key ) = $this->resolveStoragePathReal( $src );
-				if ( $container === null || $key === null ) {
+				// TODO: remove this duplicate check, getFileHttpUrl() already checks this.
+				list( $bucket, $key, ) = $this->getBucketAndObject( $src );
+				if ( $bucket === null || $key === null ) {
 					$fsFiles[$src] = null;
 					continue;
 				}
@@ -557,11 +615,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 				$this->logger->log(
 					$ok ? LogLevel::DEBUG : LogLevel::ERROR,
 					'S3FileBackend: doGetLocalCopyMulti: {result} {key} from S3 bucket ' .
-					'{container} (presigned S3 URL: {src}) to temporary file {dst}',
+					'{bucket} (presigned S3 URL: {src}) to temporary file {dst}',
 					[
 						'result' => $ok ? 'copied' : 'failed to copy',
 						'key' => $key,
-						'container' => $container,
+						'bucket' => $bucket,
 						'src' => $srcPath,
 						'dst' => $dstPath
 					]
@@ -576,10 +634,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 	function doPrepareInternal( $container, $dir, array $params ) {
 		$status = Status::newGood();
 
+		list( $bucket, $prefix ) = $this->findContainer( $container );
+		$dir = $prefix . $dir;
+
 		$this->logger->debug(
-			'S3FileBackend: doPrepareInternal: S3 bucket {container}, dir={dir}, params={params}',
+			'S3FileBackend: doPrepareInternal: S3 bucket {bucket}, dir={dir}, params={params}',
 			[
-				'container' => $container,
+				'bucket' => $bucket,
 				'dir' => $dir,
 
 				// String, e.g. 'noAccess, noListing'
@@ -587,22 +648,22 @@ class AmazonS3FileBackend extends FileBackendStore {
 			]
 		);
 
-		if ( !$this->client->doesBucketExist( $container ) ) {
+		if ( !$this->client->doesBucketExist( $bucket ) ) {
 			$this->logger->warning(
-				'S3FileBackend: doPrepareInternal: found non-existent S3 bucket {container}, ' .
+				'S3FileBackend: doPrepareInternal: found non-existent S3 bucket {bucket}, ' .
 				'going to create it',
 				[
-					'container' => $container
+					'bucket' => $bucket
 				]
 			);
 
 			try {
 				$this->client->createBucket( [
 					'ACL' => isset( $params['noListing'] ) ? 'private' : 'public-read',
-					'Bucket' => $container
+					'Bucket' => $bucket
 				] );
 
-				$waiter = $this->client->getWaiter( 'BucketExists', [ 'Bucket' => $container ] );
+				$waiter = $this->client->getWaiter( 'BucketExists', [ 'Bucket' => $bucket ] );
 				$waiter->promise()->wait();
 			} catch ( S3Exception $e ) {
 				$this->handleException( $e, $status, __METHOD__, $params );
@@ -614,9 +675,9 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		$this->logger->debug(
-			'S3FileBackend: doPrepareInternal: S3 bucket {container} exists',
+			'S3FileBackend: doPrepareInternal: S3 bucket {bucket} exists',
 			[
-				'container' => $container
+				'bucket' => $bucket
 			]
 		);
 
@@ -639,24 +700,26 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$status = Status::newGood();
 
 		if ( !empty( $params['access'] ) ) {
+			list( $bucket, $restrictFile ) = $this->getRestrictFilePath( $container );
+
 			$this->logger->debug(
-				'S3FileBackend: doPublishInternal: deleting {file} from S3 bucket {container}',
+				'S3FileBackend: doPublishInternal: deleting {file} from S3 bucket {bucket}',
 				[
-					'container' => $container,
-					'file' => self::RESTRICT_FILE
+					'bucket' => $bucket,
+					'file' => $restrictFile
 				]
 			);
 
 			try {
 				$res = $this->client->deleteObject( [
-					'Bucket' => $container,
-					'Key'    => self::RESTRICT_FILE
+					'Bucket' => $bucket,
+					'Key'    => $restrictFile
 				] );
 			} catch ( S3Exception $e ) {
 				$this->handleException( $e, $status, __METHOD__, $params );
 			}
 
-			$this->isBucketSecure[$container] = false;
+			$this->isContainerSecure[$container] = false;
 		}
 
 		return $status;
@@ -666,25 +729,27 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$status = Status::newGood();
 
 		if ( !empty( $params['noAccess'] ) ) {
+			list( $bucket, $restrictFile ) = $this->getRestrictFilePath( $container );
+
 			$this->logger->debug(
-				'S3FileBackend: doSecureInternal: creating {file} in S3 bucket {container}',
+				'S3FileBackend: doSecureInternal: creating {file} in S3 bucket {bucket}',
 				[
-					'container' => $container,
-					'file' => self::RESTRICT_FILE
+					'bucket' => $bucket,
+					'file' => $restrictFile
 				]
 			);
 
 			try {
 				$res = $this->client->putObject( [
-					'Bucket' => $container,
-					'Key'    => self::RESTRICT_FILE,
+					'Bucket' => $bucket,
+					'Key'    => $restrictFile,
 					'Body'   => '' /* Empty file */
 				] );
 			} catch ( S3Exception $e ) {
 				$this->handleException( $e, $status, __METHOD__, $params );
 			}
 
-			$this->isBucketSecure[$container] = true;
+			$this->isContainerSecure[$container] = true;
 		}
 
 		return $status;
@@ -692,32 +757,34 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 	private function isSecure( $container ) {
 		if ( $this->privateWiki ) {
-			return true; /* Private wiki: all buckets are secure, even in "public" and "thumb" zones */
+			// Private wiki: all containers are secure, even in "public" and "thumb" zones.
+			return true;
 		}
 
-		if ( array_key_exists( $container, $this->isBucketSecure ) ) {
-			/* We've just secured/published this very bucket */
-			return $this->isBucketSecure[$container];
+		if ( array_key_exists( $container, $this->isContainerSecure ) ) {
+			/* We've just secured/published this very container */
+			return $this->isContainerSecure[$container];
 		}
+
+		list( $bucket, $restrictFile ) = $this->getRestrictFilePath( $container );
 
 		$this->logger->debug(
-			'S3FileBackend: isSecure: checking the presence of {file} in S3 bucket {container}',
+			'S3FileBackend: isSecure: checking the presence of {file} in S3 bucket {bucket}',
 			[
-				'container' => $container,
-				'file' => self::RESTRICT_FILE
+				'bucket' => $bucket,
+				'file' => $restrictFile
 			]
 		);
 
 		try {
-			$is_secure = $this->client->doesObjectExist( $container,
-				self::RESTRICT_FILE );
+			$isSecure = $this->client->doesObjectExist( $bucket, $restrictFile );
 		} catch ( S3Exception $e ) {
 			/* Assume insecure */
 			return false;
 		}
 
-		$this->isBucketSecure[$container] = $is_secure;
-		return $is_secure;
+		$this->isContainerSecure[$container] = $isSecure;
+		return $isSecure;
 	}
 
 	/**

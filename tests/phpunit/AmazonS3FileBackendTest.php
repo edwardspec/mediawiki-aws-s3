@@ -24,7 +24,6 @@ use Wikimedia\TestingAccessWrapper;
 /**
  * @group FileRepo
  * @group FileBackend
- * @group SkippedWithoutAwsCredentials
  * @group medium
  */
 class AmazonS3FileBackendTest extends MediaWikiTestCase {
@@ -53,14 +52,15 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			$topDir = 'Testdir_' . time() . '_' . rand();
 		}
 
-		$this->topDirectory = ucfirst( $topDir );
+		$this->topDirectory = $topDir;
 	}
 
 	/**
 		@brief Translate "Hello/world.txt" to mw:// pseudo-URL.
 	*/
 	private function getVirtualPath( $filename ) {
-		return $this->repo->newFile( $filename )->getPath();
+		return $this->repo->getZonePath( getenv( 'AWS_S3_TEST_ZONE' ) ?: 'public' ) . '/' .
+			$this->repo->newFile( $filename )->getRel();
 	}
 
 	/**
@@ -376,14 +376,15 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		}
 
 		foreach ( $orderOfTests as $subtestName ) {
-			$this->backend->isBucketSecure = []; // Delete cache, so that it won't affect this subtest
+			// Delete cache, so that it won't affect this subtest
+			$this->backend->isContainerSecure = [];
 
 			list( $method, $params, $expectedSecurity ) = $subtests[$subtestName];
 			$this->backend->$method( $container, 'unused', $params );
 
 			// Delete cache, so that doCreateInternal would actually recheck security,
 			// not trust the cache that was just populated by $method().
-			$this->backend->isBucketSecure = [];
+			$this->backend->isContainerSecure = [];
 
 			$status = $this->backend->doCreateInternal( [
 				'content' => 'Whatever',
@@ -395,7 +396,8 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			# Note: getFileHttpUrl() returns presigned URLs and can't be used here.
 			# A non-presigned URL will return HTTP 403 Forbidden
 			# if the ACL of this object is not PUBLIC_READ.
-			$url = $this->backend->client->getObjectUrl( $container, $key );
+			list( $bucket, $prefix ) = $this->backend->findContainer( $container );
+			$url = $this->backend->client->getObjectUrl( $bucket, $prefix . $key );
 			$securityAfterTest = ( Http::get( $url ) === false );
 
 			$this->assertEquals( $expectedSecurity, $securityAfterTest,
