@@ -58,7 +58,7 @@ before_script:
   - php -l ./LocalSettings.php
 
 script:
-  - BUCKET=NotUsedByThisTest php tests/phpunit/phpunit.php --group TestsWithNoNeedForAwsCredentials extensions/AWS/tests/phpunit/
+  - php tests/phpunit/phpunit.php --group TestsWithNoNeedForAwsCredentials extensions/AWS/tests/phpunit/
   - >
         if [ "x$AWS_BUCKET_PREFIX" != "x" ]; then
             # Real AWS credentials are available, so we can run the FileBackendTest.

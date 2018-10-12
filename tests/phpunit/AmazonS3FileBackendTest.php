@@ -28,18 +28,28 @@ use Wikimedia\TestingAccessWrapper;
  */
 class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	/** @var TestingAccessWrapper Proxy to AmazonS3FileBackend */
-	private $backend;
+	private static $backend;
 
-	/** @var FileRepo */
-	private $repo;
-
-	public function __construct( $name = null, array $data = [], $dataName = '' ) {
-		parent::__construct( $name, $data, $dataName );
-
-		$this->backend = TestingAccessWrapper::newFromObject(
+	public static function setUpBeforeClass() {
+		self::$backend = TestingAccessWrapper::newFromObject(
 			FileBackendGroup::singleton()->get( 'AmazonS3' )
 		);
-		$this->repo = RepoGroup::singleton()->getLocalRepo();
+	}
+
+	/**
+	 * Get AmazonS3FileBackend object.
+	 * @return TestingAccessWrapper
+	 */
+	public function getBackend() {
+		return self::$backend;
+	}
+
+	/**
+	 * Get S3 client object.
+	 * @return S3Client
+	 */
+	public function getClient() {
+		return $this->getBackend()->client;
 	}
 
 	/**
@@ -47,8 +57,9 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 * @param string $filename
 	 */
 	private function getVirtualPath( $filename ) {
-		return $this->repo->getZonePath( getenv( 'AWS_S3_TEST_ZONE' ) ?: 'public' ) . '/' .
-			$this->repo->newFile( $filename )->getRel();
+		$repo = RepoGroup::singleton()->getLocalRepo();
+		return $repo->getZonePath( getenv( 'AWS_S3_TEST_ZONE' ) ?: 'public' ) . '/' .
+			$repo->newFile( $filename )->getRel();
 	}
 
 	/**
@@ -56,19 +67,18 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 * @covers AmazonS3FileBackend::doPrepareInternal
 	 */
 	public function testPrepareInternal() {
-		list( $container, ) = $this->backend->resolveStoragePathReal(
+		list( $container, ) = $this->getBackend()->resolveStoragePathReal(
 			$this->getVirtualPath( 'Hello/World.png' ) );
-		list( $bucket, $prefix ) = $this->backend->findContainer( $container );
+		list( $bucket, $prefix ) = $this->getBackend()->findContainer( $container );
 
-		$client = $this->backend->client;
-		if ( $client->doesBucketExist( $bucket ) ) {
+		if ( $this->getClient()->doesBucketExist( $bucket ) ) {
 			$this->markTestSkipped( 'Test skipped: S3 bucket already exists.' );
 		}
 
 		// S3 bucket doesn't exist yet, so we can proceed with the test.
-		$status = $this->backend->doPrepareInternal( $container, $prefix, [] );
+		$status = $this->getBackend()->doPrepareInternal( $container, $prefix, [] );
 		$this->assertTrue( $status->isGood(), 'doPrepareInternal() failed' );
-		$this->assertTrue( $client->doesBucketExist( $bucket ),
+		$this->assertTrue( $this->getClient()->doesBucketExist( $bucket ),
 			"S3 bucket doesn't exist after doPrepareInternal()" );
 	}
 
@@ -85,9 +95,9 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		];
 		$params['fullfilename'] = $params['directory'] . '/' . $params['filename'];
 		$params['dst'] = $this->getVirtualPath( $params['fullfilename'] );
-		list( $params['container'], ) = $this->backend->resolveStoragePathReal( $params['dst'] );
+		list( $params['container'], ) = $this->getBackend()->resolveStoragePathReal( $params['dst'] );
 
-		$status = $this->backend->doCreateInternal( [
+		$status = $this->getBackend()->doCreateInternal( [
 			'content' => $params['content'],
 			'headers' => $params['headers'],
 			'dst' => $params['dst']
@@ -104,7 +114,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 * @covers AmazonS3FileBackend::doGetFileStat
 	 */
 	public function testGetFileStat( array $params ) {
-		$info = $this->backend->doGetFileStat( [ 'src' => $params['dst'] ] );
+		$info = $this->getBackend()->doGetFileStat( [ 'src' => $params['dst'] ] );
 
 		$this->assertEquals( $info['size'], strlen( $params['content'] ),
 			'GetFileStat(): incorrect filesize after doCreateInternal()' );
@@ -120,7 +130,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 * @covers AmazonS3FileBackend::getFileHttpUrl
 	 */
 	public function testFileHttpUrl( array $params ) {
-		$url = $this->backend->getFileHttpUrl( [ 'src' => $params['dst'] ] );
+		$url = $this->getBackend()->getFileHttpUrl( [ 'src' => $params['dst'] ] );
 		$this->assertNotNull( $url, 'No URL returned by getFileHttpUrl()' );
 
 		$content = Http::get( $url );
@@ -146,14 +156,14 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$filenames = $this->getFilenamesForListTest();
 
 		foreach ( $filenames as $filename ) {
-			$status = $this->backend->doCreateInternal( [
+			$status = $this->getBackend()->doCreateInternal( [
 				'dst' => $this->getVirtualPath( $parentDirectory . '/' . $filename ),
 				'content' => $this->getTestContent( $filename )
 			] );
 			$this->assertTrue( $status->isGood(), 'doCreateInternal() failed' );
 		}
 
-		list( $container, ) = $this->backend->resolveStoragePathReal(
+		list( $container, ) = $this->getBackend()->resolveStoragePathReal(
 			$this->getVirtualPath( $parentDirectory . '/' . $filenames[0] )
 		);
 
@@ -234,7 +244,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	public function testList( $method, $directory, $params, $expectedResult ) {
 		$testinfo = $this->prepareListTest();
 
-		$result = $this->backend->$method(
+		$result = $this->getBackend()->$method(
 			$testinfo['container'],
 			$testinfo['parentDirectory'] . ( $directory == '' ? '' : "/$directory" ),
 			$params
@@ -267,7 +277,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			$src[$filename] = $this->getVirtualPath( $testinfo['parentDirectory'] . '/' . $filename );
 		}
 
-		$result = $this->backend->doGetLocalCopyMulti( [
+		$result = $this->getBackend()->doGetLocalCopyMulti( [
 			'src' => array_values( $src )
 		] );
 		$this->assertCount( count( $filenames ), $result,
@@ -293,7 +303,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$params['copy-filename'] = $params['fullfilename'] . '_new_' . rand();
 		$params['copy-dst'] = $this->getVirtualPath( $params['copy-filename'] );
 
-		$status = $this->backend->doCopyInternal( [
+		$status = $this->getBackend()->doCopyInternal( [
 			'src' => $params['dst'],
 			'dst' => $params['copy-dst']
 		] );
@@ -309,12 +319,12 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 * @covers AmazonS3FileBackend::doDeleteInternal
 	 */
 	public function testDeleteInternal( array $params ) {
-		$status = $this->backend->doDeleteInternal( [
+		$status = $this->getBackend()->doDeleteInternal( [
 			'src' => $params['copy-dst']
 		] );
 		$this->assertTrue( $status->isGood(), 'doDeleteInternal() failed' );
 
-		$info = $this->backend->doGetFileStat( [ 'src' => $params['copy-dst'] ] );
+		$info = $this->getBackend()->doGetFileStat( [ 'src' => $params['copy-dst'] ] );
 		$this->assertFalse( $info,
 			'doGetFileStat() says the file still exists after doDeleteInternal()' );
 	}
@@ -332,13 +342,13 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$expectedContent = '-- whatever --';
 		file_put_contents( $src, $expectedContent );
 
-		$status = $this->backend->doStoreInternal( [
+		$status = $this->getBackend()->doStoreInternal( [
 			'src' => $src,
 			'dst' => $dst
 		] );
 		$this->assertTrue( $status->isGood(), 'doStoreInternal() failed' );
 
-		$url = $this->backend->getFileHttpUrl( [ 'src' => $dst ] );
+		$url = $this->getBackend()->getFileHttpUrl( [ 'src' => $dst ] );
 		$this->assertNotNull( $url, 'No URL returned by getFileHttpUrl()' );
 
 		$content = Http::get( $url );
@@ -353,7 +363,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 */
 	public function testSecureAndPublish() {
 		$dst = $this->getVirtualPath( 'Stored/File/2.txt' );
-		list( $container, $key ) = $this->backend->resolveStoragePathReal( $dst );
+		list( $container, $key ) = $this->getBackend()->resolveStoragePathReal( $dst );
 
 		/* Order of these tests will be different, see below */
 		$subtests = [
@@ -376,7 +386,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			and they (if successful) switch "Yes" to "No" (and back).
 			So we run them in different order, depending on the starting state.
 		*/
-		$isSecure = $this->backend->isSecure( $container );
+		$isSecure = $this->getBackend()->isSecure( $container );
 
 		$orderOfTests = [ 'noopSecure', 'secure', 'noopPublish', 'publish' ];
 		if ( $isSecure ) {
@@ -385,16 +395,16 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 
 		foreach ( $orderOfTests as $subtestName ) {
 			// Delete cache, so that it won't affect this subtest
-			$this->backend->isContainerSecure = [];
+			$this->getBackend()->isContainerSecure = [];
 
 			list( $method, $params, $expectedSecurity ) = $subtests[$subtestName];
-			$this->backend->$method( $container, 'unused', $params );
+			$this->getBackend()->$method( $container, 'unused', $params );
 
 			// Delete cache, so that doCreateInternal would actually recheck security,
 			// not trust the cache that was just populated by $method().
-			$this->backend->isContainerSecure = [];
+			$this->getBackend()->isContainerSecure = [];
 
-			$status = $this->backend->doCreateInternal( [
+			$status = $this->getBackend()->doCreateInternal( [
 				'content' => 'Whatever',
 				'dst' => $dst
 			] );
@@ -404,8 +414,8 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			# Note: getFileHttpUrl() returns presigned URLs and can't be used here.
 			# A non-presigned URL will return HTTP 403 Forbidden
 			# if the ACL of this object is not PUBLIC_READ.
-			list( $bucket, $prefix ) = $this->backend->findContainer( $container );
-			$url = $this->backend->client->getObjectUrl( $bucket, $prefix . $key );
+			list( $bucket, $prefix ) = $this->getBackend()->findContainer( $container );
+			$url = $this->getClient()->getObjectUrl( $bucket, $prefix . $key );
 			$securityAfterTest = ( Http::get( $url ) === false );
 
 			$this->assertEquals( $expectedSecurity, $securityAfterTest,
