@@ -33,12 +33,6 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	/** @var FileRepo */
 	private $repo;
 
-	/**
-		Test directory (e.g. 'testdir123').
-		All files created during this testrun will be placed in this directory.
-	*/
-	private $topDirectory;
-
 	public function __construct( $name = null, array $data = [], $dataName = '' ) {
 		parent::__construct( $name, $data, $dataName );
 
@@ -46,13 +40,6 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			FileBackendGroup::singleton()->get( 'AmazonS3' )
 		);
 		$this->repo = RepoGroup::singleton()->getLocalRepo();
-
-		$topDir = getenv( 'AWS_S3_TEST_TOP_DIRECTORY' );
-		if ( !$topDir ) {
-			$topDir = 'Testdir_' . time() . '_' . rand();
-		}
-
-		$this->topDirectory = $topDir;
 	}
 
 	/**
@@ -71,7 +58,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$params = [
 			'content' => 'hello',
 			'headers' => [],
-			'directory' => $this->topDirectory . '/Hello',
+			'directory' => 'Hello',
 			'filename' => 'world.txt',
 		];
 		$params['fullfilename'] = $params['directory'] . '/' . $params['filename'];
@@ -133,7 +120,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			return $testinfo;
 		}
 
-		$parentDirectory = $this->topDirectory . '/ListTest';
+		$parentDirectory = 'ListTest';
 		$filenames = $this->getFilenamesForListTest();
 
 		foreach ( $filenames as $filename ) {
@@ -318,7 +305,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 */
 	public function testStoreInternal() {
 		$src = tempnam( wfTempDir(), 'testupload' );
-		$dst = $this->getVirtualPath( $this->topDirectory . '/Stored/File/1.txt' );
+		$dst = $this->getVirtualPath( 'Stored/File/1.txt' );
 
 		$expectedContent = '-- whatever --';
 		file_put_contents( $src, $expectedContent );
@@ -343,7 +330,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 * @covers AmazonS3FileBackend::doPublishInternal
 	 */
 	public function testSecureAndPublish() {
-		$dst = $this->getVirtualPath( $this->topDirectory . '/Stored/File/2.txt' );
+		$dst = $this->getVirtualPath( 'Stored/File/2.txt' );
 		list( $container, $key ) = $this->backend->resolveStoragePathReal( $dst );
 
 		/* Order of these tests will be different, see below */
