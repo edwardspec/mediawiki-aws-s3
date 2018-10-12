@@ -35,7 +35,6 @@ cache:
 before_script:
   - >
         if [ "x$AWS_BUCKET_PREFIX" != "x" ]; then
-            export BUCKET="${AWS_BUCKET_PREFIX}-$(LC_ALL=C date +'%s')-$TRAVIS_JOB_NUMBER"
             pip install --user awscli
             mkdir -p ~/.aws
             echo -en "\n[default]\naws_access_key_id = ${AWS_KEY}\naws_secret_access_key = ${AWS_SECRET}\n" >>~/.aws/credentials
@@ -61,15 +60,15 @@ before_script:
 script:
   - php tests/phpunit/phpunit.php --group TestsWithNoNeedForAwsCredentials extensions/AWS/tests/phpunit/
   - >
-        if [ "x$BUCKET" != "x" ]; then
+        if [ "x$AWS_BUCKET_PREFIX" != "x" ]; then
             # Real AWS credentials are available, so we can run the FileBackendTest.
             # We do this twice: one for container path "NameOfBucket" (public zone),
             # one for container path "NameOfBucket/AdditionalPrefix" (e.g. within the "thumb" zone),
             # to ensure that paths are properly calculated in both cases.
             for zone in public thumb; do
+                export BUCKET="${AWS_BUCKET_PREFIX}-$(LC_ALL=C date +'%s')-$TRAVIS_JOB_NUMBER-$zone"
                 AWS_S3_TEST_ZONE="$zone" php tests/phpunit/phpunit.php extensions/AWS/tests/phpunit/AmazonS3FileBackendTest.php
                 ~/.local/bin/aws s3 rb --force s3://$BUCKET/
-                ~/.local/bin/aws s3api wait bucket-not-exists --bucket $BUCKET
             done
         fi
 
