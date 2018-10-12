@@ -43,11 +43,33 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		Translate "Hello/world.txt" to mw:// pseudo-URL.
-	*/
+	 * Translate "Hello/world.txt" to mw:// pseudo-URL.
+	 * @param string $filename
+	 */
 	private function getVirtualPath( $filename ) {
 		return $this->repo->getZonePath( getenv( 'AWS_S3_TEST_ZONE' ) ?: 'public' ) . '/' .
 			$this->repo->newFile( $filename )->getRel();
+	}
+
+	/**
+	 * Check that doPrepareInternal() successfully creates an S3 bucket (unless it already exists).
+	 * @covers AmazonS3FileBackend::doPrepareInternal
+	 */
+	public function testPrepareInternal() {
+		list( $container, ) = $this->backend->resolveStoragePathReal(
+			$this->getVirtualPath( 'Hello/World.png' ) );
+		list( $bucket, $prefix ) = $this->backend->findContainer( $container );
+
+		$client = $this->backend->client;
+		if ( $client->doesBucketExist( $bucket ) ) {
+			$this->markTestSkipped( 'Test skipped: S3 bucket already exists.' );
+		}
+
+		// S3 bucket doesn't exist yet, so we can proceed with the test.
+		$status = $this->backend->doPrepareInternal( $container, $prefix, [] );
+		$this->assertTrue( $status->isGood(), 'doPrepareInternal() failed' );
+		$this->assertTrue( $client->doesBucketExist( $bucket ),
+			"S3 bucket doesn't exist after doPrepareInternal()" );
 	}
 
 	/**
