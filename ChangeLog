@@ -1,6 +1,10 @@
 List of changes between releases of Extension:AWS.
 
-== master branch (will become AWS 0.10.0 release) ==
+== master branch (will become AWS 0.10.1 or 0.11.0, depending on magnitude of changes) ==
+
+No changes since AWS 0.10.0.
+
+== AWS 0.10.0 ==
 
 Major features:
 * Added $wgAWSBucketName. Can now use only one S3 bucket instead of 4.
