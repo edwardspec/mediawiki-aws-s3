@@ -1,3 +1,6 @@
+# Commit message convention: "(doc)" means README updates, etc. - they don't change any code.
+if: commit_message !~ /^\(doc\)/
+
 dist: trusty
 sudo: false
 language: php
