@@ -6,7 +6,7 @@ Why is this needed: when images are in S3, Amazon EC2 instance which runs MediaW
 
 # Installation
 
-1\) Download the extension: `git clone --depth 1 https://github.com/edwardspec/mediawiki-aws-s3-stable-fork.git AWS`
+1\) Download the extension: `git clone --depth 1 https://github.com/edwardspec/mediawiki-aws-s3.git AWS`
 
 2\) Move the AWS directory to the "extensions" directory of your MediaWiki, e.g. `/var/www/html/w/extensions` (assuming MediaWiki is in `/var/www/html/w`).
 
