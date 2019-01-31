@@ -12,7 +12,24 @@ Why is this needed: when images are in S3, Amazon EC2 instance which runs MediaW
 
 3\) Run `composer install` from `/var/www/html/w/extensions/AWS` (to download dependencies). If you don't have Composer installed, see https://www.mediawiki.org/wiki/Composer for how to install it.
 
-4\) Create an S3 bucket for images, e.g. `wonderfulbali234`. Note: this name will be seen in URL of images.
+4\) Create an S3 bucket for images, e.g. `wonderfulbali234`. Note: this name will be seen in URL of images. The bucket should have a policy that enables its contents to be public readable by default. For this reason, you should use a unique bucket for your Wiki and not reuse an existing one. For example, this policy will make `wonderfulbali234` accessible by default to the public:
+
+```
+{
+    "Version": "2008-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowPublicRead",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::wonderfulbali234/*"
+        }
+    ]
+}
+```
 
 5a\) If your EC2 instance has an IAM instance profile (recommended), copy everything from "Needed IAM permissions" (see below) to inline policy of the IAM role. See https://console.aws.amazon.com/iam/home#/roles
 
@@ -39,6 +56,8 @@ $wgAWSRegion = 'us-east-1'; # Northern Virginia
 $wgAWSBucketName = "<something>";
 ```
 
+If you do not specify credentials this way, credentials will be retrieved using the [default credentials chain](https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_credentials.html). This means that the conventional `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN` environment variables will be used.
+
 # Needed IAM permissions
 
 Replace `<something>` with the name of your S3 bucket, e.g. `wonderfulbali234`.
@@ -64,6 +83,21 @@ Replace `<something>` with the name of your S3 bucket, e.g. `wonderfulbali234`.
         ]
 }
 ```
+
+# CORS Policies
+
+A correctly configured bucket should have a [CORS policy](https://docs.aws.amazon.com/AmazonS3/latest/dev/cors.html) attached to it that permits requests from the domain where your Wiki is hosted to access the thumbnails uploaded by this extension. If the domain where your Wiki is hosted is at `www.example.com`, attach the following policy:
+
+```
+<CORSConfiguration>
+ <CORSRule>
+   <AllowedOrigin>http://www.example.com</AllowedOrigin>
+   <AllowedMethod>GET</AllowedMethod>
+ </CORSRule>
+</CORSConfiguration>
+```
+
+This addresses the issue when visitors to your Wiki receive the error message, "Sorry, the file cannot be displayed" when clicking on media.
 
 # Custom S3 domain
 
