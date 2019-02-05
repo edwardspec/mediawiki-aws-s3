@@ -39,6 +39,8 @@ $wgAWSRegion = 'us-east-1'; # Northern Virginia
 $wgAWSBucketName = "<something>";
 ```
 
+If you do not specify credentials via $wgAWSCredentials, they are retrieved using the [default credentials chain](https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_credentials.html). This means they are obtained from IAM instance profile (if this EC2 instance has it) or from environmental variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN`.
+
 # Needed IAM permissions
 
 Replace `<something>` with the name of your S3 bucket, e.g. `wonderfulbali234`.
@@ -82,3 +84,19 @@ $wgAWSBucketDomain = '$1.cloudfront.net';
 // Default
 $wgAWSBucketDomain = '$1.s3.amazonaws.com';
 ```
+
+# Troubleshooting
+
+## My wiki uses Extension:MultimediaViewer (or shows images as popups), and now they don't work
+
+If you have this issue, attach a [CORS policy](https://docs.aws.amazon.com/AmazonS3/latest/dev/cors.html) to your S3 bucket with images.
+This will allow JavaScript (in this case, popup-showing script of Extension:MultimediaViewer) from the domain where your Wiki is hosted to download the images from Amazon S3 URL. For example, if the domain of your wiki is `www.example.com`, you can use the following policy:
+```xml
+<CORSConfiguration>
+ <CORSRule>
+   <AllowedOrigin>http://www.example.com</AllowedOrigin>
+   <AllowedMethod>GET</AllowedMethod>
+ </CORSRule>
+</CORSConfiguration>
+```
+
