@@ -21,7 +21,9 @@
  * @file
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+if ( !class_exists( "\\Aws\\S3\\S3Client" ) ) {
+	require_once __DIR__ . '/../vendor/autoload.php';
+}
 
 use Aws\S3\S3Client;
 use Aws\S3\Exception\S3Exception;
