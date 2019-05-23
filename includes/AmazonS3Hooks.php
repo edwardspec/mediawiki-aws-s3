@@ -142,7 +142,7 @@ class AmazonS3Hooks {
 	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
 	 * @return string|false Relative path, e.g. "" or "/thumb" (without trailing slash).
 	 */
-	protected function getS3RootDir( $zone ) {
+	protected function getS3RootDirInternal( $zone ) {
 		global $wgAWSBucketName;
 		if ( !$wgAWSBucketName ) {
 			// Backward compatibility mode (4 S3 buckets): when we use more than one bucket,
@@ -166,6 +166,14 @@ class AmazonS3Hooks {
 		}
 
 		return "/$zone"; # Fallback value for unknown zone (added in recent version of MediaWiki?)
+	}
+
+	/**
+	 * Same as getS3RootDirInternal(), but with prepended $wgAWSBucketTopSubdirectory.
+	 */
+	protected function getS3RootDir( $zone ) {
+		global $wgAWSBucketTopSubdirectory; // Default: empty string
+		return $wgAWSBucketTopSubdirectory . $this->getS3RootDirInternal( $zone );
 	}
 
 	/**
