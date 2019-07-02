@@ -24,8 +24,10 @@ env:
 
 matrix:
   include:
+    - env: branch=REL1_33
+      php: 7.2
     - env: branch=REL1_32
-      php: 7.3
+      php: 7.2
     - env: branch=REL1_31
       php: 7.2
     - env: branch=REL1_27
