@@ -1,6 +1,19 @@
 TODO:
 
 Medium-prio:
-* (testsuite) Provide ~100% automated test coverage of all functionality.
-* (feature) Throw MWException "please create the bucket manually"
+* Provide ~100% automated test coverage of all functionality.
+* Throw MWException "please create the bucket manually"
 	if S3 bucket doesn't exist and createBucket() fails.
+
+Low-prio:
+* Implement doGetFileSha1Base36() in AmazonS3FileBackend.
+
+Tests needed:
+* simulate a private wiki in HooksTest (check URL of public/thumb zone).
+* simulate a private wiki in BackendTest (check public/thumb bucket security).
+* maybe add a high-level (non-decoupled) test?
+	- upload a file via API. (and double-check)
+	- check that thumbnails have been generated.
+	- rename this file via API. (and double-check)
+	- delete the file. (and double-check)
+	- check that thumbnails were deleted.

@@ -1,0 +1,47 @@
+List of changes between releases of Extension:AWS.
+
+== master branch (will become AWS 0.10.1 or 0.11.0, depending on magnitude of changes) ==
+
+No changes since AWS 0.10.0.
+
+== AWS 0.10.0 ==
+
+Major features:
+* Added $wgAWSBucketName. Can now use only one S3 bucket instead of 4.
+* Now using AWS SDK v3 (was: v2), which supports new AWS regions.
+* CDN support: added $wgAWSBucketDomain (custom hostname to use in public URL of S3-hosted images).
+* Added $wgAWSRepoHashLevels and $wgAWSRepoDeletedHashLevels to simplify copying of images
+that are already stored locally (in an existing wiki) to S3 (and vise versa).
+
+Minor features:
+* img_auth.php is now used as URL of public/thumb zones in private wikis.
+* Added support for non-default $wgDBprefix.
+* Increased unnecessarily restricting limit on S3 object name length (can now be up to 1024 bytes).
+
+Bugfixes:
+* Backend no longer waits for S3 bucket to appear if its creation failed for whatever reason.
+
+Deprecated configuration:
+* $wgAWSBucketPrefix (setup with four S3 buckets) is deprecated. Use $wgAWSBucketName instead.
+	Note: $wgAWSBucketPrefix still works, and existing wikis which use it are unaffected,
+	but new wikis shouldn't use it, because it has no benefit over "one bucket only" setup.
+
+Troubleshooting tools:
+* Added debug log to AmazonS3FileBackend: $wgDebugLogGroups['FileOperation'] = 'filename';
+
+Refactoring:
+* Methods like doFileListInternal() have been rewritten to use Paginators (introduced in SDK v3),
+and their code has been significantly simplified.
+
+== AWS 0.9.0 ==
+
+Major features:
+* Added $wgAWSBucketPrefix for easier configuration (instead of manually
+defining $wgLocalFileRepo and $wgFileBackends).
+
+Minor features:
+* Added support for wfLoadExtension().
+
+== AWS 0.8.1 ==
+
+First release after this extension has been unarchived (21 June 2018).

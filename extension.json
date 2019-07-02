@@ -53,7 +53,10 @@
 		"AWSRepoHashLevels": 0,
 
 		"@doc7": "Same as $wgAWSRepoHashLevels, but for deleted images. Set to \"3\" for naming a/ab/abc/Filename.png (same as when MediaWiki stores deleted files in local directories). Default value: 0 (objects are named Filename.png without any prefix).",
-		"AWSRepoDeletedHashLevels": 0
+		"AWSRepoDeletedHashLevels": 0,
+
+		"@doc8": "Extra path within the S3 bucket (not recommended). E.g. if this is '/something', then images will be in bucketname.s3.amazonaws.com/something/File.png instead of bucketname.s3.amazonaws.com/File.png.",
+		"AWSBucketTopSubdirectory": ""
 	},
 
 	"manifest_version": 1
