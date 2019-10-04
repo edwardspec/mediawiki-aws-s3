@@ -85,6 +85,27 @@ $wgAWSBucketDomain = '$1.cloudfront.net';
 $wgAWSBucketDomain = '$1.s3.amazonaws.com';
 ```
 
+# Migrating images
+
+By default the extension stores all images in the top-level directory of the bucket.
+
+If you are migrating an existing `images` folder, MediaWiki uses a hashed directory structure. You will need to add this to your `LocalSettings.php` for the image paths to be generated correctly.
+
+```php
+$wgAWSRepoHashLevels = '2'; # Default 0
+# 2 means that S3 objects will be named a/ab/Filename.png (same as when MediaWiki stores files in local directories)
+
+$wgAWSRepoDeletedHashLevels = '3'; # Default 0
+# 3 for naming a/ab/abc/Filename.png (same as when MediaWiki stores deleted files in local directories)
+```
+
+If your `images` folder previously was serving multiple wikis split into different subdirectories, you need to set `$wgAWSBucketTopSubdirectory`. This setting is not recommended for new wikis.
+
+```php
+$wgAWSBucketTopSubdirectory = '/something';
+# images will be in bucketname.s3.amazonaws.com/something/File.png instead of bucketname.s3.amazonaws.com/File.png.
+```
+
 # Troubleshooting
 
 ## My wiki uses Extension:MultimediaViewer (or shows images as popups), and now they don't work
