@@ -119,9 +119,9 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$this->useHTTPS = (bool)$wgAWSUseHTTPS;
 		}
 
-		if ( isset ( $config['shardViaHashLevels'] ) ) {
-            $this->shardViaHashLevels = $config['shardViaHashLevels'];
-        }
+		if ( isset( $config['shardViaHashLevels'] ) ) {
+			$this->shardViaHashLevels = $config['shardViaHashLevels'];
+		}
 
 		// Cache container information to mask latency
 		if ( isset( $config['wanCache'] ) && $config['wanCache'] instanceof WANObjectCache ) {
