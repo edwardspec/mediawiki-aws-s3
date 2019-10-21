@@ -639,9 +639,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 					continue;
 				}
 
-				wfSuppressWarnings();
-				$ok = copy( $srcPath, $dstPath );
-				wfRestoreWarnings();
+				$ok = false;
+				$contents = Http::get( $srcPath );
+				if ( $contents ) {
+					$ok = ( file_put_contents( $dstPath, $contents ) !== false );
+				}
 
 				$this->logger->log(
 					$ok ? LogLevel::DEBUG : LogLevel::ERROR,
