@@ -476,10 +476,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		if ( $bucket === null || $key == null ) {
 			return null;
-		} elseif ( !$this->client->doesBucketExist( $bucket ) ) {
-			return false;
-		} elseif ( !$this->client->doesObjectExist( $bucket, $key ) ) {
-			return false;
 		}
 
 		try {
@@ -488,7 +484,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'Key' => $key
 			] );
 		} catch ( S3Exception $e ) {
-			$this->handleException( $e, null, __METHOD__, $params );
+			if ( $e->getAwsErrorCode() != 'NotFound' ) {
+				$this->handleException( $e, null, __METHOD__, $params );
+			}
+
 			return false;
 		}
 
