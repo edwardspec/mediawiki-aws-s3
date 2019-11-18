@@ -2,7 +2,31 @@ List of changes between releases of Extension:AWS.
 
 == master branch (will become AWS 0.10.1 or 0.11.0, depending on magnitude of changes) ==
 
-No changes since AWS 0.10.0.
+Major features:
+* Added "local cache" feature for extremely large S3 objects (e.g. 100Mb.+ PDF files).
+This saves time when generating their thumbnails.
+	Note: disabled by default. Set $wgAWSLocalCacheDirectory to writable directory to enable.
+	Note: don't enable if not needed. Small images won't benefit from local cache.
+	Note: files smaller than $wgAWSLocalCacheMinSize bytes (default: 100Mb.) won't be cached.
+* Added $wgAWSBucketTopSubdirectory, which allows to add a custom prefix to S3 paths.
+For example, if $wgAWSBucketTopSubdirectory="/something",
+then S3 object "1.jpg" will be named "Bucket/something/1.jpg" instead of "Bucket/1.jpg".
+Default (recommended): no prefix ($wgAWSBucketTopSubdirectory is an empty string).
+
+Minor features:
+* Added support for custom S3 endpoint: $wgFileBackends['s3']['endpoint'] setting.
+* Added support for basic sharding: $wgFileBackends['s3']['shardViaHashLevels'] setting.
+* Will no longer try to include vendor/autoload.php if S3Client is already loaded.
+This allows administrator to include it via composer.local.json of MediaWiki core.
+
+Performance optimizations:
+* Reduced the number of API calls in doGetFileStat().
+
+Troubleshooting tools:
+* Added performance metrics "how much time was spent on S3 upload/download" to the debug log.
+
+Warnings fixed:
+* Replaced deprecated wfSuppressWarnings()/wfRestoreWarnings().
 
 == AWS 0.10.0 ==
 
