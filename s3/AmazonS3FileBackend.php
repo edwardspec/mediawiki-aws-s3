@@ -638,11 +638,9 @@ class AmazonS3FileBackend extends FileBackendStore {
 					continue;
 				}
 
-				$ok = false;
-				$contents = Http::get( $srcPath );
-				if ( $contents ) {
-					$ok = ( file_put_contents( $dstPath, $contents ) !== false );
-				}
+				$this->s3trapWarnings();
+				$ok = copy( $srcPath, $dstPath );
+				$this->s3untrapWarnings();
 
 				$this->logger->log(
 					$ok ? LogLevel::DEBUG : LogLevel::ERROR,
@@ -845,5 +843,24 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'errorMessage' => $e->getMessage() ?: ""
 			]
 		);
+	}
+
+	/**
+	 * Listen for E_WARNING errors
+	 */
+	protected function s3trapWarnings() {
+		set_error_handler( [ $this, 's3handleWarning' ], E_WARNING );
+	}
+
+	/**
+	 * Stop listening for E_WARNING errors
+	 */
+	protected function s3untrapWarnings() {
+		restore_error_handler(); // restore previous handler
+	}
+
+	public function s3handleWarning( $errno, $errstr ) {
+		$this->logger->error( $errstr );
+		return true; // suppress from PHP handler
 	}
 }
