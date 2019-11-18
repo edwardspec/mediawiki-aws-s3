@@ -4,7 +4,8 @@
 	"author": [
 		"Tyler Romeo",
 		"Daniel Friesen @ Redwerks",
-		"Edward Chernenko"
+		"Edward Chernenko",
+		"David Haslip"
 	],
 	"url": "https://www.mediawiki.org/wiki/Extension:AWS",
 	"descriptionmsg": "aws-desc",
@@ -18,7 +19,9 @@
 	"AutoloadClasses": {
 		"AmazonS3FileBackend": "s3/AmazonS3FileBackend.php",
 		"AmazonS3Hooks": "includes/AmazonS3Hooks.php",
+		"AmazonS3LocalCache": "includes/AmazonS3LocalCache.php",
 		"AmazonS3MisconfiguredException": "includes/AmazonS3MisconfiguredException.php",
+		"AmazonS3ProfilingAssist": "includes/AmazonS3ProfilingAssist.php",
 		"AmazonS3SubdirectoryIterator": "s3/AmazonS3SubdirectoryIterator.php",
 		"TrimStringIterator": "includes/TrimStringIterator.php"
 	},
@@ -56,7 +59,14 @@
 		"AWSRepoDeletedHashLevels": 0,
 
 		"@doc8": "Extra path within the S3 bucket (not recommended). E.g. if this is '/something', then images will be in bucketname.s3.amazonaws.com/something/File.png instead of bucketname.s3.amazonaws.com/File.png.",
-		"AWSBucketTopSubdirectory": ""
+		"AWSBucketTopSubdirectory": "",
+
+		"@doc9": "Path to the directory for storing local copies of large images from S3 (when they are copied to webserver to make a thumbnail image, etc.). Don't enable this unless you have REALLY HUGE files (e.g. 100Mb+ PDFs). Default: false (disabled).",
+		"AWSLocalCacheDirectory": false,
+
+
+		"@doc10": "Minimal size of image (in bytes) that should be cached. Default: 100Mb.",
+		"AWSLocalCacheMinSize": 104857600
 	},
 
 	"manifest_version": 1

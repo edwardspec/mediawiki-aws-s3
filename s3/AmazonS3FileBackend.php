@@ -292,6 +292,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 			]
 		);
 
+		$profiling = new AmazonS3ProfilingAssist( "uploading $key to S3" );
+
 		try {
 			$res = $this->client->putObject( array_filter( [
 				'ACL' => $this->isSecure( $container ) ? 'private' : 'public-read',
@@ -314,6 +316,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 				$this->handleException( $e, $status, __METHOD__, $params );
 			}
 		}
+
+		$profiling->log();
 
 		return $status;
 	}
@@ -363,6 +367,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 			'If-Modified-Since'
 		], null );
 
+		$profiling = new AmazonS3ProfilingAssist( "copying S3 object $srcKey to $dstKey" );
+
 		try {
 			$res = $this->client->copyObject( array_filter( [
 				'ACL' => $this->isSecure( $dstContainer ) ? 'private' : 'public-read',
@@ -380,6 +386,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'MetadataDirective' => 'COPY',
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null
 			] ) );
+
+			AmazonS3LocalCache::invalidate( $params['dst'] );
 		} catch ( S3Exception $e ) {
 			switch ( $e->getAwsErrorCode() ) {
 				case 'NoSuchBucket':
@@ -396,6 +404,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 					$this->handleException( $e, $status, __METHOD__, $params );
 			}
 		}
+
+		$profiling->log();
 
 		return $status;
 	}
@@ -422,6 +432,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'Bucket' => $bucket,
 				'Key' => $key
 			] );
+
+			AmazonS3LocalCache::invalidate( $params['src'] );
 		} catch ( S3Exception $e ) {
 			switch ( $e->getAwsErrorCode() ) {
 				case 'NoSuchBucket':
@@ -476,10 +488,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		if ( $bucket === null || $key == null ) {
 			return null;
-		} elseif ( !$this->client->doesBucketExist( $bucket ) ) {
-			return false;
-		} elseif ( !$this->client->doesObjectExist( $bucket, $key ) ) {
-			return false;
 		}
 
 		try {
@@ -488,7 +496,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'Key' => $key
 			] );
 		} catch ( S3Exception $e ) {
-			$this->handleException( $e, null, __METHOD__, $params );
+			if ( $e->getAwsErrorCode() != 'NotFound' ) {
+				$this->handleException( $e, null, __METHOD__, $params );
+			}
+
 			return false;
 		}
 
@@ -564,7 +575,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 
 		if ( $topOnly ) {
-			// FIXME: $bucketDir should be stripped from the results
 			if ( $bucketDir && substr( $bucketDir, -1 ) !== '/' ) {
 				// Add trailing slash to avoid CommonPrefixes response instead of Contents.
 				$bucketDir .= '/';
@@ -610,6 +620,60 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 	}
 
+	/**
+	 * Download S3 object $src. Checks local cache before downloading.
+	 * @return TempFSFile|null Local temporary file that contains downloaded contents.
+	 */
+	protected function getLocalCopyCached( $src ) {
+		// Try the local cache
+		$file = AmazonS3LocalCache::get( $src );
+		$dstPath = $file->getPath();
+
+		if ( $file->exists() && $file->getSize() > 0 ) { // Found in cache
+			$this->logger->debug(
+				'S3FileBackend: found {src} in local cache: {dstPath}',
+				[
+					'src' => $src,
+					'dstPath' => $dstPath
+				]
+			);
+			return $file;
+		}
+
+		// Not found in the cache. Download from S3.
+		$srcPath = $this->getFileHttpUrl( [ 'src' => $src ] );
+		if ( !$srcPath ) {
+			return null; // Not found: no such object in S3
+		}
+
+		$this->logger->debug(
+			'S3FileBackend: downloading presigned S3 URL {srcPath} to {dstPath}',
+			[
+				'srcPath' => $srcPath,
+				'dstPath' => $dstPath
+			]
+		);
+
+		wfMkdirParents( dirname( $dstPath ) );
+
+		$this->s3trapWarnings();
+
+		$profiling = new AmazonS3ProfilingAssist( "downloading $srcPath from S3" );
+		$ok = copy( $srcPath, $dstPath );
+		$profiling->log();
+
+		$this->s3untrapWarnings();
+
+		// Delayed "remove from cache" if this file doesn't need to be cached (e.g. too small)
+		AmazonS3LocalCache::postDownloadLogic( $file );
+
+		if ( !$ok ) {
+			return null; // Couldn't download the file from S3 (e.g. network issue)
+		}
+
+		return $file;
+	}
+
 	function doGetLocalCopyMulti( array $params ) {
 		$fsFiles = [];
 		$params += [
@@ -625,40 +689,19 @@ class AmazonS3FileBackend extends FileBackendStore {
 					continue;
 				}
 
-				$ext = self::extensionFromPath( $src );
-				$tmpFile = TempFSFile::factory( 'localcopy_', $ext );
-				if ( !$tmpFile ) {
-					$fsFiles[$src] = null;
-					continue;
-				}
-
-				$srcPath = $this->getFileHttpUrl( [ 'src' => $src ] );
-				$dstPath = $tmpFile->getPath();
-				if ( !$srcPath ) {
-					$fsFiles[$src] = null;
-					continue;
-				}
-
-				$ok = false;
-				$contents = Http::get( $srcPath );
-				if ( $contents ) {
-					$ok = ( file_put_contents( $dstPath, $contents ) !== false );
-				}
+				$fsFiles[$src] = $this->getLocalCopyCached( $src );
 
 				$this->logger->log(
-					$ok ? LogLevel::DEBUG : LogLevel::ERROR,
-					'S3FileBackend: doGetLocalCopyMulti: {result} {key} from S3 bucket ' .
-					'{bucket} (presigned S3 URL: {src}) to temporary file {dst}',
+					$fsFiles[$src] ? LogLevel::DEBUG : LogLevel::ERROR,
+					'S3FileBackend: doGetLocalCopyMulti: {key} from S3 bucket ' .
+					'{bucket} {result}: {dst}',
 					[
-						'result' => $ok ? 'copied' : 'failed to copy',
+						'result' => $fsFiles[$src] ? 'is stored locally' : 'couldn\'t be copied to',
 						'key' => $key,
 						'bucket' => $bucket,
-						'src' => $srcPath,
-						'dst' => $dstPath
+						'dst' => $fsFiles[$src] ? $fsFiles[$src]->getPath() : null
 					]
 				);
-
-				$fsFiles[$src] = $ok ? $tmpFile : null;
 			}
 		}
 		return $fsFiles;
@@ -824,12 +867,15 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * Handle an unknown S3Exception by adjusting the status and triggering an error.
 	 *
 	 * @param Aws\S3\Exception\S3Exception $e Exception that was thrown
-	 * @param Status $status Status object for the operation
+	 * @param Status|null $status Status object for the operation (if needed)
 	 * @param string $func Function in which the exception occurred
 	 * @param array $params Params passed to the function
 	 */
-	private function handleException( S3Exception $e, Status $status, $func, array $params ) {
-		$status->fatal( 'backend-fail-internal', $this->name );
+	private function handleException( S3Exception $e, Status $status = null, $func, array $params ) {
+		if ( $status ) {
+			$status->fatal( 'backend-fail-internal', $this->name );
+		}
+
 		if ( $e->getMessage() ) {
 			trigger_error( "$func : {$e->getMessage()}", E_USER_WARNING );
 		}
@@ -843,5 +889,24 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'errorMessage' => $e->getMessage() ?: ""
 			]
 		);
+	}
+
+	/**
+	 * Listen for E_WARNING errors
+	 */
+	protected function s3trapWarnings() {
+		set_error_handler( [ $this, 's3handleWarning' ], E_WARNING );
+	}
+
+	/**
+	 * Stop listening for E_WARNING errors
+	 */
+	protected function s3untrapWarnings() {
+		restore_error_handler(); // restore previous handler
+	}
+
+	public function s3handleWarning( $errno, $errstr ) {
+		$this->logger->error( $errstr );
+		return true; // suppress from PHP handler
 	}
 }

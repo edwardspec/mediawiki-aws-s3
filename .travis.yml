@@ -67,17 +67,21 @@ before_script:
 script:
   - php tests/phpunit/phpunit.php --group TestsWithNoNeedForAwsCredentials extensions/AWS/tests/phpunit/
   - >
+        fails=0;
         if [ "x$AWS_BUCKET_PREFIX" != "x" ]; then
             # Real AWS credentials are available, so we can run the FileBackendTest.
             # We do this twice: one for container path "NameOfBucket" (public zone),
             # one for container path "NameOfBucket/AdditionalPrefix" (e.g. within the "thumb" zone),
             # to ensure that paths are properly calculated in both cases.
+            for WITH_CACHE in 0 1; do
             for zone in public thumb; do
-                export BUCKET="${AWS_BUCKET_PREFIX}-$(LC_ALL=C date +'%s')-$TRAVIS_JOB_NUMBER-$zone"
-                AWS_S3_TEST_ZONE="$zone" php tests/phpunit/phpunit.php extensions/AWS/tests/phpunit/AmazonS3FileBackendTest.php
+                export BUCKET="${AWS_BUCKET_PREFIX}-$(LC_ALL=C date +'%s')-$TRAVIS_JOB_NUMBER-$zone-cache$WITH_CACHE"
+                AWS_S3_TEST_ZONE="$zone" WITH_CACHE="$WITH_CACHE" php tests/phpunit/phpunit.php extensions/AWS/tests/phpunit/AmazonS3FileBackendTest.php || ((fails++))
                 ~/.local/bin/aws s3 rb --force s3://$BUCKET/
-            done
-        fi
+                rm -rf -v "$TRAVIS_BUILD_DIR/aws.localcache"
+            done; done
+        fi;
+        [[ $fails -eq 0 ]]
 
 after_script:
   - cat "$TRAVIS_BUILD_DIR/s3.log"
