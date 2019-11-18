@@ -292,6 +292,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 			]
 		);
 
+		$profiling = new AmazonS3ProfilingAssist( "uploading $key to S3" );
+
 		try {
 			$res = $this->client->putObject( array_filter( [
 				'ACL' => $this->isSecure( $container ) ? 'private' : 'public-read',
@@ -314,6 +316,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 				$this->handleException( $e, $status, __METHOD__, $params );
 			}
 		}
+
+		$profiling->log();
 
 		return $status;
 	}
@@ -363,6 +367,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 			'If-Modified-Since'
 		], null );
 
+		$profiling = new AmazonS3ProfilingAssist( "copying S3 object $srcKey to $dstKey" );
+
 		try {
 			$res = $this->client->copyObject( array_filter( [
 				'ACL' => $this->isSecure( $dstContainer ) ? 'private' : 'public-read',
@@ -396,6 +402,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 					$this->handleException( $e, $status, __METHOD__, $params );
 			}
 		}
+
+		$profiling->log();
 
 		return $status;
 	}
@@ -638,7 +646,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 				}
 
 				$this->s3trapWarnings();
+
+				$profiling = new AmazonS3ProfilingAssist( "downloading $srcPath from S3" );
 				$ok = copy( $srcPath, $dstPath );
+				$profiling->log();
+
 				$this->s3untrapWarnings();
 
 				$this->logger->log(
