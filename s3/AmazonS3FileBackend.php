@@ -824,12 +824,15 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * Handle an unknown S3Exception by adjusting the status and triggering an error.
 	 *
 	 * @param Aws\S3\Exception\S3Exception $e Exception that was thrown
-	 * @param Status $status Status object for the operation
+	 * @param Status|null $status Status object for the operation (if needed)
 	 * @param string $func Function in which the exception occurred
 	 * @param array $params Params passed to the function
 	 */
-	private function handleException( S3Exception $e, Status $status, $func, array $params ) {
-		$status->fatal( 'backend-fail-internal', $this->name );
+	private function handleException( S3Exception $e, Status $status = null, $func, array $params ) {
+		if ( $status ) {
+			$status->fatal( 'backend-fail-internal', $this->name );
+		}
+
 		if ( $e->getMessage() ) {
 			trigger_error( "$func : {$e->getMessage()}", E_USER_WARNING );
 		}
