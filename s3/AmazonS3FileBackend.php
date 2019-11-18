@@ -564,7 +564,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 
 		if ( $topOnly ) {
-			// FIXME: $bucketDir should be stripped from the results
 			if ( $bucketDir && substr( $bucketDir, -1 ) !== '/' ) {
 				// Add trailing slash to avoid CommonPrefixes response instead of Contents.
 				$bucketDir .= '/';
