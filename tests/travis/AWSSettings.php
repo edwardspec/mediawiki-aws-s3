@@ -37,3 +37,9 @@ $wgAWSCredentials['secret'] = getenv( 'AWS_SECRET' );
 $wgAWSBucketName = getenv( 'BUCKET' );
 
 $wgDebugLogGroups['FileOperation'] = getenv( 'TRAVIS_BUILD_DIR' ) . '/s3.log';
+
+# Should be tested with and without local cache enabled
+if ( getenv( 'WITH_CACHE' ) ) {
+	$wgAWSLocalCacheDirectory = getenv( 'TRAVIS_BUILD_DIR' ) . '/aws.localcache';
+	$wgAWSLocalCacheMinSize = 0; // Make all files cached, regardless of their size.
+}
