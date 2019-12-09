@@ -104,7 +104,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @param array $config
 	 * @throws AmazonS3MisconfiguredException if no containerPaths is set
 	 */
-	function __construct( array $config ) {
+	public function __construct( array $config ) {
 		global $wgAWSCredentials, $wgAWSRegion, $wgAWSUseHTTPS;
 
 		parent::__construct( $config );
@@ -183,16 +183,16 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 	}
 
-	function directoriesAreVirtual() {
+	protected function directoriesAreVirtual() {
 		return true;
 	}
 
-	function isPathUsableInternal( $storagePath ) {
+	public function isPathUsableInternal( $storagePath ) {
 		list( $bucket, $key, ) = $this->getBucketAndObject( $storagePath );
 		return ( $bucket && $this->client->doesBucketExist( $bucket ) );
 	}
 
-	function resolveContainerPath( $container, $relStoragePath ) {
+	protected function resolveContainerPath( $container, $relStoragePath ) {
 		if ( strlen( $relStoragePath ) <= self::MAX_S3_OBJECT_NAME_LENGTH ) {
 			return $relStoragePath;
 		} else {
@@ -252,7 +252,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return [ $bucket, $restrictFile ];
 	}
 
-	function doCreateInternal( array $params ) {
+	protected function doCreateInternal( array $params ) {
 		$status = Status::newGood();
 
 		list( $bucket, $key, $container ) = $this->getBucketAndObject( $params['dst'] );
@@ -322,12 +322,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $status;
 	}
 
-	function doStoreInternal( array $params ) {
+	protected function doStoreInternal( array $params ) {
 		$params['content'] = fopen( $params['src'], 'r' );
 		return $this->doCreateInternal( $params );
 	}
 
-	function doCopyInternal( array $params ) {
+	protected function doCopyInternal( array $params ) {
 		$status = Status::newGood();
 
 		list( $srcBucket, $srcKey, ) = $this->getBucketAndObject( $params['src'] );
@@ -410,7 +410,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $status;
 	}
 
-	function doDeleteInternal( array $params ) {
+	protected function doDeleteInternal( array $params ) {
 		$status = Status::newGood();
 
 		list( $bucket, $key, ) = $this->getBucketAndObject( $params['src'] );
@@ -454,7 +454,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $status;
 	}
 
-	function doDirectoryExists( $container, $dir, array $params ) {
+	protected function doDirectoryExists( $container, $dir, array $params ) {
 		// See if at least one file is in the directory.
 		if ( $dir && substr( $dir, -1 ) !== '/' ) {
 			$dir .= '/';
@@ -475,7 +475,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			->search( 'Contents' )->valid();
 	}
 
-	function doGetFileStat( array $params ) {
+	protected function doGetFileStat( array $params ) {
 		list( $bucket, $key, ) = $this->getBucketAndObject( $params['src'] );
 
 		$this->logger->debug(
@@ -516,7 +516,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		];
 	}
 
-	function getFileHttpUrl( array $params ) {
+	public function getFileHttpUrl( array $params ) {
 		list( $bucket, $key, ) = $this->getBucketAndObject( $params['src'] );
 		if ( $bucket === null ) {
 			return null;
@@ -558,7 +558,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		] );
 	}
 
-	function getDirectoryListInternal( $container, $dir, array $params ) {
+	public function getDirectoryListInternal( $container, $dir, array $params ) {
 		$topOnly = !empty( $params['topOnly'] );
 
 		list( $bucket, $prefix ) = $this->findContainer( $container );
@@ -593,7 +593,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 	}
 
-	function getFileListInternal( $container, $dir, array $params ) {
+	public function getFileListInternal( $container, $dir, array $params ) {
 		$topOnly = !empty( $params['topOnly'] );
 
 		list( $bucket, $prefix ) = $this->findContainer( $container );
@@ -622,6 +622,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 	/**
 	 * Download S3 object $src. Checks local cache before downloading.
+	 * @param string $src
 	 * @return TempFSFile|null Local temporary file that contains downloaded contents.
 	 */
 	protected function getLocalCopyCached( $src ) {
@@ -674,7 +675,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $file;
 	}
 
-	function doGetLocalCopyMulti( array $params ) {
+	protected function doGetLocalCopyMulti( array $params ) {
 		$fsFiles = [];
 		$params += [
 			'srcs' => $params['src'],
@@ -707,7 +708,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $fsFiles;
 	}
 
-	function doPrepareInternal( $container, $dir, array $params ) {
+	protected function doPrepareInternal( $container, $dir, array $params ) {
 		$status = Status::newGood();
 
 		list( $bucket, $prefix ) = $this->findContainer( $container );
@@ -768,11 +769,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $status;
 	}
 
-	function doCleanInternal( $container, $dir, array $params ) {
+	protected function doCleanInternal( $container, $dir, array $params ) {
 		return Status::newGood(); /* Nothing to do */
 	}
 
-	function doPublishInternal( $container, $dir, array $params ) {
+	protected function doPublishInternal( $container, $dir, array $params ) {
 		$status = Status::newGood();
 
 		if ( !empty( $params['access'] ) ) {
@@ -801,7 +802,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $status;
 	}
 
-	function doSecureInternal( $container, $dir, array $params ) {
+	protected function doSecureInternal( $container, $dir, array $params ) {
 		$status = Status::newGood();
 
 		if ( !empty( $params['noAccess'] ) ) {

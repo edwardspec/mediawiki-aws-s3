@@ -62,8 +62,6 @@ class AmazonS3Hooks {
 		if ( $wgAWSBucketName || $wgAWSBucketPrefix ) {
 			$this->replaceLocalRepo();
 		}
-
-		return true;
 	}
 
 	/**
@@ -140,7 +138,7 @@ class AmazonS3Hooks {
 	/**
 	 * Returns root directory within S3 bucket name for $zone.
 	 * @param string $zone Name of the zone, can be 'public', 'thumb', 'temp' or 'deleted'.
-	 * @return string|false Relative path, e.g. "" or "/thumb" (without trailing slash).
+	 * @return string Relative path, e.g. "" or "/thumb" (without trailing slash).
 	 */
 	protected function getS3RootDirInternal( $zone ) {
 		global $wgAWSBucketName;
@@ -170,6 +168,8 @@ class AmazonS3Hooks {
 
 	/**
 	 * Same as getS3RootDirInternal(), but with prepended $wgAWSBucketTopSubdirectory.
+	 * @param string $zone
+	 * @return string
 	 */
 	protected function getS3RootDir( $zone ) {
 		global $wgAWSBucketTopSubdirectory; // Default: empty string
