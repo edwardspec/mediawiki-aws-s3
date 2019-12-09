@@ -164,7 +164,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 				then we assume that this wiki is private,
 				and that we want files to be "for registered users only".
 			*/
-			$this->privateWiki = !( User::isEveryoneAllowed( 'read' ) );
+			$this->privateWiki = !AmazonS3CompatTools::isPublicWiki();
 		}
 
 		if ( !$this->logger ) {

@@ -17,6 +17,7 @@
 		]
 	},
 	"AutoloadClasses": {
+		"AmazonS3CompatTools": "includes/AmazonS3CompatTools.php",
 		"AmazonS3FileBackend": "s3/AmazonS3FileBackend.php",
 		"AmazonS3Hooks": "includes/AmazonS3Hooks.php",
 		"AmazonS3LocalCache": "includes/AmazonS3LocalCache.php",

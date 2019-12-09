@@ -87,7 +87,7 @@ class AmazonS3Hooks {
 			'zones'             => array_fill_keys( $zones, [ 'url' => false ] )
 		];
 
-		if ( User::isEveryoneAllowed( 'read' ) ) {
+		if ( AmazonS3CompatTools::isPublicWiki() ) {
 			// Not a private wiki: $publicZones must have an URL
 			foreach ( $publicZones as $zone ) {
 				$wgLocalFileRepo['zones'][$zone] = [
