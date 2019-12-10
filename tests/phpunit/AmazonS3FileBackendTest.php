@@ -21,6 +21,8 @@
 
 use Wikimedia\TestingAccessWrapper;
 
+require_once __DIR__ . '/AmazonS3ClientMock.php';
+
 /**
  * @group FileRepo
  * @group FileBackend
@@ -30,10 +32,12 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	/** @var TestingAccessWrapper Proxy to AmazonS3FileBackend */
 	private static $backend;
 
-	public static function setUpBeforeClass() {
+	public static function setUpBeforeClass() : void {
 		self::$backend = TestingAccessWrapper::newFromObject(
 			FileBackendGroup::singleton()->get( 'AmazonS3' )
 		);
+
+		self::$backend->client = new AmazonS3ClientMock();
 	}
 
 	/**
@@ -133,7 +137,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$url = $this->getBackend()->getFileHttpUrl( [ 'src' => $params['dst'] ] );
 		$this->assertNotNull( $url, 'No URL returned by getFileHttpUrl()' );
 
-		$content = Http::get( $url );
+		$content = $this->httpGet( $url );
 		$this->assertEquals( $params['content'], $content,
 			'Content downloaded from FileHttpUrl is different from expected' );
 	}
@@ -250,7 +254,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			$params
 		);
 		if ( $method == 'doDirectoryExists' ) {
-			$this->assertEquals( $result, $expectedResult );
+			$this->assertEquals( $expectedResult, $result );
 			return;
 		}
 
@@ -351,7 +355,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$url = $this->getBackend()->getFileHttpUrl( [ 'src' => $dst ] );
 		$this->assertNotNull( $url, 'No URL returned by getFileHttpUrl()' );
 
-		$content = Http::get( $url );
+		$content = $this->httpGet( $url );
 		$this->assertEquals( $expectedContent, $content,
 			'Content downloaded from FileHttpUrl is different from expected' );
 	}
@@ -416,11 +420,23 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			# if the ACL of this object is not PUBLIC_READ.
 			list( $bucket, $prefix ) = $this->getBackend()->findContainer( $container );
 			$url = $this->getClient()->getObjectUrl( $bucket, $prefix . $key );
-			$securityAfterTest = ( Http::get( $url ) === false );
+			$securityAfterTest = ( $this->httpGet( $url ) === false );
 
 			$this->assertEquals( $expectedSecurity, $securityAfterTest,
 				"Incorrect ACL: S3 Object uploaded after $method() is " .
 				( $expectedSecurity ? "publicly accessible" : "resticted for reading" ) );
 		}
+	}
+
+	/**
+	 * Version of Http::get() that can use AmazonS3ClientMock instead of a real Http query.
+	 */
+	private function httpGet( $url ) {
+		$client = self::$backend->client;
+		if ( $client instanceof AmazonS3ClientMock ) {
+			return $client->fakeHttpGet( $url );
+		}
+
+		return Http::get( $url );
 	}
 }
