@@ -2,7 +2,6 @@
 if: commit_message !~ /^\(doc\)/
 
 dist: trusty
-sudo: false
 language: php
 
 git:
@@ -68,22 +67,25 @@ before_script:
 
 script:
   - php tests/phpunit/phpunit.php --group TestsWithNoNeedForAwsCredentials extensions/AWS/tests/phpunit/
+
+  # Real AWS credentials are unavailable when testing pull requests, etc.
+  # By setting USE_MOCK, we are telling AmazonS3FileBackendTest to replace the original S3Client with the mock class.
+  - if [ -z "$AWS_BUCKET_PREFIX" ]; then export USE_MOCK=1; fi
+
+  # We run the test twice: one for container path "NameOfBucket" (public zone),
+  # one for container path "NameOfBucket/AdditionalPrefix" (e.g. within the "thumb" zone),
+  # to ensure that paths are properly calculated in both cases.
   - >
-        fails=0;
-        if [ "x$AWS_BUCKET_PREFIX" != "x" ]; then
-            # Real AWS credentials are available, so we can run the FileBackendTest.
-            # We do this twice: one for container path "NameOfBucket" (public zone),
-            # one for container path "NameOfBucket/AdditionalPrefix" (e.g. within the "thumb" zone),
-            # to ensure that paths are properly calculated in both cases.
-            for WITH_CACHE in 0 1; do
-            for zone in public thumb; do
-                export BUCKET="${AWS_BUCKET_PREFIX}-$(LC_ALL=C date +'%s')-$TRAVIS_JOB_NUMBER-$zone-cache$WITH_CACHE"
-                AWS_S3_TEST_ZONE="$zone" WITH_CACHE="$WITH_CACHE" php tests/phpunit/phpunit.php extensions/AWS/tests/phpunit/AmazonS3FileBackendTest.php || ((fails++))
-                ~/.local/bin/aws s3 rb --force s3://$BUCKET/
-                rm -rf -v "$TRAVIS_BUILD_DIR/aws.localcache"
-            done; done
-        fi;
-        [[ $fails -eq 0 ]]
+      fails=0;
+      for WITH_CACHE in 0 1; do
+          for zone in public thumb; do
+              export BUCKET="${AWS_BUCKET_PREFIX}-$(LC_ALL=C date +'%s')-$TRAVIS_JOB_NUMBER-$zone-cache$WITH_CACHE"
+              AWS_S3_TEST_ZONE="$zone" WITH_CACHE="$WITH_CACHE" php tests/phpunit/phpunit.php extensions/AWS/tests/phpunit/AmazonS3FileBackendTest.php || ((fails++))
+              [[ -z "$USE_MOCK" ]] && ~/.local/bin/aws s3 rb --force s3://$BUCKET/
+              rm -rf -v "$TRAVIS_BUILD_DIR/aws.localcache"
+          done
+      done;
+      [[ $fails -eq 0 ]]
 
 after_script:
   - cat "$TRAVIS_BUILD_DIR/s3.log"
