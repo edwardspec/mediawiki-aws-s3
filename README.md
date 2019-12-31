@@ -121,3 +121,12 @@ This will allow JavaScript (in this case, popup-showing script of Extension:Mult
 </CORSConfiguration>
 ```
 
+# Non-standard configuration
+
+## Using another S3-compatible service (not Amazon S3 itself)
+
+You can use non-Amazon software that supports S3 API (such as Apache CloudStack) instead of Amazon S3 itself. To enable this, add the following line to LocalSettings.php:
+
+```php
+$wgFileBackends['s3']['endpoint'] = 'https://my-custom-url';
+```
