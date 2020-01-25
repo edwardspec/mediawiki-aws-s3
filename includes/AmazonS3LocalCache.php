@@ -21,6 +21,8 @@
  * @file
  */
 
+use MWAWS\FSFile;
+
 /**
  * Local cache for images (especially large, like PDF files) that are downloaded from S3
  * to webserver for the purpose of creating a thumbnail.

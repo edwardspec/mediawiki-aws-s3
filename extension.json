@@ -24,6 +24,7 @@
 		"AmazonS3MisconfiguredException": "includes/AmazonS3MisconfiguredException.php",
 		"AmazonS3ProfilingAssist": "includes/AmazonS3ProfilingAssist.php",
 		"AmazonS3SubdirectoryIterator": "s3/AmazonS3SubdirectoryIterator.php",
+		"MWAWS\\FSFile": "includes/MWAWS/FSFile.php",
 		"TrimStringIterator": "includes/TrimStringIterator.php"
 	},
 	"ExtensionFunctions": [

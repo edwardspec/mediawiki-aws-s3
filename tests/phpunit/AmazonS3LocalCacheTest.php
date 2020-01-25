@@ -84,7 +84,7 @@ class AmazonS3LocalCacheTest extends MediaWikiTestCase {
 		// Furthermore, if it wasn't found in the cache, then the file shouldn't exist yet.
 		// It must also have a temporary name of a certain pattern (with ".S3LocalCache." in it).
 
-		$this->assertInstanceOf( FSFile::class, $file );
+		$this->assertInstanceOf( MWAWS\FSFile::class, $file );
 		$this->assertNotInstanceOf( TempFSFile::class, $file );
 		$this->assertFalse( $file->exists() );
 		$this->assertRegExp( $expectedTemporaryPathRegex, $file->getPath() );
@@ -105,7 +105,7 @@ class AmazonS3LocalCacheTest extends MediaWikiTestCase {
 		// let's double-check that new get() won't find it in the cache.
 		$file = AmazonS3LocalCache::get( $this->virtualUrl );
 
-		$this->assertInstanceOf( FSFile::class, $file );
+		$this->assertInstanceOf( MWAWS\FSFile::class, $file );
 		$this->assertFalse( $file->exists() );
 
 		// Step 3: verify that if we write more than $wgAWSLocalCacheMinSize bytes into $file,
@@ -117,7 +117,7 @@ class AmazonS3LocalCacheTest extends MediaWikiTestCase {
 		$checkLargeFile = function ( FSFile $testFile )
 			use ( $expectedTemporaryPathRegex, $largeFileContents )
 		{
-			$this->assertInstanceOf( FSFile::class, $testFile );
+			$this->assertInstanceOf( MWAWS\FSFile::class, $testFile );
 			$this->assertNotInstanceOf( TempFSFile::class, $testFile );
 			$this->assertTrue( $testFile->exists() );
 			$this->assertNotRegExp( $expectedTemporaryPathRegex, $testFile->getPath() );
