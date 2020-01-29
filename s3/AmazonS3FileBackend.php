@@ -309,6 +309,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'Metadata' => [ 'sha1base36' => $sha1Hash ],
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null,
 			] ) );
+
+			AmazonS3LocalCache::invalidate( $params['dst'] );
 		} catch ( S3Exception $e ) {
 			if ( $e->getAwsErrorCode() == 'NoSuchBucket' ) {
 				$status->fatal( 'backend-fail-create', $params['dst'] );
