@@ -75,7 +75,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * Temporary cache used in isSecure().
 	 * Avoids extra request to doesObjectExist(), unless MediaWiki core
 	 * has forgotten to call prepare() before storing/copying a file.
-	 * @var array($container => true/false, ...)
+	 * @var array [ 'containerName1' => true/false, ... ]
+	 * @phan-var array<string,bool>
 	 */
 	private $isContainerSecure = [];
 
@@ -85,7 +86,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 	*/
 	protected $privateWiki = null;
 
-	/** @var LoggerInterface. B/C for MediaWiki 1.27 (already defined in FileBackend class) */
+	/**
+	 * @var Psr\Log\LoggerInterface
+	 * B/C for MediaWiki 1.27 (already defined in FileBackend class)
+	 */
 	protected $logger = null;
 
 	/**
@@ -499,7 +503,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 			] );
 		} catch ( S3Exception $e ) {
 			if ( $e->getAwsErrorCode() != 'NotFound' ) {
-				$this->handleException( $e, null, __METHOD__, $params );
+				$status = Status::newGood();
+				$this->handleException( $e, $status, __METHOD__, $params );
 			}
 
 			return false;
@@ -595,6 +600,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 	}
 
+	/**
+	 * @param string $container
+	 * @param string $dir
+	 * @param array $params
+	 * @return Iterator
+	 */
 	public function getFileListInternal( $container, $dir, array $params ) {
 		$topOnly = !empty( $params['topOnly'] );
 
@@ -625,7 +636,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	/**
 	 * Download S3 object $src. Checks local cache before downloading.
 	 * @param string $src
-	 * @return TempFSFile|null Local temporary file that contains downloaded contents.
+	 * @return FSFile|null Local temporary file that contains downloaded contents.
 	 */
 	protected function getLocalCopyCached( $src ) {
 		// Try the local cache
@@ -870,14 +881,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * Handle an unknown S3Exception by adjusting the status and triggering an error.
 	 *
 	 * @param Aws\S3\Exception\S3Exception $e Exception that was thrown
-	 * @param Status|null $status Status object for the operation (if needed)
+	 * @param Status $status Status object for the operation (if needed)
 	 * @param string $func Function in which the exception occurred
 	 * @param array $params Params passed to the function
 	 */
-	private function handleException( S3Exception $e, Status $status = null, $func, array $params ) {
-		if ( $status ) {
-			$status->fatal( 'backend-fail-internal', $this->name );
-		}
+	private function handleException( S3Exception $e, Status $status, $func, array $params ) {
+		$status->fatal( 'backend-fail-internal', $this->name );
 
 		if ( $e->getMessage() ) {
 			trigger_error( "$func : {$e->getMessage()}", E_USER_WARNING );

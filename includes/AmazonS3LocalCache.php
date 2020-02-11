@@ -33,7 +33,8 @@ class AmazonS3LocalCache {
 	 * Find local path that will be used to store S3 object $virtualPath in the local cache.
 	 * @param string $virtualPath Pseudo-URL of the image in S3,
 	 * e.g. "mwstore://AmazonS3/local-public/Something_something.png".
-	 * @return Path to the local file (whether it exists or not) or false (if cache is disabled).
+	 * @return string|false Path to the local file (whether it exists or not)
+	 * or false (if the cache is disabled).
 	 */
 	protected static function findLocalPath( $virtualPath ) {
 		global $wgAWSLocalCacheDirectory;

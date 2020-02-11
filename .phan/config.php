@@ -19,4 +19,10 @@ if ( getenv( 'PHAN_CHECK_TESTSUITE' ) ) {
 $cfg['directory_list'][] = 'vendor';
 $cfg['exclude_analysis_directory_list'][] = 'vendor';
 
+# Temporarily suppressed warnings.
+
+# We are still backward compatible with MediaWiki 1.27 (and PHP 5.6),
+# so we can't use "x ?? y" syntax (introduced in PHP 7) yet.
+$cfg['suppress_issue_types'][] = 'PhanPluginDuplicateConditionalNullCoalescing';
+
 return $cfg;
