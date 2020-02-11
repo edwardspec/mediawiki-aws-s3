@@ -23,6 +23,26 @@ env:
 
 matrix:
   include:
+    # Phan (PHP static analyzer)
+    - &phan-build
+      if: branch IN (phan,master)
+      env: TESTSUITE_TYPE=phan branch=REL1_34
+      php: 7.3
+      before_script:
+        - pecl install ast
+        - phpenv config-rm xdebug.ini
+        - php -i
+        - bash -ex ./tests/travis/build_mediawiki.sh "$branch"
+        - rsync -a --exclude buildcache --exclude mediawiki --exclude .git . mediawiki/extensions/AWS/
+        - cd mediawiki
+        - ( cd extensions/AWS && composer require --dev 'mediawiki/mediawiki-phan-config:0.9.1' )
+      script:
+        - ( cd extensions/AWS && ./vendor/bin/phan -j2 )
+    - <<: *phan-build
+      if: branch IN (phan,phpunit)
+      env: TESTSUITE_TYPE=phan branch=REL1_34 PHAN_CHECK_TESTSUITE=1
+
+    # PHPUnit tests
     - env: branch=REL1_34
       php: 7.3
     - env: branch=REL1_33
@@ -39,6 +59,7 @@ matrix:
 cache:
   directories:
     - buildcache
+    - $HOME/.composer/cache
 
 before_script:
   - >
