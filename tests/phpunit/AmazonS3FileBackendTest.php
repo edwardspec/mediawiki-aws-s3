@@ -59,7 +59,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 
 	/**
 	 * Get S3 client object.
-	 * @return S3Client
+	 * @return Aws\S3\S3Client|AmazonS3ClientMock
 	 */
 	public function getClient() {
 		return $this->getBackend()->client;
@@ -156,9 +156,9 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		Create test pages for testList().
-		@returns [ 'parentDirectory' => 'dirname', 'container' => 'container-name' ]
-	*/
+	 * Create test pages for testList().
+	 * @return array [ 'parentDirectory' => 'dirname', 'container' => 'container-name' ]
+	 */
 	protected function prepareListTest() {
 		static $testinfo = null;
 		if ( !is_null( $testinfo ) ) {

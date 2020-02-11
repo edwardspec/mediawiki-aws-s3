@@ -55,8 +55,6 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 			'isset( $wgFileBackends["s3"]["class"] ) && ' .
 			'$wgFileBackends["s3"]["class"] == "AmazonS3FileBackend" ) ? "LOADED" : "FAILED";' );
 
-		$wgFileBackends['s3']['class'] = 'AmazonS3FileBackend';
-
 		// Spawn a new PHP process with eval.php.
 		// This way we can be sure that $wgFileBackends wasn't set by our previous tests,
 		// but was indeed initialized by installBackend().

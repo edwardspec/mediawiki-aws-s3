@@ -31,9 +31,9 @@ class TrimStringIteratorTest extends MediaWikiTestCase {
 	/**
 	 * Check that TrimStringIterator correctly modifies input strings.
 	 * @dataProvider dataProvider
-	 * @param array[int] $constructorArguments Parameters to pass to constructor.
-	 * @param array[string] $inputValues Values returned by the internal Iterator.
-	 * @param string[string] $expectedOutputValues Values expected from TrimStringIterator.
+	 * @param int[] $constructorArguments Parameters to pass to constructor.
+	 * @param string[] $inputValues Values returned by the internal Iterator.
+	 * @param string[] $expectedOutputValues Values expected from TrimStringIterator.
 	 */
 	public function testTrimStringIterator(
 		array $constructorArguments,
