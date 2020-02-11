@@ -266,11 +266,25 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return $status;
 		}
 
+		$contentType = isset( $params['headers']['Content-Type'] ) ?
+			$params['headers']['Content-Type'] : null;
+
 		if ( is_resource( $params['content'] ) ) {
-			$sha1Hash = Wikimedia\base_convert( sha1_file( $params['src'] ), 16, 36, 31, true, 'auto' );
+			// If we are here, it means that doCreateInternal() was called from doStoreInternal().
+			$sha1 = sha1_file( $params['src'] );
+			if ( !$contentType ) {
+				// Guess the MIME type from filename.
+				$contentType = $this->getContentType( $params['dst'], null, $params['src'] );
+			}
 		} else {
-			$sha1Hash = Wikimedia\base_convert( sha1( $params['content'] ), 16, 36, 31, true, 'auto' );
+			$sha1 = sha1( $params['content'] );
+			if ( !$contentType ) {
+				// Guess the MIME type from contents.
+				$contentType = $this->getContentType( $params['dst'], $params['content'], null );
+			}
 		}
+
+		$sha1Hash = Wikimedia\base_convert( $sha1, 16, 36, 31, true, 'auto' );
 
 		$params['headers'] = isset( $params['headers'] ) ? $params['headers'] : [];
 		$params['headers'] += array_fill_keys( [
@@ -281,18 +295,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 			'Expires'
 		], null );
 
-		if ( !isset( $params['headers']['Content-Type'] ) ) {
-			$params['headers']['Content-Type'] =
-				$this->getContentType( $params['dst'], $params['content'], null );
-		}
-
 		$this->logger->debug(
 			'S3FileBackend: doCreateInternal(): saving {key} in S3 bucket {bucket} ' .
-			'(sha1 of the original file: {sha1})',
+			'(sha1 of the original file: {sha1}, Content-Type: {contentType})',
 			[
 				'bucket' => $bucket,
 				'key' => $key,
-				'sha1' => $sha1Hash
+				'sha1' => $sha1Hash,
+				'contentType' => $contentType
 			]
 		);
 
@@ -307,7 +317,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'ContentDisposition' => $params['headers']['Content-Disposition'],
 				'ContentEncoding' => $params['headers']['Content-Encoding'],
 				'ContentLanguage' => $params['headers']['Content-Language'],
-				'ContentType' => $params['headers']['Content-Type'],
+				'ContentType' => $contentType,
 				'Expires' => $params['headers']['Expires'],
 				'Key' => $key,
 				'Metadata' => [ 'sha1base36' => $sha1Hash ],
@@ -328,7 +338,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $status;
 	}
 
+	/**
+	 * Same as doCreateInternal(), but the source is a local file, not variable in memory.
+	 * @param array $params
+	 * @return Status
+	 */
 	protected function doStoreInternal( array $params ) {
+		// Supply the open file to doCreateInternal() and have it do the rest.
 		$params['content'] = fopen( $params['src'], 'r' );
 		return $this->doCreateInternal( $params );
 	}

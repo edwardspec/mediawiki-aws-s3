@@ -19,6 +19,9 @@ Minor features:
 * Will no longer try to include vendor/autoload.php if S3Client is already loaded.
 This allows administrator to include it via composer.local.json of MediaWiki core.
 
+Bugfixes:
+* Content-Type is now correctly guessed for files with inconclusive extensions, e.g. "Image.dat".
+
 Performance optimizations:
 * Reduced the number of API calls in doGetFileStat().
 
