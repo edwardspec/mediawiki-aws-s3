@@ -234,6 +234,10 @@ class AmazonS3ClientMock {
 		};
 	}
 
+	public function waitUntil( $name, array $opt ) {
+		// No need to wait: this mock is synchoronous.
+	}
+
 	public function encodeKey( $string ) {
 		// Same as in the normal S3Client class
 		return str_replace( '%2F', '/', rawurlencode( $string ) );
@@ -242,6 +246,7 @@ class AmazonS3ClientMock {
 	/**
 	 * Version of Http::get() that supports local file URLs (as provided by AmazonS3ClientMock).
 	 * @param string $fakeUrl
+	 * @return string|false
 	 */
 	public function fakeHttpGet( $fakeUrl ) {
 		if ( $fakeUrl == self::FAKE_HTTP403_URL ) {

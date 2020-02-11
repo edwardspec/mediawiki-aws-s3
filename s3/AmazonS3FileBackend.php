@@ -753,8 +753,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 					'Bucket' => $bucket
 				] );
 
-				$waiter = $this->client->getWaiter( 'BucketExists', [ 'Bucket' => $bucket ] );
-				$waiter->promise()->wait();
+				// @phan-suppress-next-line PhanUndeclaredFunctionInCallable <--- false positive
+				$this->client->waitUntil( 'BucketExists', [ 'Bucket' => $bucket ] );
 			} catch ( S3Exception $e ) {
 				$this->handleException( $e, $status, __METHOD__, $params );
 			}
