@@ -64,6 +64,7 @@ class AmazonS3ClientMock {
 		$this->fakeStorage[$bucket][$key] = array_filter( [
 			'ACL' => isset( $opt['ACL'] ) ? $opt['ACL'] : 'private',
 			'Body' => $body,
+			'ContentType' => isset( $opt['ContentType'] ) ? $opt['ContentType'] : null,
 			'Metadata' => isset( $opt['Metadata'] ) ? $opt['Metadata'] : null,
 			'LastModified' => wfTimestamp( TS_RFC2822 )
 		] );
@@ -177,7 +178,7 @@ class AmazonS3ClientMock {
 
 	public function createPresignedRequest( array $mockedCommand, $ttl ) {
 		// NOTE: this method doesn't accept a real Command object,
-		// instead it excepts a fake command, as returned by mocked getCommand().
+		// instead it accepts a fake command, as returned by mocked getCommand().
 		list( $name, $opt ) = $mockedCommand;
 
 		$bucket = $opt['Bucket'];

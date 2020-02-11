@@ -448,4 +448,58 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 
 		return Http::get( $url );
 	}
+
+	/**
+	 * Verify that uploaded S3 objects have a correct Content-Type header.
+	 * @dataProvider contentTypeDataProvider
+	 * @covers AmazonS3FileBackend::doCreateInternal
+	 * @covers AmazonS3FileBackend::doStoreInternal
+	 */
+	public function testContentType( $method, $filename, $expectedContentType ) {
+		$src = __DIR__ . "/../resources/$filename";
+		if ( !file_exists( $src ) ) {
+			throw new MWException( __METHOD__ . ": file $src not found (needed for the test)." );
+		}
+
+		// Avoid stale data from previous tests by choosing a unique $dst for each run.
+		static $run = 0;
+		$dst = $this->getVirtualPath( 'ContentTypeTest/' . ( ++$run ) . '/' . $filename );
+
+		// Remove the extension from $dst, otherwise MIME type will be guessed from $dst alone.
+		// MIME type is only guessed based on $filename if $dst is inconclusive.
+		$dst = preg_replace( '/\.[^\.]*$/', '', $dst ) . '.fake.ext';
+
+		$params = [ 'dst' => $dst ];
+		if ( $method == 'doStoreInternal' ) {
+			$params['src'] = $src;
+		} elseif ( $method == 'doCreateInternal' ) {
+			$params['content'] = file_get_contents( $src );
+		} else {
+			throw new MWException( __METHOD__ . ": unknown method $method." );
+		}
+
+		$status = $this->getBackend()->$method( $params );
+		$this->assertTrue( $status->isGood(), "$method() failed" );
+
+		// Now that S3 object has been stored, perform a HEAD request and check its headers.
+		list( $bucket, $key, ) = $this->getBackend()->getBucketAndObject( $params['dst'] );
+		$response = $this->getClient()->headObject( [
+			'Bucket' => $bucket,
+			'Key' => $key
+		] );
+		$this->assertArrayHasKey( 'ContentType', $response );
+		$this->assertEquals( $expectedContentType, $response['ContentType'] );
+	}
+
+	/**
+	 * Provides datasets for testContentType().
+	 */
+	public function contentTypeDataProvider() {
+		return [
+			[ 'doCreateInternal', 'blank.png',  'image/png' ],
+			[ 'doStoreInternal', 'blank.png',  'image/png' ],
+			[ 'doStoreInternal', 'text.txt',  'text/plain' ],
+			[ 'doCreateInternal', 'text.txt',  'text/plain' ]
+		];
+	}
 }
