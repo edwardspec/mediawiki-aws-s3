@@ -1,5 +1,27 @@
 TODO:
 
+High-prio:
+* Testsuite: workaround inherent flakiness of CreateBucket operation in tests.
+-------------------------------------------------------------------------------
+This is caused by inherent "eventual consistency" of S3 itself.
+Basically, after successful CreateBucket (and even after BucketExists waiter
+returns with success), there may still be an underlying S3 server that doesn't
+know that this bucket already exists. If the follow-up request to PutObject
+or DeleteObject in do{Publish,Secure}Internal() happens to be handled by
+such a server, the request will fail with "404 bucket doesn't exist".
+
+Having these arbitrary test failures is of absolutely no value to us,
+because creation of new S3 buckets literally never happens in production,
+and "Bucket doesn't exist" is not indicative of any bug in our code.
+
+Testing with USE_MOCK=1 is unaffected,
+but completely abandoning the tests on real S3 is not exactly the best idea.
+
+Possible solution: maybe move CreateBucket tests to a non-voting Travis build,
+and have all other tests operate on an already existing (precreated) bucket?
+(i.e. precreate all S3 buckets before any tests even begin)
+-------------------------------------------------------------------------------
+
 Medium-prio:
 * Provide ~100% automated test coverage of all functionality.
 * Throw MWException "please create the bucket manually"
