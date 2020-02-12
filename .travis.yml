@@ -13,6 +13,9 @@ notifications:
 services:
   - mysql
 
+php:
+  - 7.2
+
 env:
   global:
     - DBTYPE=mysql
@@ -23,6 +26,13 @@ env:
 
 matrix:
   include:
+      # Linters (phpcs, etc.)
+    - &linter-php-build
+      if: NOT branch IN (phan)
+      env: TESTSUITE_TYPE=linter-php
+      before_script: composer install
+      script: composer test
+
     # Phan (PHP static analyzer)
     - &phan-build
       if: branch IN (phan,master)
@@ -110,4 +120,3 @@ script:
 
 after_script:
   - cat "$TRAVIS_BUILD_DIR/s3.log"
-  - ./vendor/bin/phpcs -ps extensions/AWS/
