@@ -55,6 +55,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 */
 	private $useHTTPS;
 
+	/**
+	 * @var array
+	 * Maps names of containers (e.g. mywiki-local-thumb) to "mybucket/some/path", where "mybucket"
+	 * is the name of S3 bucket, and "some/path" is the "top directory" prefix of S3 object names.
+	 *
+	 * @phan-var array<string,string>
+	 */
 	private $containerPaths;
 
 	/**
@@ -187,15 +194,35 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 	}
 
+	/**
+	 * Returns true if subdirectories are imaginary. This is always the case for Amazon S3.
+	 * (path like "a/b.txt" means an object with "a/b.txt" as its name, there is no directory "a")
+	 * @return true
+	 */
 	protected function directoriesAreVirtual() {
 		return true;
 	}
 
+	/**
+	 * Check if an S3 object can be created/modified at this storage path.
+	 * @param string $storagePath
+	 * @return bool
+	 */
 	public function isPathUsableInternal( $storagePath ) {
 		list( $bucket, $key, ) = $this->getBucketAndObject( $storagePath );
 		return ( $bucket && $this->client->doesBucketExist( $bucket ) );
 	}
 
+	/**
+	 * Encode illegal characters (if there are any, e.g. "/") in relative storage path.
+	 * Not needed for Amazon S3, because this is done internally by S3Client class.
+	 *
+	 * Returns null for invalid storage paths (in this case - when S3 object name is too long).
+	 *
+	 * @param string $container Container name
+	 * @param string $relStoragePath Name of S3 object.
+	 * @return string|null Name of S3 object (if valid) or null.
+	 */
 	protected function resolveContainerPath( $container, $relStoragePath ) {
 		if ( strlen( $relStoragePath ) <= self::MAX_S3_OBJECT_NAME_LENGTH ) {
 			return $relStoragePath;
@@ -256,7 +283,18 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return [ $bucket, $restrictFile ];
 	}
 
+	// phpcs:disable Generic.Files.LineLength.TooLong
+
+	/**
+	 * Create a new S3 object.
+	 * @param array $params
+	 * @return Status
+	 *
+	 * @phan-param array{content:string|resource,src?:string,dst:string,headers?:array<string,string>} $params
+	 */
 	protected function doCreateInternal( array $params ) {
+		// phpcs:enable Generic.Files.LineLength.TooLong
+
 		$status = Status::newGood();
 
 		list( $bucket, $key, $container ) = $this->getBucketAndObject( $params['dst'] );
@@ -269,7 +307,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$contentType = isset( $params['headers']['Content-Type'] ) ?
 			$params['headers']['Content-Type'] : null;
 
-		if ( is_resource( $params['content'] ) ) {
+		if ( is_resource( $params['content'] ) && isset( $params['src'] ) ) {
 			// If we are here, it means that doCreateInternal() was called from doStoreInternal().
 			$sha1 = sha1_file( $params['src'] );
 			if ( !$contentType ) {
@@ -342,6 +380,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * Same as doCreateInternal(), but the source is a local file, not variable in memory.
 	 * @param array $params
 	 * @return Status
+	 *
+	 * @phan-param array{src:string,dst:string,headers?:array<string,string>} $params
 	 */
 	protected function doStoreInternal( array $params ) {
 		// Supply the open file to doCreateInternal() and have it do the rest.
@@ -349,7 +389,18 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $this->doCreateInternal( $params );
 	}
 
+	// phpcs:disable Generic.Files.LineLength.TooLong
+
+	/**
+	 * Copy an existing S3 object into another S3 object.
+	 * @param array $params
+	 * @return Status
+	 *
+	 * @phan-param array{src:string,dst:string,headers?:array<string,string>,ignoreMissingSource?:bool} $params
+	 */
 	protected function doCopyInternal( array $params ) {
+		// phpcs:enable Generic.Files.LineLength.TooLong
+
 		$status = Status::newGood();
 
 		list( $srcBucket, $srcKey, ) = $this->getBucketAndObject( $params['src'] );
@@ -432,6 +483,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $status;
 	}
 
+	/**
+	 * Delete an existing S3 object.
+	 * @param array $params
+	 * @return Status
+	 *
+	 * @phan-param array{src:string,ignoreMissingSource?:bool} $params
+	 */
 	protected function doDeleteInternal( array $params ) {
 		$status = Status::newGood();
 
@@ -476,6 +534,15 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $status;
 	}
 
+	/**
+	 * Check if "directory" $dir exists within $container.
+	 * Note: in S3, "directories" are imaginary, so existence means that there are S3 objects
+	 * that have "$dir/" as the beginning of their name.
+	 * @param string $container
+	 * @param string $dir
+	 * @param array $params
+	 * @return bool
+	 */
 	protected function doDirectoryExists( $container, $dir, array $params ) {
 		// See if at least one file is in the directory.
 		if ( $dir && substr( $dir, -1 ) !== '/' ) {
@@ -497,6 +564,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 			->search( 'Contents' )->valid();
 	}
 
+	/**
+	 * Obtain metadata (e.g. size, SHA1, etc.) of existing S3 object.
+	 * @param array $params
+	 * @return array|false|null
+	 *
+	 * @phan-param array{src:string} $params
+	 * @phan-return array{mtime:string,size:int,etag:string,sha1:string}|false|null
+	 */
 	protected function doGetFileStat( array $params ) {
 		list( $bucket, $key, ) = $this->getBucketAndObject( $params['src'] );
 
@@ -539,6 +614,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 		];
 	}
 
+	/**
+	 * Obtain presigned URL of S3 object (from this URL it can be downloaded by HTTP(s) by anyone).
+	 * @param array $params
+	 * @return string|null
+	 *
+	 * @phan-param array{src:string} $params
+	 */
 	public function getFileHttpUrl( array $params ) {
 		list( $bucket, $key, ) = $this->getBucketAndObject( $params['src'] );
 		if ( $bucket === null ) {
@@ -581,6 +663,15 @@ class AmazonS3FileBackend extends FileBackendStore {
 		] );
 	}
 
+	/**
+	 * Obtain Iterator that lists "subdirectories" in $container under directory $dir.
+	 * @param string $container
+	 * @param string $dir
+	 * @param array $params
+	 * @return Iterator
+	 *
+	 * @phan-param array{topOnly?:bool} $params
+	 */
 	public function getDirectoryListInternal( $container, $dir, array $params ) {
 		$topOnly = !empty( $params['topOnly'] );
 
@@ -617,10 +708,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	/**
+	 * Obtain Iterator that lists S3 objects in $container under subdirectory $dir.
 	 * @param string $container
 	 * @param string $dir
 	 * @param array $params
 	 * @return Iterator
+	 *
+	 * @phan-param array{topOnly?:bool} $params
 	 */
 	public function getFileListInternal( $container, $dir, array $params ) {
 		$topOnly = !empty( $params['topOnly'] );
@@ -704,6 +798,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $file;
 	}
 
+	/**
+	 * Obtain local copies of files from Amazon S3.
+	 * @param array $params
+	 * @return array
+	 *
+	 * @phan-return array<FSFile|null>
+	 */
 	protected function doGetLocalCopyMulti( array $params ) {
 		$fsFiles = [];
 		$params += [
@@ -737,6 +838,15 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $fsFiles;
 	}
 
+	/**
+	 * Ensure that $container is usable. Calls doPublishInternal() and doSecureInternal().
+	 * @param string $container
+	 * @param string $dir
+	 * @param array $params
+	 * @return Status
+	 *
+	 * @phan-param $params array{noAccess?:bool,noListing?:bool,access?:bool,listing?:bool}
+	 */
 	protected function doPrepareInternal( $container, $dir, array $params ) {
 		$status = Status::newGood();
 
@@ -798,10 +908,29 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $status;
 	}
 
+	/**
+	 * Does nothing. In other backends - deletes empty subdirectory $dir within the container.
+	 * This operation is not applicable to S3, because its "subdirectories" are imaginary.
+	 * @param string $container
+	 * @param string $dir
+	 * @param array $params
+	 * @return Status
+	 */
 	protected function doCleanInternal( $container, $dir, array $params ) {
 		return Status::newGood(); /* Nothing to do */
 	}
 
+	/**
+	 * Mark this container as published if $params['access'] is set.
+	 * Being "published" means that new S3 objects here can be downloaded from S3 by anyone.
+	 * @note ACL of existing S3 objects is not changed (impractical, not needed for 99,9% wikis).
+	 * @param string $container
+	 * @param string $dir
+	 * @param array $params
+	 * @return Status
+	 *
+	 * @phan-param $params array{access?:bool}
+	 */
 	protected function doPublishInternal( $container, $dir, array $params ) {
 		$status = Status::newGood();
 
@@ -831,6 +960,17 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $status;
 	}
 
+	/**
+	 * Mark this container as secure if $params['noAccess'] is set.
+	 * Being "secure" means that new S3 objects here shouldn't be downloadable by general public.
+	 * @note ACL of existing S3 objects is not changed (impractical, not needed for 99,9% wikis).
+	 * @param string $container
+	 * @param string $dir
+	 * @param array $params
+	 * @return Status
+	 *
+	 * @phan-param $params array{noAccess?:bool}
+	 */
 	protected function doSecureInternal( $container, $dir, array $params ) {
 		$status = Status::newGood();
 
@@ -861,6 +1001,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 		return $status;
 	}
 
+	/**
+	 * Determine whether S3 objects in $container should be uploaded with "private" ACL.
+	 * @param string $container
+	 * @return bool
+	 */
 	private function isSecure( $container ) {
 		if ( $this->privateWiki ) {
 			// Private wiki: all containers are secure, even in "public" and "thumb" zones.
@@ -933,6 +1078,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 		restore_error_handler(); // restore previous handler
 	}
 
+	/**
+	 * Replacement handler for set_error_handler(). Sends this error to MediaWiki logs.
+	 * @param int $errno
+	 * @param string $errstr
+	 * @return true
+	 */
 	public function s3handleWarning( $errno, $errstr ) {
 		$this->logger->error( $errstr );
 		return true; // suppress from PHP handler

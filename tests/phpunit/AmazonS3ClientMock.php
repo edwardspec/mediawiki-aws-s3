@@ -32,19 +32,36 @@ class AmazonS3ClientMock {
 	 */
 	public $fakeStorage = [];
 
+	/**
+	 * @param string $bucket
+	 * @return bool
+	 */
 	public function doesBucketExist( $bucket ) {
 		return isset( $this->fakeStorage[$bucket] );
 	}
 
+	/**
+	 * @param array $opt
+	 * @phan-param array{Bucket:string} $opt
+	 */
 	public function createBucket( array $opt ) {
 		$bucket = $opt['Bucket'];
 		$this->fakeStorage[$bucket] = [];
 	}
 
+	/**
+	 * @param string $bucket
+	 * @param string $key
+	 * @return bool
+	 */
 	public function doesObjectExist( $bucket, $key ) {
 		return isset( $this->fakeStorage[$bucket][$key] );
 	}
 
+	/**
+	 * @param array $opt
+	 * @phan-param array{Bucket:string,Key:string} $opt
+	 */
 	public function deleteObject( array $opt ) {
 		$bucket = $opt['Bucket'];
 		$key = $opt['Key'];
@@ -52,6 +69,10 @@ class AmazonS3ClientMock {
 		unset( $this->fakeStorage[$bucket][$key] );
 	}
 
+	/**
+	 * @param array $opt
+	 * @phan-param array{Bucket:string,Key:string,Body:string|resource} $opt
+	 */
 	public function putObject( array $opt ) {
 		$bucket = $opt['Bucket'];
 		$key = $opt['Key'];
@@ -70,7 +91,15 @@ class AmazonS3ClientMock {
 		] );
 	}
 
+	// phpcs:disable Generic.Files.LineLength.TooLong
+
+	/**
+	 * @param array $opt
+	 * @phan-param array{CopySource:string,ACL:string,Bucket:string,Key:string,MetadataDirective:string} $opt
+	 */
 	public function copyObject( array $opt ) {
+		// phpcs:enable Generic.Files.LineLength.TooLong
+
 		// Obtain the original object
 		$srcParts = explode( '/', $opt['CopySource'] );
 		$srcBucket = array_shift( $srcParts );
@@ -90,6 +119,12 @@ class AmazonS3ClientMock {
 		}
 	}
 
+	/**
+	 * @param array $opt
+	 * @return array
+	 *
+	 * @phan-param array{Bucket:string,Key:string} $opt
+	 */
 	public function headObject( array $opt ) {
 		$bucket = $opt['Bucket'];
 		$key = $opt['Key'];
@@ -106,20 +141,44 @@ class AmazonS3ClientMock {
 		];
 	}
 
+	/**
+	 * @param string $name
+	 * @param array $opt
+	 * @return object
+	 *
+	 * @phan-param array{Bucket:string,Prefix:string,Delimiter?:string,Limit?:int} $opt
+	 */
 	public function getPaginator( $name, array $opt ) {
 		if ( $name != 'ListObjects' ) {
 			throw new MWException( 'Only the ListObjects paginator is implemented in this mock.' );
 		}
 
 		return new class( $this, $opt ) {
+			/**
+			 * @var AmazonS3ClientMock
+			 */
 			protected $clientMock;
+
+			/**
+			 * @var array
+			 */
 			protected $params;
 
+			/**
+			 * @param AmazonS3ClientMock $clientMock
+			 * @param array $params
+			 *
+			 * @phan-param array{Bucket:string,Prefix:string,Delimiter?:string,Limit?:int} $params
+			 */
 			public function __construct( AmazonS3ClientMock $clientMock, $params ) {
 				$this->clientMock = $clientMock;
 				$this->params = $params;
 			}
 
+			/**
+			 * @param string $query
+			 * @return Iterator
+			 */
 			public function search( $query ) {
 				$bucket = $this->params['Bucket'];
 				$prefix = $this->params['Prefix'];
@@ -172,10 +231,22 @@ class AmazonS3ClientMock {
 		};
 	}
 
+	/**
+	 * @param string $name
+	 * @param array $opt
+	 * @return array
+	 *
+	 * @phan-return array{0:string,1:array}
+	 */
 	public function getCommand( $name, array $opt ) {
 		return [ $name, $opt ];
 	}
 
+	/**
+	 * @param array $mockedCommand
+	 * @param mixed $ttl
+	 * @return object
+	 */
 	public function createPresignedRequest( array $mockedCommand, $ttl ) {
 		// NOTE: this method doesn't accept a real Command object,
 		// instead it accepts a fake command, as returned by mocked getCommand().
@@ -195,18 +266,32 @@ class AmazonS3ClientMock {
 		file_put_contents( $path, $data['Body'] );
 
 		return new class( $path ) {
+			/**
+			 * @var string
+			 */
 			protected $uri;
 
+			/**
+			 * @param string $uri
+			 */
 			public function __construct( $uri ) {
 				$this->uri = $uri;
 			}
 
+			/**
+			 * @return string
+			 */
 			public function getUri() {
 				return $this->uri;
 			}
 		};
 	}
 
+	/**
+	 * @param string $bucket
+	 * @param string $key
+	 * @return string
+	 */
 	public function getObjectUrl( $bucket, $key ) {
 		// NOTE: this function is not used by AmazonS3FileBackend itself,
 		// but it's needed for AmazonS3FileBackendTest::testSecureAndPublish().
@@ -223,6 +308,11 @@ class AmazonS3ClientMock {
 		] ], '+1 day' )->getUri();
 	}
 
+	/**
+	 * @param string $name
+	 * @param array $opt
+	 * @return object
+	 */
 	public function getWaiter( $name, array $opt ) {
 		return new class {
 			public function promise() {
@@ -235,10 +325,18 @@ class AmazonS3ClientMock {
 		};
 	}
 
+	/**
+	 * @param string $name
+	 * @param array $opt
+	 */
 	public function waitUntil( $name, array $opt ) {
 		// No need to wait: this mock is synchoronous.
 	}
 
+	/**
+	 * @param string $string
+	 * @return string
+	 */
 	public function encodeKey( $string ) {
 		// Same as in the normal S3Client class
 		return str_replace( '%2F', '/', rawurlencode( $string ) );

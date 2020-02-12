@@ -29,16 +29,34 @@
  * 	$profiling->log();
  */
 class AmazonS3ProfilingAssist {
+
+	/**
+	 * @var string
+	 */
 	protected $description;
+
+	/**
+	 * @var float
+	 */
 	protected $startTime;
+
+	/**
+	 * @var Psr\Log\LoggerInterface
+	 */
 	protected $logger;
 
+	/**
+	 * @param string $description Human-readable name of the operation that we are profiling.
+	 */
 	public function __construct( $description ) {
 		$this->description = $description;
 		$this->logger = MediaWiki\Logger\LoggerFactory::getInstance( 'FileOperation' );
 		$this->startTime = microtime( true );
 	}
 
+	/**
+	 * Write "how many seconds elapsed since this profiling started" to the log.
+	 */
 	public function log() {
 		$endTime = microtime( true );
 

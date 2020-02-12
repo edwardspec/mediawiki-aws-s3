@@ -29,6 +29,11 @@ namespace MWAWS;
  * and return FSFile (instead of TempFSFile) in doGetLocalCopyMulti().
  */
 class FSFile extends \FSFile {
+	/**
+	 * Handle methods that don't exist in \FSFile class.
+	 * @param string $name
+	 * @param array $arguments
+	 */
 	public function __call( $name, array $arguments ) {
 		$class = new \ReflectionClass( 'TempFSFile' );
 		if ( !$class->hasMethod( $name ) ) {
