@@ -25,8 +25,8 @@ if ( !class_exists( "\\Aws\\S3\\S3Client" ) ) {
 	require_once __DIR__ . '/../vendor/autoload.php';
 }
 
-use Aws\S3\S3Client;
 use Aws\S3\Exception\S3Exception;
+use Aws\S3\S3Client;
 use Psr\Log\LogLevel;
 
 /**
@@ -83,7 +83,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	/**
 	 * @var bool If true, then all S3 objects are private.
 	 * NOTE: for images to work in private mode, $wgUploadPath should point to img_auth.php.
-	*/
+	 */
 	protected $privateWiki = null;
 
 	/**

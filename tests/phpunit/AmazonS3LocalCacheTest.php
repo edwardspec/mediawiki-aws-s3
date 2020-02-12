@@ -45,7 +45,7 @@ class AmazonS3LocalCacheTest extends MediaWikiTestCase {
 		// When the cache is disabled, obtained file must be temporary, existing and empty.
 		$this->assertInstanceOf( TempFSFile::class, $file );
 		$this->assertTrue( $file->exists() );
-		$this->assertEquals( 0, $file->getSize() );
+		$this->assertSame( 0, $file->getSize() );
 
 		// When the cache is disabled, postDownloadLogic() shouldn't do anything at all.
 		$unmodifiedFile = clone $file;

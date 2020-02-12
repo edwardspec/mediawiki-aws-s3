@@ -45,7 +45,7 @@ matrix:
         - bash -ex ./tests/travis/build_mediawiki.sh "$branch"
         - rsync -a --exclude buildcache --exclude mediawiki --exclude .git . mediawiki/extensions/AWS/
         - cd mediawiki
-        - ( cd extensions/AWS && composer require --dev 'mediawiki/mediawiki-phan-config:0.9.1' )
+        - ( cd extensions/AWS && composer install )
       script:
         - ( cd extensions/AWS && ./vendor/bin/phan -j2 )
     - <<: *phan-build
@@ -82,7 +82,7 @@ before_script:
   - phpenv config-rm xdebug.ini
   - bash -ex ./tests/travis/build_mediawiki.sh "$branch"
   - rsync -a --exclude buildcache --exclude mediawiki --exclude .git * mediawiki/extensions/AWS/
-  - cd mediawiki/extensions/AWS && composer install && cd -
+  - cd mediawiki/extensions/AWS && composer install --no-dev --ignore-platform-reqs && cd -
   - cd mediawiki
   - >
       php maintenance/install.php traviswiki admin

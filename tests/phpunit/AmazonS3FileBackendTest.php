@@ -15,9 +15,9 @@
 */
 
 /**
-	@file
-	Integration test for AmazonS3FileBackend.
-*/
+ * @file
+ * Integration test for AmazonS3FileBackend.
+ */
 
 use Wikimedia\TestingAccessWrapper;
 
@@ -161,7 +161,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 */
 	protected function prepareListTest() {
 		static $testinfo = null;
-		if ( !is_null( $testinfo ) ) {
+		if ( $testinfo !== null ) {
 			return $testinfo;
 		}
 
@@ -188,10 +188,10 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		List of files that must be created before testList().
-		@see listingTestsDataProvider
-		@see testList
-	*/
+	 * List of files that must be created before testList().
+	 * @see listingTestsDataProvider
+	 * @see testList
+	 */
 	public function getFilenamesForListTest() {
 		return [
 			'dir1/file1.txt',
@@ -210,8 +210,8 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-		Provides datasets for testList().
-	*/
+	 * Provides datasets for testList().
+	 */
 	public function listingTestsDataProvider() {
 		return [
 			[ 'doDirectoryExists', '', [], true ],

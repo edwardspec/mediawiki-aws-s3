@@ -18,18 +18,18 @@ use Aws\Command;
 use Aws\S3\Exception\S3Exception;
 
 /**
-	@file
-	Fake implementation (mock) of S3Client class (for offline unit testing).
-
-	NOTE: we only need methods/features that are used by AmazonS3FileBackend, nothing else.
-*/
+ * @file
+ * Fake implementation (mock) of S3Client class (for offline unit testing).
+ *
+ * NOTE: we only need methods/features that are used by AmazonS3FileBackend, nothing else.
+ */
 class AmazonS3ClientMock {
 	const FAKE_HTTP403_URL = 'http.403';
 
 	/**
-		@var array
-		Format: [ 'bucketName1' => [ 'objectName1' => Data1, ... ], ... ]
-	*/
+	 * @var array
+	 * Format: [ 'bucketName1' => [ 'objectName1' => Data1, ... ], ... ]
+	 */
 	public $fakeStorage = [];
 
 	public function doesBucketExist( $bucket ) {

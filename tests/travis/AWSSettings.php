@@ -15,19 +15,19 @@
 */
 
 /**
-	@file
-	Additional LocalSettings.php for Travis testing of Extension:AWS.
-
-	Expects the following environment variables:
-		AWS_KEY=
-		AWS_SECRET=
-		BUCKET=
-		TRAVIS_BUILD_DIR=
-
-	Note: Amazon S3 bucket must be pre-created before the test.
-	Note: IAM user (who owns key/secret) must have no other permissions
-	except the access to affected S3 bucket. See README.md for details.
-*/
+ * @file
+ * Additional LocalSettings.php for Travis testing of Extension:AWS.
+ *
+ * Expects the following environment variables:
+ * 	AWS_KEY=
+ * 	AWS_SECRET=
+ * 	BUCKET=
+ * 	TRAVIS_BUILD_DIR=
+ *
+ * Note: Amazon S3 bucket must be pre-created before the test.
+ * Note: IAM user (who owns key/secret) must have no other permissions
+ * except the access to affected S3 bucket. See README.md for details.
+ */
 
 wfLoadExtension( 'AWS' );
 $wgAWSRegion = 'us-east-1'; # Northern Virginia
