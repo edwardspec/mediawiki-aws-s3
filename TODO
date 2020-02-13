@@ -24,8 +24,8 @@ and have all other tests operate on an already existing (precreated) bucket?
 
 Medium-prio:
 * Provide ~100% automated test coverage of all functionality.
-* Throw MWException "please create the bucket manually"
-	if S3 bucket doesn't exist and createBucket() fails.
+* Maybe throw MWException "please create the bucket manually"
+	if S3 bucket doesn't exist and createBucket() fails?
 
 Low-prio:
 * Implement doGetFileSha1Base36() in AmazonS3FileBackend.
