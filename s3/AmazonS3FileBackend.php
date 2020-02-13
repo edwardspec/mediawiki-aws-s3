@@ -295,13 +295,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 	protected function doCreateInternal( array $params ) {
 		// phpcs:enable Generic.Files.LineLength.TooLong
 
-		$status = Status::newGood();
-
 		list( $bucket, $key, $container ) = $this->getBucketAndObject( $params['dst'] );
 
 		if ( $bucket === null || $key == null ) {
-			$status->fatal( 'backend-fail-invalidpath', $params['dst'] );
-			return $status;
+			return Status::newFatal( 'backend-fail-invalidpath', $params['dst'] );
 		}
 
 		$contentType = isset( $params['headers']['Content-Type'] ) ?
@@ -346,8 +343,9 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		$profiling = new AmazonS3ProfilingAssist( "uploading $key to S3" );
 
-		try {
-			$res = $this->client->putObject( array_filter( [
+		$ret = $this->runWithExceptionHandling( __FUNCTION__, function ()
+			use ( $params, $container, $bucket, $key, $contentType, $sha1Hash ) {
+			return $this->client->putObject( array_filter( [
 				'ACL' => $this->isSecure( $container ) ? 'private' : 'public-read',
 				'Body' => $params['content'],
 				'Bucket' => $bucket,
@@ -361,19 +359,16 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'Metadata' => [ 'sha1base36' => $sha1Hash ],
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null,
 			] ) );
-
-			AmazonS3LocalCache::invalidate( $params['dst'] );
-		} catch ( S3Exception $e ) {
-			if ( $e->getAwsErrorCode() == 'NoSuchBucket' ) {
-				$status->fatal( 'backend-fail-create', $params['dst'] );
-			} else {
-				$this->handleException( $e, $status, __METHOD__, $params );
-			}
-		}
+		} );
 
 		$profiling->log();
 
-		return $status;
+		if ( $ret instanceof S3Exception ) {
+			return Status::newFatal( 'backend-fail-create', $params['dst'] );
+		}
+
+		AmazonS3LocalCache::invalidate( $params['dst'] );
+		return Status::newGood();
 	}
 
 	/**
@@ -442,8 +437,9 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		$profiling = new AmazonS3ProfilingAssist( "copying S3 object $srcKey to $dstKey" );
 
-		try {
-			$res = $this->client->copyObject( array_filter( [
+		$ret = $this->runWithExceptionHandling( __FUNCTION__, function ()
+			use ( $dstContainer, $dstBucket, $params, $srcBucket, $srcKey, $dstKey ) {
+			return $this->client->copyObject( array_filter( [
 				'ACL' => $this->isSecure( $dstContainer ) ? 'private' : 'public-read',
 				'Bucket' => $dstBucket,
 				'CacheControl' => $params['headers']['Cache-Control'],
@@ -459,28 +455,30 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'MetadataDirective' => 'COPY',
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null
 			] ) );
-
-			AmazonS3LocalCache::invalidate( $params['dst'] );
-		} catch ( S3Exception $e ) {
-			switch ( $e->getAwsErrorCode() ) {
-				case 'NoSuchBucket':
-					$status->fatal( 'backend-fail-copy', $params['src'], $params['dst'] );
-					break;
-
-				case 'NoSuchKey':
-					if ( empty( $params['ignoreMissingSource'] ) ) {
-						$status->fatal( 'backend-fail-copy', $params['src'], $params['dst'] );
-					}
-					break;
-
-				default:
-					$this->handleException( $e, $status, __METHOD__, $params );
-			}
-		}
+		} );
 
 		$profiling->log();
 
-		return $status;
+		if ( $ret instanceof S3Exception ) {
+			switch ( $ret->getAwsErrorCode() ) {
+				// It's possible that source bucket doesn't exist.
+				// Only destination bucket is created automatically by runWithExceptionHandling().
+				case 'NoSuchBucket':
+					return Status::newFatal( 'backend-fail-copy', $params['src'], $params['dst'] );
+
+				case 'NoSuchKey':
+					if ( !empty( $params['ignoreMissingSource'] ) ) {
+						return Status::newGood();
+					}
+
+					return Status::newFatal( 'backend-fail-copy', $params['src'], $params['dst'] );
+			}
+
+			return Status::newFatal( 'backend-fail-internal', $this->name );
+		}
+
+		AmazonS3LocalCache::invalidate( $params['dst'] );
+		return Status::newGood();
 	}
 
 	/**
@@ -507,31 +505,27 @@ class AmazonS3FileBackend extends FileBackendStore {
 			]
 		);
 
-		try {
+		$ret = $this->runWithExceptionHandling( __FUNCTION__, function () use ( $bucket, $key ) {
 			$this->client->deleteObject( [
 				'Bucket' => $bucket,
 				'Key' => $key
 			] );
+		} );
 
-			AmazonS3LocalCache::invalidate( $params['src'] );
-		} catch ( S3Exception $e ) {
-			switch ( $e->getAwsErrorCode() ) {
-				case 'NoSuchBucket':
-					$status->fatal( 'backend-fail-delete', $params['src'] );
-					break;
+		if ( $ret instanceof S3Exception ) {
+			if ( $ret->getAwsErrorCode() == 'NoSuchKey' ) {
+				if ( !empty( $params['ignoreMissingSource'] ) ) {
+					return Status::newGood();
+				}
 
-				case 'NoSuchKey':
-					if ( empty( $params['ignoreMissingSource'] ) ) {
-						$status->fatal( 'backend-fail-delete', $params['src'] );
-					}
-					break;
-
-				default:
-					$this->handleException( $e, $status, __METHOD__, $params );
+				return Status::newFatal( 'backend-fail-delete', $params['src'] );
 			}
+
+			return Status::newFatal( 'backend-fail-internal', $this->name );
 		}
 
-		return $status;
+		AmazonS3LocalCache::invalidate( $params['src'] );
+		return Status::newGood();
 	}
 
 	/**
@@ -587,6 +581,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return null;
 		}
 
+		// Note: we don't use runWithExceptionHandling() here for two reasons:
+		// 1) we don't need NotFound errors logged (these are not errors, because doGetFileStat
+		// is meant to be used for "does this file exist" checks),
+		// 2) if the bucket doesn't exist, there is no point in repeating this operation
+		// after creating it, because the result will still be "file not found".
 		try {
 			$res = $this->client->headObject( [
 				'Bucket' => $bucket,
@@ -594,8 +593,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			] );
 		} catch ( S3Exception $e ) {
 			if ( $e->getAwsErrorCode() != 'NotFound' ) {
-				$status = Status::newGood();
-				$this->handleException( $e, $status, __METHOD__, $params );
+				$this->logException( $e, __METHOD__ );
 			}
 
 			return false;
@@ -635,6 +633,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			]
 		);
 
+		// Not using runWithExceptionHandling() for the same reasons as in doGetFileStat().
 		try {
 			$request = $this->client->getCommand( 'GetObject', [
 				'Bucket' => $bucket,
@@ -848,8 +847,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @phan-param $params array{noAccess?:bool,noListing?:bool,access?:bool,listing?:bool}
 	 */
 	protected function doPrepareInternal( $container, $dir, array $params ) {
-		$status = Status::newGood();
-
 		list( $bucket, $prefix ) = $this->findContainer( $container );
 		$dir = $prefix . $dir;
 
@@ -864,43 +861,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 			]
 		);
 
-		if ( !$this->client->doesBucketExist( $bucket ) ) {
-			$this->logger->warning(
-				'S3FileBackend: doPrepareInternal: found non-existent S3 bucket {bucket}, ' .
-				'going to create it',
-				[
-					'bucket' => $bucket
-				]
-			);
-
-			try {
-				$this->client->createBucket( [
-					'ACL' => isset( $params['noListing'] ) ? 'private' : 'public-read',
-					'Bucket' => $bucket
-				] );
-
-				// @phan-suppress-next-line PhanUndeclaredFunctionInCallable <--- false positive
-				$this->client->waitUntil( 'BucketExists', [ 'Bucket' => $bucket ] );
-			} catch ( S3Exception $e ) {
-				$this->handleException( $e, $status, __METHOD__, $params );
-			}
-		}
-
-		if ( !$status->isOK() ) {
-			return $status;
-		}
-
-		$this->logger->debug(
-			'S3FileBackend: doPrepareInternal: S3 bucket {bucket} exists',
-			[
-				'bucket' => $bucket
-			]
-		);
-
 		$params += [
 			'access' => empty( $params['noAccess'] ),
 			'listing' => empty( $params['noListing'] )
 		];
+
+		$status = Status::newGood();
 
 		$status->merge( $this->doPublishInternal( $container, $dir, $params ) );
 		$status->merge( $this->doSecureInternal( $container, $dir, $params ) );
@@ -932,8 +898,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @phan-param $params array{access?:bool}
 	 */
 	protected function doPublishInternal( $container, $dir, array $params ) {
-		$status = Status::newGood();
-
 		if ( !empty( $params['access'] ) ) {
 			list( $bucket, $restrictFile ) = $this->getRestrictFilePath( $container );
 
@@ -945,19 +909,21 @@ class AmazonS3FileBackend extends FileBackendStore {
 				]
 			);
 
-			try {
-				$res = $this->client->deleteObject( [
+			$ret = $this->runWithExceptionHandling( __FUNCTION__, function ()
+				use ( $bucket, $restrictFile ) {
+				return $this->client->deleteObject( [
 					'Bucket' => $bucket,
 					'Key'    => $restrictFile
 				] );
-			} catch ( S3Exception $e ) {
-				$this->handleException( $e, $status, __METHOD__, $params );
+			} );
+			if ( $ret instanceof S3Exception ) {
+				return Status::newFatal( 'backend-fail-internal', $this->name );
 			}
 
 			$this->isContainerSecure[$container] = false;
 		}
 
-		return $status;
+		return Status::newGood();
 	}
 
 	/**
@@ -972,8 +938,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @phan-param $params array{noAccess?:bool}
 	 */
 	protected function doSecureInternal( $container, $dir, array $params ) {
-		$status = Status::newGood();
-
 		if ( !empty( $params['noAccess'] ) ) {
 			list( $bucket, $restrictFile ) = $this->getRestrictFilePath( $container );
 
@@ -985,20 +949,22 @@ class AmazonS3FileBackend extends FileBackendStore {
 				]
 			);
 
-			try {
+			$ret = $this->runWithExceptionHandling( __FUNCTION__, function ()
+				use ( $bucket, $restrictFile ) {
 				$res = $this->client->putObject( [
 					'Bucket' => $bucket,
 					'Key'    => $restrictFile,
 					'Body'   => '' /* Empty file */
 				] );
-			} catch ( S3Exception $e ) {
-				$this->handleException( $e, $status, __METHOD__, $params );
+			} );
+			if ( $ret instanceof S3Exception ) {
+				return Status::newFatal( 'backend-fail-internal', $this->name );
 			}
 
 			$this->isContainerSecure[$container] = true;
 		}
 
-		return $status;
+		return Status::newGood();
 	}
 
 	/**
@@ -1027,6 +993,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			]
 		);
 
+		// No need to use runWithExceptionHandling() for existence checks (see doGetFileStat())
 		try {
 			$isSecure = $this->client->doesObjectExist( $bucket, $restrictFile );
 		} catch ( S3Exception $e ) {
@@ -1039,29 +1006,91 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	/**
-	 * Handle an unknown S3Exception by adjusting the status and triggering an error.
+	 * @param string $caller For logging: __FUNCTION__ that called this runWithExceptionHandling().
+	 * @param Closure $code Some function that calls S3 API methods.
+	 * @return mixed|Aws\S3\Exception\S3Exception Return value of the operation (if successful).
+	 */
+	private function runWithExceptionHandling( $caller, Closure $code ) {
+		$closure = $code->bindTo( $this );
+
+		try {
+			return $closure();
+		} catch ( S3Exception $e ) {
+			$this->logException( $e, $caller );
+
+			$command = $e->getCommand();
+
+			// If the exception was caused by nonexistent S3 bucket,
+			// then create this bucket and repeat the operation.
+			if ( $e->getAwsErrorCode() == 'NoSuchBucket' &&
+				$command->getName() != 'CreateBucket' &&
+				$command->hasParam( 'Bucket' )
+			) {
+				$params = $command->toArray();
+				$bucket = $params['Bucket'];
+
+				$this->logger->warning(
+					'S3FileBackend: found non-existent S3 bucket {bucket}, going to create it',
+					[
+						'bucket' => $bucket
+					]
+				);
+
+				try {
+					$this->client->createBucket( [
+						'ACL' => 'private', // No listing. Note: this doesn't affect ACL of objects
+						'Bucket' => $bucket
+					] );
+
+					// @phan-suppress-next-line PhanUndeclaredFunctionInCallable <--- false positive
+					$this->client->waitUntil( 'BucketExists', [ 'Bucket' => $bucket ] );
+				} catch ( S3Exception $e ) {
+					// Failed to create a bucket, so we can't continue.
+					$this->logException( $e, $caller );
+					return $e;
+				}
+
+				// Now that the bucket has been created, redo the code that failed.
+				try {
+					return $closure();
+				} catch ( S3Exception $e ) {
+					// Operation still failed for some other reason.
+					$this->logException( $e, $caller );
+					return $e;
+				}
+			}
+
+			return $e;
+		}
+	}
+
+	/**
+	 * Record an unknown S3Exception in logs.
 	 *
 	 * @param Aws\S3\Exception\S3Exception $e Exception that was thrown
-	 * @param Status $status Status object for the operation (if needed)
-	 * @param string $func Function in which the exception occurred
-	 * @param array $params Params passed to the function
+	 * @param string $caller Function in which the exception occurred
 	 */
-	private function handleException( S3Exception $e, Status $status, $func, array $params ) {
-		$status->fatal( 'backend-fail-internal', $this->name );
-
-		if ( $e->getMessage() ) {
-			trigger_error( "$func : {$e->getMessage()}", E_USER_WARNING );
-		}
+	private function logException( S3Exception $e, $caller ) {
+		$errorMessage = $e->getMessage();
+		$command = $e->getCommand();
 
 		$this->logger->error(
-			'S3FileBackend: exception {exception} in {func}({params}): {errorMessage}',
+			'S3FileBackend: exception {exception} in {func} from {commandName} ({commandParams})' .
+			': {errorMessage}',
 			[
 				'exception' => $e->getAwsErrorCode(),
-				'func' => $func,
-				'params' => FormatJson::encode( $params ),
-				'errorMessage' => $e->getMessage() ?: ""
+				'commandName' => $command->getName(),
+				'commandParams' => FormatJson::encode( $command->toArray() ),
+				'func' => $caller,
+				'errorMessage' => $errorMessage
 			]
 		);
+
+		// We don't emit "NoSuchBucket" warning in unit tests, because any PHP warning would
+		// cause the test to fail, and "NoSuchBucket" is a normal (recoverable) error.
+		if ( !( defined( 'MW_PHPUNIT_TEST' ) && $e->getAwsErrorCode() == 'NoSuchBucket' ) ) {
+			trigger_error( "$caller: S3Exception: $errorMessage", E_USER_WARNING );
+		}
 	}
 
 	/**

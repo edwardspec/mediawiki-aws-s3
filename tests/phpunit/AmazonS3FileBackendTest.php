@@ -31,22 +31,16 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	private static $backend;
 
 	public static function setUpBeforeClass() {
+		global $wgFileBackends;
+		if ( getenv( 'USE_MOCK' ) ) {
+			// Point to a local Moto server (AWS-mocking daemon)
+			$wgFileBackends['s3']['endpoint'] = 'http://127.0.0.1:3000';
+			FileBackendGroup::destroySingleton();
+		}
+
 		self::$backend = TestingAccessWrapper::newFromObject(
 			FileBackendGroup::singleton()->get( 'AmazonS3' )
 		);
-
-		if ( getenv( 'USE_MOCK' ) ) {
-			if ( version_compare( phpversion(), '7.0.0', '<' ) ) {
-				// Remove when support for MediaWiki 1.27 (deprecated) gets dropped.
-				// It supported PHP 5.6, and AmazonS3ClientMock uses PHP7 syntax.
-				self::markTestSkipped( 'Test skipped: not supported in MediaWiki 1.27' );
-			}
-
-			require_once __DIR__ . '/AmazonS3ClientMock.php';
-
-			echo( __CLASS__ . ": using AmazonS3ClientMock instead of the real S3Client.\n" );
-			self::$backend->client = new AmazonS3ClientMock();
-		}
 	}
 
 	/**
