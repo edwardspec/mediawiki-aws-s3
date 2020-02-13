@@ -53,6 +53,8 @@ matrix:
       env: TESTSUITE_TYPE=phan branch=REL1_34 PHAN_CHECK_TESTSUITE=1
 
     # PHPUnit tests
+    - env: branch=REL1_34 USE_MOCK=1
+      php: 7.2
     - env: branch=REL1_34
       php: 7.3
     - env: branch=REL1_33
@@ -70,15 +72,22 @@ cache:
   directories:
     - buildcache
     - $HOME/.composer/cache
+    - $HOME/.cache/pip
 
 before_script:
+  - pyenv global system 3.6
+  # Real AWS credentials are unavailable when testing pull requests, etc.
+  # By setting USE_MOCK, we are telling AmazonS3FileBackendTest to connect to local Moto server instead of S3 itself.
   - >
-        if [ "x$AWS_BUCKET_PREFIX" != "x" ]; then
-            pip install --user awscli
+        if [[ "$AWS_BUCKET_PREFIX" != "" ]] && [[ "$USE_MOCK" != "1" ]]; then
+            pip3 install --user awscli
             mkdir -p ~/.aws
             echo -en "\n[default]\naws_access_key_id = ${AWS_KEY}\naws_secret_access_key = ${AWS_SECRET}\n" >>~/.aws/credentials
             echo -en "\n[default]\nregion = us-east-1\n" >>~/.aws/config
+        else
+            export USE_MOCK=1
         fi
+  - if [ "$USE_MOCK" = "1" ]; then pip3 install --user "moto[server]" && ( moto_server s3 -p 3000 2>$TRAVIS_BUILD_DIR/moto.log & ); fi
   - phpenv config-rm xdebug.ini
   - bash -ex ./tests/travis/build_mediawiki.sh "$branch"
   - rsync -a --exclude buildcache --exclude mediawiki --exclude .git * mediawiki/extensions/AWS/
@@ -95,13 +104,11 @@ before_script:
   - echo -en "\n\nrequire_once __DIR__ . '/includes/DevelopmentSettings.php';\n" >> ./LocalSettings.php
   - echo -en "\n\nrequire_once __DIR__ . '/extensions/AWS/tests/travis/AWSSettings.php';\n" >> ./LocalSettings.php
   - php -l ./LocalSettings.php
+  # Wait for Moto server to start accepting connections.
+  - if [ "$USE_MOCK" = "1" ]; then ( while ! nc -z 127.0.0.1 3000; do sleep 1; done ); fi
 
 script:
   - php tests/phpunit/phpunit.php --group TestsWithNoNeedForAwsCredentials extensions/AWS/tests/phpunit/
-
-  # Real AWS credentials are unavailable when testing pull requests, etc.
-  # By setting USE_MOCK, we are telling AmazonS3FileBackendTest to replace the original S3Client with the mock class.
-  - if [ -z "$AWS_BUCKET_PREFIX" ]; then export USE_MOCK=1; fi
 
   # We run the test twice: one for container path "NameOfBucket" (public zone),
   # one for container path "NameOfBucket/AdditionalPrefix" (e.g. within the "thumb" zone),
@@ -120,3 +127,4 @@ script:
 
 after_script:
   - cat "$TRAVIS_BUILD_DIR/s3.log"
+  - cat "$TRAVIS_BUILD_DIR/moto.log"
