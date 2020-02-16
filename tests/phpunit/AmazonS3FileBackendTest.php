@@ -406,6 +406,20 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			// not trust the cache that was just populated by $method().
 			$this->clearSecurityCache( $container );
 
+			// DeleteObject (used by doSecureInternal) is an "eventually consistent" S3 operation,
+			// and doSecureInternal() is not a blocking operation (doesn't need to be),
+			// so let's wait until it actually gets completed before we continue the test.
+			if ( $expectedSecurity === false ) {
+				$restrictPath = $this->getBackend()->getRestrictFilePath( $container );
+
+				// @phan-suppress-next-line PhanUndeclaredFunctionInCallable <--- false positive
+				$this->getClient()->waitUntil( 'ObjectNotExists', [
+					'Bucket' => $restrictPath[0],
+					'Key' => $restrictPath[1]
+				] );
+			}
+
+			// Upload a new file (to check its ACL afterwards).
 			$status = $this->getBackend()->doCreateInternal( [
 				'content' => 'Whatever',
 				'dst' => $dst
