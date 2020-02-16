@@ -25,6 +25,7 @@ Bugfixes:
 Performance optimizations:
 * Reduced the number of API calls in doGetFileStat().
 * Reduced the number of API calls in doPrepareInternal().
+* Reduced the number of API calls in isPathUsableInternal().
 
 Troubleshooting tools:
 * Added performance metrics "how much time was spent on S3 upload/download" to the debug log.

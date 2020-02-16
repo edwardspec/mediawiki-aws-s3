@@ -209,8 +209,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @return bool
 	 */
 	public function isPathUsableInternal( $storagePath ) {
-		list( $bucket, $key, ) = $this->getBucketAndObject( $storagePath );
-		return ( $bucket && $this->client->doesBucketExist( $bucket ) );
+		return true;
 	}
 
 	/**
