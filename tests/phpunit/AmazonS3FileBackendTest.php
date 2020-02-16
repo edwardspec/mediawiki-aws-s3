@@ -78,15 +78,8 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			$this->getVirtualPath( 'Hello/World.png' ) );
 		list( $bucket, $prefix ) = $this->getBackend()->findContainer( $container );
 
-		if ( $this->getClient()->doesBucketExist( $bucket ) ) {
-			$this->markTestSkipped( 'Test skipped: S3 bucket already exists.' );
-		}
-
-		// S3 bucket doesn't exist yet, so we can proceed with the test.
 		$status = $this->getBackend()->doPrepareInternal( $container, $prefix, [] );
 		$this->assertTrue( $status->isGood(), 'doPrepareInternal() failed' );
-		$this->assertTrue( $this->getClient()->doesBucketExist( $bucket ),
-			"S3 bucket doesn't exist after doPrepareInternal()" );
 	}
 
 	/**
@@ -384,10 +377,12 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			'secure' => [ 'doSecureInternal', [ 'noAccess' => true ], true ]
 		];
 
-		/* Because we can't create/delete S3 buckets
-			(we don't want to give these permissions to IAM user
-			used for testing), we use an existing bucket,
-			and the starting state (is secure? Yes/No) can be different.
+		/*
+			We don't want to create a new S3 bucket in tests because of "eventual consistency"
+			of S3: the fact that CreateBucket and BucketExists returned success doesn't
+			guarantee that all of S3 servers already know that this newly created bucket exists.
+
+			With existing buckets, the starting state (is secure? Yes/No) can be different.
 
 			Luckily, we have Publish test for "Yes" and Secure test for "No",
 			and they (if successful) switch "Yes" to "No" (and back).
