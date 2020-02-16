@@ -53,7 +53,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 
 	/**
 	 * Get S3 client object.
-	 * @return Aws\S3\S3Client|AmazonS3ClientMock
+	 * @return Aws\S3\S3Client
 	 */
 	public function getClient() {
 		return $this->getBackend()->client;
@@ -140,7 +140,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$url = $this->getBackend()->getFileHttpUrl( [ 'src' => $params['dst'] ] );
 		$this->assertNotNull( $url, 'No URL returned by getFileHttpUrl()' );
 
-		$content = $this->httpGet( $url );
+		$content = Http::get( $url );
 		$this->assertEquals( $params['content'], $content,
 			'Content downloaded from FileHttpUrl is different from expected' );
 	}
@@ -358,7 +358,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$url = $this->getBackend()->getFileHttpUrl( [ 'src' => $dst ] );
 		$this->assertNotNull( $url, 'No URL returned by getFileHttpUrl()' );
 
-		$content = $this->httpGet( $url );
+		$content = Http::get( $url );
 		$this->assertEquals( $expectedContent, $content,
 			'Content downloaded from FileHttpUrl is different from expected' );
 	}
@@ -423,24 +423,12 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			# if the ACL of this object is not PUBLIC_READ.
 			list( $bucket, $prefix ) = $this->getBackend()->findContainer( $container );
 			$url = $this->getClient()->getObjectUrl( $bucket, $prefix . $key );
-			$securityAfterTest = ( $this->httpGet( $url ) === false );
+			$securityAfterTest = ( Http::get( $url ) === false );
 
 			$this->assertEquals( $expectedSecurity, $securityAfterTest,
 				"Incorrect ACL: S3 Object uploaded after $method() is " .
 				( $expectedSecurity ? "publicly accessible" : "resticted for reading" ) );
 		}
-	}
-
-	/**
-	 * Version of Http::get() that can use AmazonS3ClientMock instead of a real Http query.
-	 */
-	private function httpGet( $url ) {
-		$client = self::$backend->client;
-		if ( $client instanceof AmazonS3ClientMock ) {
-			return $client->fakeHttpGet( $url );
-		}
-
-		return Http::get( $url );
 	}
 
 	/**
