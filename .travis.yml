@@ -118,6 +118,7 @@ script:
       for WITH_CACHE in 0 1; do
           for zone in public thumb; do
               export BUCKET="${AWS_BUCKET_PREFIX}-$(LC_ALL=C date +'%s')-$TRAVIS_JOB_NUMBER-$zone-cache$WITH_CACHE"
+              [[ -z "$USE_MOCK" ]] && ~/.local/bin/aws s3 mb s3://$BUCKET/ && aws s3api wait bucket-exists --bucket "$BUCKET"
               AWS_S3_TEST_ZONE="$zone" WITH_CACHE="$WITH_CACHE" php tests/phpunit/phpunit.php extensions/AWS/tests/phpunit/AmazonS3FileBackendTest.php || ((fails++))
               [[ -z "$USE_MOCK" ]] && ~/.local/bin/aws s3 rb --force s3://$BUCKET/
               rm -rf -v "$TRAVIS_BUILD_DIR/aws.localcache"
