@@ -26,6 +26,9 @@ Performance optimizations:
 * Reduced the number of API calls in doGetFileStat().
 * Reduced the number of API calls in doPrepareInternal().
 * Reduced the number of API calls in isPathUsableInternal().
+* Improved performance of "is this container for public-read or private S3 objects?" check.
+* Removed unnecessary API calls in doPublishInternal() for already published containers
+and in doSecureInternal() for already secured containers.
 
 Troubleshooting tools:
 * Added performance metrics "how much time was spent on S3 upload/download" to the debug log.

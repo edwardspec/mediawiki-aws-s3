@@ -397,14 +397,14 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 
 		foreach ( $orderOfTests as $subtestName ) {
 			// Delete cache, so that it won't affect this subtest
-			$this->getBackend()->isContainerSecure = [];
+			$this->clearSecurityCache( $container );
 
 			list( $method, $params, $expectedSecurity ) = $subtests[$subtestName];
 			$this->getBackend()->$method( $container, 'unused', $params );
 
 			// Delete cache, so that doCreateInternal would actually recheck security,
 			// not trust the cache that was just populated by $method().
-			$this->getBackend()->isContainerSecure = [];
+			$this->clearSecurityCache( $container );
 
 			$status = $this->getBackend()->doCreateInternal( [
 				'content' => 'Whatever',
@@ -422,8 +422,18 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 
 			$this->assertEquals( $expectedSecurity, $securityAfterTest,
 				"Incorrect ACL: S3 Object uploaded after $method() is " .
-				( $expectedSecurity ? "publicly accessible" : "resticted for reading" ) );
+				( $expectedSecurity ? "publicly accessible" : "restricted for reading" ) );
 		}
+	}
+
+	/**
+	 * Helper function for testSecureAndPublish() that invalidates "is secure?" cache for $container.
+	 * @param string $container
+	 */
+	private function clearSecurityCache( $container ) {
+		$this->getBackend()->containerSecurityCache->delete(
+			$this->getBackend()->getCacheKey( $container )
+		);
 	}
 
 	/**

@@ -79,13 +79,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 	const MAX_S3_OBJECT_NAME_LENGTH = 1024;
 
 	/**
-	 * Temporary cache used in isSecure().
-	 * Avoids extra request to doesObjectExist(), unless MediaWiki core
-	 * has forgotten to call prepare() before storing/copying a file.
-	 * @var array [ 'containerName1' => true/false, ... ]
-	 * @phan-var array<string,bool>
+	 * Cache used in isSecure(). Avoids extra requests to doesObjectExist().
+	 * @var CachedBagOStuff
 	 */
-	private $isContainerSecure = [];
+	private $containerSecurityCache = null;
 
 	/**
 	 * @var bool If true, then all S3 objects are private.
@@ -192,6 +189,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 					' (private wiki, new S3 objects will be private)' : ''
 			]
 		);
+
+		$this->containerSecurityCache = new CachedBagOStuff( wfGetMainCache() );
 	}
 
 	/**
@@ -897,7 +896,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @phan-param $params array{access?:bool}
 	 */
 	protected function doPublishInternal( $container, $dir, array $params ) {
-		if ( !empty( $params['access'] ) ) {
+		if ( !empty( $params['access'] ) && $this->isSecure( $container ) ) {
+			// Container is currently secure, but $params say that it should be public.
 			list( $bucket, $restrictFile ) = $this->getRestrictFilePath( $container );
 
 			$this->logger->debug(
@@ -919,7 +919,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 				return Status::newFatal( 'backend-fail-internal', $this->name );
 			}
 
-			$this->isContainerSecure[$container] = false;
+			$this->updateSecurityCache( $container, false );
 		}
 
 		return Status::newGood();
@@ -937,7 +937,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @phan-param $params array{noAccess?:bool}
 	 */
 	protected function doSecureInternal( $container, $dir, array $params ) {
-		if ( !empty( $params['noAccess'] ) ) {
+		if ( !empty( $params['noAccess'] ) && !$this->isSecure( $container ) ) {
+			// Container is currently public, but $params say that it should be secure.
 			list( $bucket, $restrictFile ) = $this->getRestrictFilePath( $container );
 
 			$this->logger->debug(
@@ -960,10 +961,33 @@ class AmazonS3FileBackend extends FileBackendStore {
 				return Status::newFatal( 'backend-fail-internal', $this->name );
 			}
 
-			$this->isContainerSecure[$container] = true;
+			$this->updateSecurityCache( $container, true );
 		}
 
 		return Status::newGood();
+	}
+
+	/**
+	 * Get cache key used for isSecure() and updateSecurityCache().
+	 * @param string $container
+	 * @return string
+	 */
+	private function getCacheKey( $container ) {
+		return $this->containerSecurityCache->makeKey(
+			'S3FileBackend', 'containerSecurity', $container );
+	}
+
+	/**
+	 * Store the current security level of $container in containerSecurityCache.
+	 * @param string $container
+	 * @param bool $isSecure True if secure, false if public.
+	 */
+	private function updateSecurityCache( $container, $isSecure ) {
+		$this->containerSecurityCache->set(
+			$this->getCacheKey( $container ),
+			$isSecure ? 'private' : 'public-read',
+			604800 // 7 days. Changes in container security are exceptionally rare.
+		);
 	}
 
 	/**
@@ -977,11 +1001,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return true;
 		}
 
-		if ( array_key_exists( $container, $this->isContainerSecure ) ) {
-			/* We've just secured/published this very container */
-			return $this->isContainerSecure[$container];
+		$security = $this->containerSecurityCache->get( $this->getCacheKey( $container ) );
+		if ( $security !== false ) {
+			// Found in cache.
+			return ( $security !== 'public-read' );
 		}
 
+		// Not found in cache. Determine from S3: if ".htsecure" file is present, then secure.
 		list( $bucket, $restrictFile ) = $this->getRestrictFilePath( $container );
 
 		$this->logger->debug(
@@ -996,11 +1022,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 		try {
 			$isSecure = $this->client->doesObjectExist( $bucket, $restrictFile );
 		} catch ( S3Exception $e ) {
-			/* Assume insecure */
+			/* Assume insecure. Don't cache (this may be a temporary problem). */
 			return false;
 		}
 
-		$this->isContainerSecure[$container] = $isSecure;
+		$this->updateSecurityCache( $container, $isSecure );
 		return $isSecure;
 	}
 
