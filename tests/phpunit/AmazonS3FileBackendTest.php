@@ -406,8 +406,8 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			// not trust the cache that was just populated by $method().
 			$this->clearSecurityCache( $container );
 
-			// DeleteObject (used by doSecureInternal) is an "eventually consistent" S3 operation,
-			// and doSecureInternal() is not a blocking operation (doesn't need to be),
+			// DeleteObject (used by doPublishInternal) is an "eventually consistent" S3 operation,
+			// and doPublishInternal() is not a blocking operation (doesn't need to be),
 			// so let's wait until it actually gets completed before we continue the test.
 			if ( $expectedSecurity === false ) {
 				$restrictPath = $this->getBackend()->getRestrictFilePath( $container );
