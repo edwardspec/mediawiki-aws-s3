@@ -951,7 +951,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 			$ret = $this->runWithExceptionHandling( __FUNCTION__, function ()
 				use ( $bucket, $restrictFile ) {
-				$res = $this->client->putObject( [
+				return $this->client->putObject( [
 					'Bucket' => $bucket,
 					'Key'    => $restrictFile,
 					'Body'   => '' /* Empty file */

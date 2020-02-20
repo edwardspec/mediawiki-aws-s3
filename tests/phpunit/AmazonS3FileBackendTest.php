@@ -76,7 +76,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	public function testPrepareInternal() {
 		list( $container, ) = $this->getBackend()->resolveStoragePathReal(
 			$this->getVirtualPath( 'Hello/World.png' ) );
-		list( $bucket, $prefix ) = $this->getBackend()->findContainer( $container );
+		list( , $prefix ) = $this->getBackend()->findContainer( $container );
 
 		$status = $this->getBackend()->doPrepareInternal( $container, $prefix, [] );
 		$this->assertTrue( $status->isGood(), 'doPrepareInternal() failed' );
