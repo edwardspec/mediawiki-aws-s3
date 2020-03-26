@@ -121,12 +121,25 @@ This will allow JavaScript (in this case, popup-showing script of Extension:Mult
 </CORSConfiguration>
 ```
 
+## Local storage is still used, even though the extension is shown to be installed
+
+This can happen if some settings are missing. Make sure you have at least `$wgAWSBucketName` and `$wgAWSRegion` are set.
+
+## I'm getting Exception, even though the extension is shown to be installed
+
+This can happen if some settings are missing. Make sure that `$wgAWSRegion` is set (even if your config doesn't use it, e.g. when using non-Amazon providers).
+
 # Non-standard configuration
 
 ## Using another S3-compatible service (not Amazon S3 itself)
 
-You can use non-Amazon software that supports S3 API (such as Apache CloudStack) instead of Amazon S3 itself. To enable this, add the following line to LocalSettings.php:
+You can use non-Amazon software that supports S3 API (such as Apache CloudStack, Digital Ocean, etc.) instead of Amazon S3 itself. To enable this, add the following lines to LocalSettings.php:
 
 ```php
+//The url used for the API (PutObject, etc.)
 $wgFileBackends['s3']['endpoint'] = 'https://my-custom-url';
+//The url used for showing images. $1 is translated to the bucket name.
+$wgAWSBucketDomain = '$1.my-custom-url';
 ```
+
+Make sure `$wgAWSBucketName` and `$wgAWSRegion` are set as well.
