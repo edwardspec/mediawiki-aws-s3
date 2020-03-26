@@ -16,8 +16,10 @@ if [ ! -f buildcache/mediawiki/COMPLETE ]; then
 		git clone $GITCLONE_OPTS https://gerrit.wikimedia.org/r/p/mediawiki/core.git mediawiki
 
 		cd mediawiki
+
+		# B/C workaround for MediaWiki 1.27 (which didn't have DevelopmentSettings.php):
 		[[ -f includes/DevelopmentSettings.php ]] || \
-			wget https://raw.githubusercontent.com/wikimedia/mediawiki/master/includes/DevelopmentSettings.php \
+			wget https://raw.githubusercontent.com/wikimedia/mediawiki/REL1_34/includes/DevelopmentSettings.php \
 				-O includes/DevelopmentSettings.php
 
 		find . -name .git | xargs rm -rf
