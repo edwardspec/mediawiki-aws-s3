@@ -32,8 +32,8 @@
 wfLoadExtension( 'AWS' );
 $wgAWSRegion = 'us-east-1'; # Northern Virginia
 
-$wgAWSCredentials['key'] = getenv( 'AWS_KEY' );
-$wgAWSCredentials['secret'] = getenv( 'AWS_SECRET' );
+$wgAWSCredentials['key'] = getenv( 'AWS_KEY' ) ?: 'no valid key';
+$wgAWSCredentials['secret'] = getenv( 'AWS_SECRET' ) ?: 'no valid secret';
 $wgAWSBucketName = getenv( 'BUCKET' );
 
 $wgDebugLogGroups['FileOperation'] = getenv( 'TRAVIS_BUILD_DIR' ) . '/s3.log';
