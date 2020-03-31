@@ -50,7 +50,7 @@ matrix:
         - cd mediawiki
         - ( cd extensions/AWS && composer install )
       script:
-        - ( cd extensions/AWS && ./vendor/bin/phan -j2 )
+        - ( cd extensions/AWS && ./vendor/bin/phan --analyze-twice )
     - <<: *phan-build
       name: "Phan (PHAN_CHECK_TESTSUITE=1)"
       if: branch IN (phan,phpunit)

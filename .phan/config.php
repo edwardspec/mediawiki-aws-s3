@@ -19,6 +19,14 @@ if ( getenv( 'PHAN_CHECK_TESTSUITE' ) ) {
 $cfg['directory_list'][] = 'vendor';
 $cfg['exclude_analysis_directory_list'][] = 'vendor';
 
+$cfg['exclude_file_list'] = array_merge( $cfg['exclude_file_list'], [
+	# These interfaces exist both in "extensions/AWS/vendor/" and in "vendor/" of MediaWiki core.
+	# They are identical, but let's exclude one to not confuse Phan.
+	'../../vendor/psr/http-message/src/RequestInterface.php',
+	'../../vendor/psr/log/Psr/Log/LoggerInterface.php',
+	'../../vendor/psr/log/Psr/Log/LogLevel.php'
+] );
+
 # Temporarily suppressed warnings.
 
 # We are still backward compatible with MediaWiki 1.27 (and PHP 5.6),
