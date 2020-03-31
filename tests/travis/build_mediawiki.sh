@@ -24,7 +24,7 @@ if [ ! -f buildcache/mediawiki/COMPLETE ]; then
 
 		find . -name .git | xargs rm -rf
 
-		composer install --prefer-dist --quiet --no-interaction
+		composer install --quiet --no-interaction
 		touch COMPLETE # Mark this buildcache as usable
 	)
 fi
