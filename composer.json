@@ -1,8 +1,13 @@
 {
-	"name": "mediawiki/aws",
-	"description": "Allows MediaWiki to use Amazon S3 to store images.",
+	"name": "edwardspec/mediawiki-aws-s3",
+	"description": "Allows MediaWiki to use Amazon S3 to store uploaded files.",
 	"type": "mediawiki-extension",
 	"license": "GPL-2.0+",
+	"support": {
+		"docs": "https://www.mediawiki.org/wiki/Extension:AWS",
+		"issues": "https://github.com/edwardspec/mediawiki-aws-s3/issues",
+		"source": "https://github.com/edwardspec/mediawiki-aws-s3.git"
+	},
 	"require": {
 		"aws/aws-sdk-php": "^3.67",
 		"composer/installers": "^1.5",
@@ -25,5 +30,8 @@
 			"minus-x fix .",
 			"phpcbf"
 		]
+	},
+	"extra": {
+		"installer-name": "AWS"
 	}
 }
