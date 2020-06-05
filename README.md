@@ -37,6 +37,11 @@ $wgAWSRegion = 'us-east-1'; # Northern Virginia
 
 // Replace <something> with the name of your S3 bucket, e.g. wonderfulbali234.
 $wgAWSBucketName = "<something>";
+
+// if your images are stored in directory called "some_prefix"
+// you can specify an optional prefix
+$wgAWSBucketTopSubdirectory="/some_prefix";
+
 ```
 
 If you do not specify credentials via $wgAWSCredentials, they are retrieved using the [default credentials chain](https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_credentials.html). This means they are obtained from IAM instance profile (if this EC2 instance has it) or from environmental variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN`.
