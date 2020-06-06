@@ -800,7 +800,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @param array $params
 	 * @return array
 	 *
-	 * @phan-return array<FSFile|null>
+	 * @phan-return array<string,FSFile|null>
 	 */
 	protected function doGetLocalCopyMulti( array $params ) {
 		$fsFiles = [];
