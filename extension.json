@@ -10,6 +10,9 @@
 	"url": "https://www.mediawiki.org/wiki/Extension:AWS",
 	"descriptionmsg": "aws-desc",
 	"license-name": "GPL-2.0+",
+	"requires": {
+		"MediaWiki": ">= 1.35.0"
+	},
 	"type": "other",
 	"MessagesDirs": {
 		"AWS": [
