@@ -32,7 +32,7 @@ matrix:
       name: "linters"
       if: NOT branch IN (phan)
       env: TESTSUITE_TYPE=linter-php
-      before_script: composer install
+      before_script: composer self-update --1 && composer install
       script: composer test
 
     # Phan (PHP static analyzer)
@@ -48,7 +48,7 @@ matrix:
         - bash -ex ./tests/travis/build_mediawiki.sh "$branch"
         - rsync -a --exclude buildcache --exclude mediawiki --exclude .git . mediawiki/extensions/AWS/
         - cd mediawiki
-        - ( cd extensions/AWS && composer install )
+        - ( cd extensions/AWS && composer self-update --1 && composer install )
       script:
         - ( cd extensions/AWS && ./vendor/bin/phan --analyze-twice )
     - <<: *phan-build
@@ -71,6 +71,9 @@ cache:
     - $HOME/.cache/pip
 
 before_script:
+  # Revert Composer to 1.10, because wikimedia/composer-merge-plugin v1.4.1 is not compatible with Composer 2.
+  - composer self-update --1
+
   - pyenv global system 3.6.7
   # Real AWS credentials are unavailable when testing pull requests, etc.
   # By setting USE_MOCK, we are telling AmazonS3FileBackendTest to connect to local Moto server instead of S3 itself.
