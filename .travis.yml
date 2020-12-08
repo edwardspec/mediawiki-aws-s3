@@ -94,7 +94,7 @@ before_script:
   - cd mediawiki
   - >
       php maintenance/install.php traviswiki admin
-      --pass travis
+      --pass $(dd if=/dev/urandom count=1 bs=20 2>/dev/null | base64)
       --dbtype "$DBTYPE"
       --dbname traviswiki
       --dbuser "$DBUSER"
