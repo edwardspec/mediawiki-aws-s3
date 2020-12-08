@@ -42,13 +42,14 @@ matrix:
       env: TESTSUITE_TYPE=phan branch=REL1_35
       php: 7.3
       before_script:
+        - composer self-update --1
         - pecl install ast
         - phpenv config-rm xdebug.ini
         - php -i
         - bash -ex ./tests/travis/build_mediawiki.sh "$branch"
         - rsync -a --exclude buildcache --exclude mediawiki --exclude .git . mediawiki/extensions/AWS/
         - cd mediawiki
-        - ( cd extensions/AWS && composer self-update --1 && composer install )
+        - ( cd extensions/AWS && composer install )
       script:
         - ( cd extensions/AWS && ./vendor/bin/phan --analyze-twice )
     - <<: *phan-build
