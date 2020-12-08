@@ -26,6 +26,10 @@
  * as returned by getFileListInternal($topOnly=false).
  */
 class AmazonS3SubdirectoryIterator extends FilterIterator {
+	/**
+	 * @var array
+	 * @phan-var array<string,bool>
+	 */
 	private $seenDirectories = [];
 
 	public function rewind() {

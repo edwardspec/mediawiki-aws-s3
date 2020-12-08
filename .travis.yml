@@ -15,7 +15,7 @@ services:
   - memcached
 
 php:
-  - 7.2
+  - 7.3
 
 env:
   global:
@@ -32,14 +32,14 @@ matrix:
       name: "linters"
       if: NOT branch IN (phan)
       env: TESTSUITE_TYPE=linter-php
-      before_script: composer install
+      before_script: composer self-update --1 && composer install
       script: composer test
 
     # Phan (PHP static analyzer)
     - &phan-build
       name: "Phan"
       if: branch IN (phan,master)
-      env: TESTSUITE_TYPE=phan branch=REL1_34
+      env: TESTSUITE_TYPE=phan branch=REL1_35
       php: 7.3
       before_script:
         - pecl install ast
@@ -48,36 +48,21 @@ matrix:
         - bash -ex ./tests/travis/build_mediawiki.sh "$branch"
         - rsync -a --exclude buildcache --exclude mediawiki --exclude .git . mediawiki/extensions/AWS/
         - cd mediawiki
-        - ( cd extensions/AWS && composer install )
+        - ( cd extensions/AWS && composer self-update --1 && composer install )
       script:
         - ( cd extensions/AWS && ./vendor/bin/phan --analyze-twice )
     - <<: *phan-build
       name: "Phan (PHAN_CHECK_TESTSUITE=1)"
       if: branch IN (phan,phpunit)
-      env: TESTSUITE_TYPE=phan branch=REL1_34 PHAN_CHECK_TESTSUITE=1
+      env: TESTSUITE_TYPE=phan branch=REL1_35 PHAN_CHECK_TESTSUITE=1
 
     # PHPUnit tests
-    - env: branch=REL1_34 USE_MOCK=1
-      name: "PHPUnit: MW 1.34, PHP 7.2, USE_MOCK=1"
-      php: 7.2
-    - env: branch=REL1_34
-      name: "PHPUnit: MW 1.34, PHP 7.3"
+    - env: branch=REL1_35 USE_MOCK=1
+      name: "PHPUnit: MW 1.35, PHP 7.3, USE_MOCK=1"
       php: 7.3
-    - env: branch=REL1_33
-      name: "PHPUnit: MW 1.33, PHP 7.2"
-      php: 7.2
-    - env: branch=REL1_32
-      name: "PHPUnit: MW 1.32, PHP 7.2"
-      php: 7.2
-    - env: branch=REL1_31
-      name: "PHPUnit: MW 1.31, PHP 7.2"
-      php: 7.2
-    - env: branch=REL1_27
-      name: "PHPUnit: MW 1.27, PHP 7.1"
-      php: 7.1
-    - env: branch=REL1_27
-      name: "PHPUnit: MW 1.27, PHP 5.6"
-      php: 5.6
+    - env: branch=REL1_35
+      name: "PHPUnit: MW 1.35, PHP 7.3"
+      php: 7.3
 
 cache:
   directories:
@@ -86,6 +71,9 @@ cache:
     - $HOME/.cache/pip
 
 before_script:
+  # Revert Composer to 1.10, because wikimedia/composer-merge-plugin v1.4.1 is not compatible with Composer 2.
+  - composer self-update --1
+
   - pyenv global system 3.6.7
   # Real AWS credentials are unavailable when testing pull requests, etc.
   # By setting USE_MOCK, we are telling AmazonS3FileBackendTest to connect to local Moto server instead of S3 itself.
@@ -106,7 +94,7 @@ before_script:
   - cd mediawiki
   - >
       php maintenance/install.php traviswiki admin
-      --pass travis
+      --pass $(dd if=/dev/urandom count=1 bs=20 2>/dev/null | base64)
       --dbtype "$DBTYPE"
       --dbname traviswiki
       --dbuser "$DBUSER"

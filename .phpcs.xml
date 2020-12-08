@@ -5,6 +5,9 @@
 	<arg name="encoding" value="UTF-8" />
 
 	<rule ref="./vendor/mediawiki/mediawiki-codesniffer/MediaWiki">
+		<!-- NOTE: this should be fixed -->
+		<exclude name="MediaWiki.Usage.ForbiddenFunctions.is_resource" />
+
 		<!-- NOTE: can't fix this yet, because we still support MediaWiki 1.27,
 			which supported PHP 5.6, while "visibility of constants" was only added in PHP 7.1.
 		-->

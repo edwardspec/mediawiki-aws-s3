@@ -30,7 +30,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	/** @var TestingAccessWrapper Proxy to AmazonS3FileBackend */
 	private static $backend;
 
-	public static function setUpBeforeClass() {
+	public static function setUpBeforeClass() : void {
 		global $wgFileBackends;
 		if ( getenv( 'USE_MOCK' ) ) {
 			// Point to a local Moto server (AWS-mocking daemon)
