@@ -17,14 +17,9 @@ if [ ! -f buildcache/mediawiki/COMPLETE ]; then
 
 		cd mediawiki
 
-		# B/C workaround for MediaWiki 1.27 (which didn't have DevelopmentSettings.php):
-		[[ -f includes/DevelopmentSettings.php ]] || \
-			wget https://raw.githubusercontent.com/wikimedia/mediawiki/REL1_34/includes/DevelopmentSettings.php \
-				-O includes/DevelopmentSettings.php
-
 		find . -name .git | xargs rm -rf
 
-		composer install --quiet --no-interaction
+		composer install --no-interaction
 		touch COMPLETE # Mark this buildcache as usable
 	)
 fi
