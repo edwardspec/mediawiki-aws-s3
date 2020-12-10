@@ -10,8 +10,7 @@
 	},
 	"require": {
 		"aws/aws-sdk-php": "^3.67",
-		"composer/installers": "^1.5",
-		"guzzlehttp/guzzle": "6.3.3"
+		"composer/installers": "^1.5"
 	},
 	"require-dev": {
 		"php-parallel-lint/php-parallel-lint": "1.2.0",
