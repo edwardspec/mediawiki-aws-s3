@@ -10,5 +10,5 @@
 if ( function_exists( 'wfLoadExtension' ) ) {
 	wfLoadExtension( 'AWS' );
 } else {
-	die( 'This version of the AWS extension requires MediaWiki 1.27+' );
+	die( 'This version of the AWS extension requires MediaWiki 1.35+' );
 }

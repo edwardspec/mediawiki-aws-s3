@@ -8,14 +8,6 @@
 		<!-- NOTE: this should be fixed -->
 		<exclude name="MediaWiki.Usage.ForbiddenFunctions.is_resource" />
 
-		<!-- NOTE: can't fix this yet, because we still support MediaWiki 1.27,
-			which supported PHP 5.6, while "visibility of constants" was only added in PHP 7.1.
-		-->
-		<exclude name="PSR12.Properties.ConstantVisibility.NotFound" />
-
-		<!-- NOTE: fixing this would break backward compatibility with older versions of MediaWiki -->
-		<exclude name="MediaWiki.Usage.PHPUnitTypeHints.MissingTypehint" />
-
 		<!-- Don't want to apply this -->
 		<exclude name="MediaWiki.WhiteSpace.SpaceBeforeSingleLineComment.NewLineComment" />
 	</rule>

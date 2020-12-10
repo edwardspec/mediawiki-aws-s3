@@ -31,13 +31,7 @@ class AmazonS3CompatTools {
 	 * @return bool
 	 */
 	public static function isPublicWiki() {
-		if ( method_exists( 'MediaWiki\Permissions\PermissionManager', 'isEveryoneAllowed' ) ) {
-			// MediaWiki 1.33+
-			$pm = MediaWiki\MediaWikiServices::getInstance()->getPermissionManager();
-			return $pm->isEveryoneAllowed( 'read' );
-		}
-
-		// MediaWiki 1.32 or older
-		return User::isEveryoneAllowed( 'read' );
+		$pm = MediaWiki\MediaWikiServices::getInstance()->getPermissionManager();
+		return $pm->isEveryoneAllowed( 'read' );
 	}
 }

@@ -69,7 +69,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 
 		unlink( $tmpFilename ); // Cleanup
 
-		$this->assertContains( 'LOADED', $output,
+		$this->assertStringContainsString( 'LOADED', $output,
 			'testConfigIsLoaded(): $wgFileBackends["s3"] is not defined, ' .
 			'which means installBackend() hasn\'t been called on initialization.' );
 	}
@@ -95,7 +95,7 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 			$hooks = new AmazonS3Hooks;
 			$hooks->installBackend();
 		} catch ( AmazonS3MisconfiguredException $e ) {
-			$this->assertContains( $expectedExceptionText, $e->getText(),
+			$this->assertStringContainsString( $expectedExceptionText, $e->getText(),
 				"Unexpected exception from installBackend()" );
 			return;
 		}
@@ -132,10 +132,8 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 			"Unexpected value of \$wgFileBackends['s3']" );
 
 		// Step 2. Check $wgLocalFileRepo.
-		$expectedHashLevels = isset( $inputConfigs['wgAWSRepoHashLevels'] ) ?
-			$inputConfigs['wgAWSRepoHashLevels'] : 0;
-		$expectedDeletedHashLevels = isset( $inputConfigs['wgAWSRepoDeletedHashLevels'] ) ?
-			$inputConfigs['wgAWSRepoDeletedHashLevels'] : 0;
+		$expectedHashLevels = $inputConfigs['wgAWSRepoHashLevels'] ?? 0;
+		$expectedDeletedHashLevels = $inputConfigs['wgAWSRepoDeletedHashLevels'] ?? 0;
 
 		$expectedRepo = $expectedZoneUrl ? [
 			'class' => 'LocalRepo',

@@ -38,7 +38,6 @@ matrix:
     # Phan (PHP static analyzer)
     - &phan-build
       name: "Phan"
-      if: branch IN (phan,master,composer-test)
       env: TESTSUITE_TYPE=phan branch=REL1_35
       php: 7.3
       before_script:
@@ -53,7 +52,7 @@ matrix:
       script: ./vendor/bin/phan --analyze-twice
     - <<: *phan-build
       name: "Phan (PHAN_CHECK_TESTSUITE=1)"
-      if: branch IN (phan,phpunit)
+      if: branch NOT IN (master)
       env: TESTSUITE_TYPE=phan branch=REL1_35 PHAN_CHECK_TESTSUITE=1
 
     # PHPUnit tests

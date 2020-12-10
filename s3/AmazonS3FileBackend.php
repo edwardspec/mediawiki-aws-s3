@@ -70,13 +70,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * meaning ACL=private should be used in putObject() and CopyObject() into this bucket.
 	 * See isSecure() below.
 	 */
-	const RESTRICT_FILE = '.htsecure';
+	protected const RESTRICT_FILE = '.htsecure';
 
 	/**
 	 * Maximum length of S3 object name.
 	 * See https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingMetadata.html for details.
 	 */
-	const MAX_S3_OBJECT_NAME_LENGTH = 1024;
+	protected const MAX_S3_OBJECT_NAME_LENGTH = 1024;
 
 	/**
 	 * Cache used in isSecure(). Avoids extra requests to doesObjectExist().
@@ -89,12 +89,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * NOTE: for images to work in private mode, $wgUploadPath should point to img_auth.php.
 	 */
 	protected $privateWiki = null;
-
-	/**
-	 * @var Psr\Log\LoggerInterface
-	 * B/C for MediaWiki 1.27 (already defined in FileBackend class)
-	 */
-	protected $logger = null;
 
 	/**
 	 * Construct the backend. Doesn't take any extra config parameters.
@@ -138,7 +132,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		$params = [
 			'version' => '2006-03-01',
-			'region' => isset( $config['awsRegion'] ) ? $config['awsRegion'] : $wgAWSRegion,
+			'region' => $config['awsRegion'] ?? $wgAWSRegion,
 			'scheme' => $this->useHTTPS ? 'https' : 'http'
 		];
 		if ( !empty( $wgAWSCredentials['key'] ) ) {
@@ -147,7 +141,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$params['credentials'] = [
 				'key' => $config['awsKey'],
 				'secret' => $config['awsSecret'],
-				'token' => isset( $config['awsToken'] ) ? $config['awsToken'] : false
+				'token' => $config['awsToken'] ?? false
 			];
 		}
 
@@ -173,12 +167,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 				and that we want files to be "for registered users only".
 			*/
 			$this->privateWiki = !AmazonS3CompatTools::isPublicWiki();
-		}
-
-		if ( !$this->logger ) {
-			// B/C with MediaWiki 1.27.
-			// Modern MediaWiki creates a logger in parent::__construct().
-			$this->logger = MediaWiki\Logger\LoggerFactory::getInstance( 'FileOperation' );
 		}
 
 		$this->logger->info(
@@ -299,8 +287,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return Status::newFatal( 'backend-fail-invalidpath', $params['dst'] );
 		}
 
-		$contentType = isset( $params['headers']['Content-Type'] ) ?
-			$params['headers']['Content-Type'] : null;
+		$contentType = $params['headers']['Content-Type'] ?? null;
 
 		if ( is_resource( $params['content'] ) && isset( $params['src'] ) ) {
 			// If we are here, it means that doCreateInternal() was called from doStoreInternal().
@@ -319,7 +306,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		$sha1Hash = Wikimedia\base_convert( $sha1, 16, 36, 31, true, 'auto' );
 
-		$params['headers'] = isset( $params['headers'] ) ? $params['headers'] : [];
+		$params['headers'] = $params['headers'] ?? [];
 		$params['headers'] += array_fill_keys( [
 			'Cache-Control',
 			'Content-Disposition',
@@ -421,7 +408,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			]
 		);
 
-		$params['headers'] = isset( $params['headers'] ) ? $params['headers'] : [];
+		$params['headers'] = $params['headers'] ?? [];
 		$params['headers'] += array_fill_keys( [
 			'Cache-Control',
 			'Content-Disposition',
