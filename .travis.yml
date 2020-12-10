@@ -38,7 +38,7 @@ matrix:
     # Phan (PHP static analyzer)
     - &phan-build
       name: "Phan"
-      if: branch IN (phan,master)
+      if: branch IN (phan,master,composer-test)
       env: TESTSUITE_TYPE=phan branch=REL1_35
       php: 7.3
       before_script:
@@ -48,10 +48,9 @@ matrix:
         - php -i
         - bash -ex ./tests/travis/build_mediawiki.sh "$branch"
         - rsync -a --exclude buildcache --exclude mediawiki --exclude .git . mediawiki/extensions/AWS/
-        - cd mediawiki
-        - ( cd extensions/AWS && composer install )
-      script:
-        - ( cd extensions/AWS && ./vendor/bin/phan --analyze-twice )
+        - cd mediawiki/extensions/AWS
+        - composer install
+      script: ./vendor/bin/phan --analyze-twice
     - <<: *phan-build
       name: "Phan (PHAN_CHECK_TESTSUITE=1)"
       if: branch IN (phan,phpunit)
@@ -91,8 +90,8 @@ before_script:
   - phpenv config-rm xdebug.ini
   - bash -ex ./tests/travis/build_mediawiki.sh "$branch"
   - rsync -a --exclude buildcache --exclude mediawiki --exclude .git * mediawiki/extensions/AWS/
-  - cd mediawiki/extensions/AWS && composer install --no-dev --ignore-platform-reqs && cd -
   - cd mediawiki
+  - cp extensions/AWS/tests/travis/composer.local.json . && composer update
   - >
       php maintenance/install.php traviswiki admin
       --pass $(dd if=/dev/urandom count=1 bs=20 2>/dev/null | base64)
