@@ -22,7 +22,6 @@
  * 	AWS_KEY=
  * 	AWS_SECRET=
  * 	BUCKET=
- * 	TRAVIS_BUILD_DIR=
  *
  * Note: Amazon S3 bucket must be pre-created before the test.
  * Note: IAM user (who owns key/secret) must have no other permissions
@@ -36,10 +35,10 @@ $wgAWSCredentials['key'] = getenv( 'AWS_KEY' ) ?: 'no valid key';
 $wgAWSCredentials['secret'] = getenv( 'AWS_SECRET' ) ?: 'no valid secret';
 $wgAWSBucketName = getenv( 'BUCKET' );
 
-$wgDebugLogGroups['FileOperation'] = getenv( 'TRAVIS_BUILD_DIR' ) . '/s3.log';
+$wgDebugLogGroups['FileOperation'] = getenv( 'HOME' ) . '/s3.log';
 
 # Should be tested with and without local cache enabled
 if ( getenv( 'WITH_CACHE' ) ) {
-	$wgAWSLocalCacheDirectory = getenv( 'TRAVIS_BUILD_DIR' ) . '/aws.localcache';
+	$wgAWSLocalCacheDirectory = getenv( 'HOME' ) . '/aws.localcache';
 	$wgAWSLocalCacheMinSize = 0; // Make all files cached, regardless of their size.
 }

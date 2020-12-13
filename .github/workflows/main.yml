@@ -1,0 +1,129 @@
+name: JSON linter + luacheck
+
+on: [push, pull_request, workflow_dispatch]
+
+env:
+  DBTYPE: mysql
+  DBUSER: root
+
+jobs:
+  # phpcs, parallel-lint, etc.
+  linter:
+    runs-on: ubuntu-20.04
+    env:
+      TESTSUITE_TYPE: linter-php
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use the build cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.composer/cache
+          key: composer-cache
+
+      - name: Install dependencies
+        run: sudo apt-get install -y composer && composer install
+      - name: RUN -- composer test
+        run: composer test
+
+  # Phan
+  phan:
+    runs-on: ubuntu-20.04
+    env:
+      TESTSUITE_TYPE: phan
+      branch: REL1_35
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use the build cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.composer/cache
+            buildcache
+          key: buildcache-${{ env.branch }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y composer php-ast
+          bash -ex ./tests/travis/build_mediawiki.sh "$branch"
+          rsync -a --exclude buildcache --exclude mediawiki --exclude .git . mediawiki/extensions/AWS/
+          cd mediawiki/extensions/AWS
+          composer install
+      - name: RUN -- phan
+        run: cd mediawiki/extensions/AWS && ./vendor/bin/phan --analyze-twice
+
+  # PHPUnit testsuite + Moto (mock server that emulates S3 API).
+  phpunit-mock:
+    runs-on: ubuntu-20.04
+    services:
+      mariadb:
+        image: mariadb
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 1
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    env:
+      USE_MOCK: 1
+      branch: REL1_35
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use the build cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.composer/cache
+            buildcache
+          key: buildcache-${{ env.branch }}
+
+      - name: Install dependencies
+        run: |
+          # Install Moto
+          sudo apt-get install -y composer python3-pip netcat
+          pip3 install --user "moto[server]" && ( ~/.local/bin/moto_server s3 -p 3000 2>~/moto.log & )
+
+          # Install MediaWiki
+          bash -ex ./tests/travis/build_mediawiki.sh "$branch"
+          rsync -a --exclude buildcache --exclude mediawiki --exclude .git * mediawiki/extensions/AWS/
+          cd mediawiki
+          cp extensions/AWS/tests/travis/composer.local.json . && composer update
+          php maintenance/install.php traviswiki admin \
+            --pass $(dd if=/dev/urandom count=1 bs=20 2>/dev/null | base64) \
+            --dbtype "$DBTYPE" \
+            --dbserver "127.0.0.1:3306" \
+            --dbname traviswiki \
+            --dbuser "$DBUSER" \
+            --dbpass "" \
+            --scriptpath "/w"
+          echo -en "\n\nrequire_once __DIR__ . '/includes/DevelopmentSettings.php';\n" >> ./LocalSettings.php
+          echo -en "\n\nrequire_once __DIR__ . '/extensions/AWS/tests/travis/AWSSettings.php';\n" >> ./LocalSettings.php
+          php -l ./LocalSettings.php
+
+          # Wait for Moto server to start accepting connections.
+          cat ~/moto.log
+          ( while ! nc -z 127.0.0.1 3000; do sleep 1; done )
+      - name: RUN -- phpunit (TestsWithNoNeedForAwsCredentials)
+        run: |
+          cd mediawiki
+          php tests/phpunit/phpunit.php --group TestsWithNoNeedForAwsCredentials extensions/AWS/tests/phpunit/
+
+      - name: RUN -- phpunit AmazonS3FileBackendTest.php
+        # We run the test twice: one for container path "NameOfBucket" (public zone),
+        # one for container path "NameOfBucket/AdditionalPrefix" (e.g. within the "thumb" zone),
+        # to ensure that paths are properly calculated in both cases.
+        run: |
+          cd mediawiki
+          # FIXME: surely there is a better way to do this, like moving this into a script or custom action.
+          fails=0;
+          for WITH_CACHE in 0 1; do
+              for zone in public thumb; do
+                  export BUCKET="${AWS_BUCKET_PREFIX}-$(LC_ALL=C date +'%s')-${{ job.container.id }}-$zone-cache$WITH_CACHE"
+                  AWS_S3_TEST_ZONE="$zone" WITH_CACHE="$WITH_CACHE" php tests/phpunit/phpunit.php extensions/AWS/tests/phpunit/AmazonS3FileBackendTest.php || ((fails++))
+                  rm -rf -v "~/aws.localcache"
+              done
+          done;
+          [[ $fails -eq 0 ]]
+          #
