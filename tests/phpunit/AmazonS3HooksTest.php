@@ -38,7 +38,8 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 			'wgAWSBucketName' => null,
 			'wgAWSBucketPrefix' => null,
 			'wgAWSRepoHashLevels' => 0,
-			'wgAWSRepoDeletedHashLevels' => 0
+			'wgAWSRepoDeletedHashLevels' => 0,
+			'wgImgAuthPath' => false
 		] );
 	}
 
@@ -78,24 +79,25 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 	 * Check that $wgAWSBucketName and $wgAWSBucketDomain work as expected.
 	 * @covers AmazonS3Hooks::installBackend
 	 * @dataProvider configDataProvider
-	 * @param array $inputConfigs [ 'wgAWSBucketPrefix' => 'value', ... ]
-	 * @param array|null $expectedZoneUrl [ 'public' => URL1, 'thumb' => URL2 ]
-	 * @param string|null $expectedExceptionText Exception that should be thrown, if any.
+	 * @param array $opt
 	 */
-	public function testConfig(
-		array $inputConfigs,
-		array $expectedZoneUrl = null,
-		$expectedExceptionText = null
-	) {
+	public function testConfig( array $opt ) {
 		global $wgLocalFileRepo, $wgFileBackends, $wgAWSBucketName, $wgAWSBucketPrefix;
 
+		$inputConfigs = $opt['config'] ?? [];
+		$expectUnchanged = $opt['expectUnchangedLocalRepo'] ?? false;
+
 		$this->setMwGlobals( $inputConfigs );
+		if ( $opt['isPrivateWiki'] ?? false ) {
+			// Simulate the private wiki (where anonymous users can't see the articles).
+			$this->setGroupPermissions( '*', 'read', false );
+		}
 
 		try {
 			$hooks = new AmazonS3Hooks;
 			$hooks->installBackend();
 		} catch ( AmazonS3MisconfiguredException $e ) {
-			$this->assertStringContainsString( $expectedExceptionText, $e->getText(),
+			$this->assertStringContainsString( $opt['expectException'] ?? null, $e->getText(),
 				"Unexpected exception from installBackend()" );
 			return;
 		}
@@ -105,7 +107,6 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 			'name' => 'AmazonS3',
 			'class' => 'AmazonS3FileBackend',
 			'lockManager' => 'nullLockManager',
-
 		];
 		$wikiId = wfWikiID();
 		if ( $wgAWSBucketName ) {
@@ -132,23 +133,27 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 			"Unexpected value of \$wgFileBackends['s3']" );
 
 		// Step 2. Check $wgLocalFileRepo.
-		$expectedHashLevels = $inputConfigs['wgAWSRepoHashLevels'] ?? 0;
-		$expectedDeletedHashLevels = $inputConfigs['wgAWSRepoDeletedHashLevels'] ?? 0;
+		$expectedRepo = $this->untouchedFakeLocalRepo;
+		if ( !$expectUnchanged ) {
+			$expectedHashLevels = $inputConfigs['wgAWSRepoHashLevels'] ?? 0;
+			$expectedDeletedHashLevels = $inputConfigs['wgAWSRepoDeletedHashLevels'] ?? 0;
 
-		$expectedRepo = $expectedZoneUrl ? [
-			'class' => 'LocalRepo',
-			'name' => 'local',
-			'backend' => 'AmazonS3',
-			'url' => wfScript( 'img_auth' ),
-			'hashLevels' => $expectedHashLevels,
-			'deletedHashLevels' => $expectedDeletedHashLevels,
-			'zones' => [
-				'public' => [ 'url' => $expectedZoneUrl['public'] ],
-				'thumb' => [ 'url' => $expectedZoneUrl['thumb'] ],
-				'deleted' => [ 'url' => false ],
-				'temp' => [ 'url' => false ]
-			]
-		] : $this->untouchedFakeLocalRepo;
+			$expectedRepo = [
+				'class' => 'LocalRepo',
+				'name' => 'local',
+				'backend' => 'AmazonS3',
+				'url' => $opt['expectedDefaultUrl'] ?? wfScript( 'img_auth' ),
+				'hashLevels' => $expectedHashLevels,
+				'deletedHashLevels' => $expectedDeletedHashLevels,
+				'zones' => [
+					'public' => $opt['expectedPublicZone'],
+					'thumb' => $opt['expectedThumbZone'],
+					'deleted' => [ 'url' => false ],
+					'temp' => [ 'url' => false ]
+				]
+			];
+		}
+
 		$this->assertEquals( $expectedRepo, $wgLocalFileRepo, "Unexpected \$wgLocalFileRepo" );
 	}
 
@@ -160,201 +165,182 @@ class AmazonS3HooksTest extends MediaWikiTestCase {
 		return [
 			// Part 1. Configuration without $wgAWSBucketName - shouldn't modify $wgLocalFileRepo
 			// or populate 'containerPaths' under $wgFileBackends['s3']
-			[ [] ],
+			[ [ 'expectUnchangedLocalRepo' => true ] ],
 
 			// Part 2a. Correct configurations with $wgAWSBucketName.
-			'Modern configuration with $wgAWSBucketName (one S3 bucket)' => [
-				[ 'wgAWSBucketName' => 'mysite-images' ],
-				[
-					'public' => 'https://mysite-images.s3.amazonaws.com',
-					'thumb' => 'https://mysite-images.s3.amazonaws.com/thumb'
-				]
-			],
-			'Modern configuration with $wgAWSBucketName and $wgAWSRepoHashLevels=0' => [
-				[
+			'Modern configuration with $wgAWSBucketName (one S3 bucket)' => [ [
+				'config' => [ 'wgAWSBucketName' => 'mysite-images' ],
+				'expectedPublicZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com/thumb' ]
+			] ],
+			'Modern configuration with $wgAWSBucketName and $wgAWSRepoHashLevels=0' => [ [
+				'config' => [
 					'wgAWSBucketName' => 'mysite-images',
 					'wgAWSRepoHashLevels' => 0
 				],
-				[
-					'public' => 'https://mysite-images.s3.amazonaws.com',
-					'thumb' => 'https://mysite-images.s3.amazonaws.com/thumb'
-				]
-			],
-			'Modern configuration with $wgAWSBucketName and $wgAWSRepoHashLevels=2' => [
-				[
+				'expectedPublicZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com/thumb' ]
+			] ],
+			'Modern configuration with $wgAWSBucketName and $wgAWSRepoHashLevels=2' => [ [
+				'config' => [
 					'wgAWSBucketName' => 'mysite-images',
 					'wgAWSRepoHashLevels' => 2
 				],
-				[
-					'public' => 'https://mysite-images.s3.amazonaws.com',
-					'thumb' => 'https://mysite-images.s3.amazonaws.com/thumb'
-				]
-			],
-			'Modern configuration with $wgAWSBucketName and $wgAWSRepoDeletedHashLevels=0' => [
-				[
+				'expectedPublicZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com/thumb' ]
+			] ],
+			'Modern configuration with $wgAWSBucketName and $wgAWSRepoDeletedHashLevels=0' => [ [
+				'config' => [
 					'wgAWSBucketName' => 'mysite-images',
 					'wgAWSRepoDeletedHashLevels' => 0
 				],
-				[
-					'public' => 'https://mysite-images.s3.amazonaws.com',
-					'thumb' => 'https://mysite-images.s3.amazonaws.com/thumb'
-				]
-			],
-			'Modern configuration with $wgAWSBucketName and $wgAWSRepoDeletedHashLevels=2' => [
-				[
+				'expectedPublicZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com/thumb' ]
+			] ],
+			'Modern configuration with $wgAWSBucketName and $wgAWSRepoDeletedHashLevels=2' => [ [
+				'config' => [
 					'wgAWSBucketName' => 'mysite-images',
 					'wgAWSRepoDeletedHashLevels' => 2
 				],
-				[
-					'public' => 'https://mysite-images.s3.amazonaws.com',
-					'thumb' => 'https://mysite-images.s3.amazonaws.com/thumb'
-				]
-			],
-			'Modern configuration with $wgAWSBucketName and fixed $wgAWSBucketDomain' => [
-				[
+				'expectedPublicZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com/thumb' ]
+			] ],
+
+			'Modern configuration with $wgAWSBucketName and fixed $wgAWSBucketDomain' => [ [
+				'config' => [
 					'wgAWSBucketName' => 'anothersite-images',
 					'wgAWSBucketDomain' => 'myimages.example.com',
 				],
-				[
-					'public' => 'https://myimages.example.com',
-					'thumb' => 'https://myimages.example.com/thumb'
-				]
-			],
-			'Configuration with $wgAWSBucketName, but $wgAWSBucketDomain uses "$1" syntax' => [
-				[
+				'expectedPublicZone' => [ 'url' => 'https://myimages.example.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://myimages.example.com/thumb' ]
+			] ],
+			'Configuration with $wgAWSBucketName, but $wgAWSBucketDomain uses "$1" syntax' => [ [
+				'config' => [
 					'wgAWSBucketName' => 'anothersite-images',
 					'wgAWSBucketDomain' => '$1.example.com',
 				],
-				[
-					'public' => 'https://anothersite-images.example.com',
-					'thumb' => 'https://anothersite-images.example.com/thumb'
-				]
-			],
-			'Configuration with $wgAWSBucketName: semi-obsolete "$2" in $wgAWSBucketDomain' => [
-				[
+				'expectedPublicZone' => [ 'url' => 'https://anothersite-images.example.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://anothersite-images.example.com/thumb' ]
+			] ],
+			'Configuration with $wgAWSBucketName: semi-obsolete "$2" in $wgAWSBucketDomain' => [ [
+				'config' => [
 					'wgAWSBucketName' => 'thirdsite',
 					'wgAWSBucketDomain' => 'media$2.example.com',
 				],
-				[
-					'public' => 'https://media.example.com',
-					'thumb' => 'https://media-thumb.example.com/thumb'
-				]
-			],
-			'Weird configuration with different custom domains pointing to the same S3 bucket' => [
-				[
+				'expectedPublicZone' => [ 'url' => 'https://media.example.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://media-thumb.example.com/thumb' ]
+			] ],
+			'Weird configuration with different custom domains pointing to the same S3 bucket' => [ [
+				'config' => [
 					'wgAWSBucketName' => 'site-number-four',
 					'wgAWSBucketDomain' => [
 						'public' => 'img.example.com',
 						'thumb' => 'thumb.example.com'
 					]
 				],
-				[
-					'public' => 'https://img.example.com',
-					'thumb' => 'https://thumb.example.com/thumb'
-				]
-			],
+				'expectedPublicZone' => [ 'url' => 'https://img.example.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://thumb.example.com/thumb' ]
+			] ],
+			'Private wiki, modern configuration with $wgAWSBucketName' => [ [
+				'config' => [ 'wgAWSBucketName' => 'mysite-images' ],
+				'isPrivateWiki' => true,
+				'expectedPublicZone' => [],
+				'expectedThumbZone' => []
+			] ],
+			'Private wiki, modern configuration with $wgAWSBucketName' => [ [
+				'isPrivateWiki' => true,
+				'config' => [
+					'wgAWSBucketName' => 'mysite-images',
+					'wgImgAuthPath' => '/custom/path/to/img_auth.custom.ext'
+				],
+				'expectedDefaultUrl' => '/custom/path/to/img_auth.custom.ext',
+				'expectedPublicZone' => [],
+				'expectedThumbZone' => []
+			] ],
 
 			// Part 2b. Correct configurations with deprecated $wgAWSBucketPrefix.
-			'B/C configuration with $wgAWSBucketPrefix (four S3 buckets, no $wgAWSBucketName)' => [
-				[ 'wgAWSBucketPrefix' => 'mysite-images' ],
-				[
-					'public' => 'https://mysite-images.s3.amazonaws.com',
-					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
-				]
-			],
-			'B/C configuration with $wgAWSBucketPrefix and $wgAWSRepoHashLevels=0' => [
-				[
+			'B/C configuration with $wgAWSBucketPrefix (four S3 buckets, no $wgAWSBucketName)' => [ [
+				'config' => [ 'wgAWSBucketPrefix' => 'mysite-images' ],
+				'expectedPublicZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://mysite-images-thumb.s3.amazonaws.com' ]
+			] ],
+			'B/C configuration with $wgAWSBucketPrefix and $wgAWSRepoHashLevels=0' => [ [
+				'config' => [
 					'wgAWSBucketPrefix' => 'mysite-images',
 					'wgAWSRepoHashLevels' => 0
 				],
-				[
-					'public' => 'https://mysite-images.s3.amazonaws.com',
-					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
-				]
-			],
-			'B/C configuration with $wgAWSBucketPrefix and $wgAWSRepoHashLevels=2' => [
-				[
+				'expectedPublicZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://mysite-images-thumb.s3.amazonaws.com' ]
+			] ],
+			'B/C configuration with $wgAWSBucketPrefix and $wgAWSRepoHashLevels=2' => [ [
+				'config' => [
 					'wgAWSBucketPrefix' => 'mysite-images',
 					'wgAWSRepoHashLevels' => 2
 				],
-				[
-					'public' => 'https://mysite-images.s3.amazonaws.com',
-					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
-				]
-			],
-			'B/C configuration with $wgAWSBucketPrefix and $wgAWSRepoDeletedHashLevels=0' => [
-				[
+				'expectedPublicZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://mysite-images-thumb.s3.amazonaws.com' ]
+			] ],
+			'B/C configuration with $wgAWSBucketPrefix and $wgAWSRepoDeletedHashLevels=0' => [ [
+				'config' => [
 					'wgAWSBucketPrefix' => 'mysite-images',
 					'wgAWSRepoDeletedHashLevels' => 0
 				],
-				[
-					'public' => 'https://mysite-images.s3.amazonaws.com',
-					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
-				]
-			],
-			'B/C configuration with $wgAWSBucketPrefix and $wgAWSRepoDeletedHashLevels=2' => [
-				[
+				'expectedPublicZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://mysite-images-thumb.s3.amazonaws.com' ]
+			] ],
+			'B/C configuration with $wgAWSBucketPrefix and $wgAWSRepoDeletedHashLevels=2' => [ [
+				'config' => [
 					'wgAWSBucketPrefix' => 'mysite-images',
 					'wgAWSRepoDeletedHashLevels' => 2
 				],
-				[
-					'public' => 'https://mysite-images.s3.amazonaws.com',
-					'thumb' => 'https://mysite-images-thumb.s3.amazonaws.com'
-				]
-			],
-			'B/C configuration with $wgAWSBucketPrefix. $wgAWSBucketDomain uses "$1" syntax' => [
-				[
+				'expectedPublicZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://mysite-images-thumb.s3.amazonaws.com' ]
+			] ],
+			'B/C configuration with $wgAWSBucketPrefix. $wgAWSBucketDomain uses "$1" syntax' => [ [
+				'config' => [
 					'wgAWSBucketPrefix' => 'anothersite-images',
 					'wgAWSBucketDomain' => '$1.example.com',
 				],
-				[
-					'public' => 'https://anothersite-images.example.com',
-					'thumb' => 'https://anothersite-images-thumb.example.com'
-				]
-			],
-			'B/C configuration with $wgAWSBucketPrefix. $wgAWSBucketDomain uses "$2" syntax' => [
-				[
+				'expectedPublicZone' => [ 'url' => 'https://anothersite-images.example.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://anothersite-images-thumb.example.com' ]
+			] ],
+			'B/C configuration with $wgAWSBucketPrefix. $wgAWSBucketDomain uses "$2" syntax' => [ [
+				'config' => [
 					'wgAWSBucketPrefix' => 'thirdsite',
 					'wgAWSBucketDomain' => 'media$2.example.com',
 				],
-				[
-					'public' => 'https://media.example.com',
-					'thumb' => 'https://media-thumb.example.com'
-				]
-			],
-			'B/C configuration with $wgAWSBucketPrefix. $wgAWSBucketDomain is an array' => [
-				[
+				'expectedPublicZone' => [ 'url' => 'https://media.example.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://media-thumb.example.com' ]
+			] ],
+			'B/C configuration with $wgAWSBucketPrefix. $wgAWSBucketDomain is an array' => [ [
+				'config' => [
 					'wgAWSBucketPrefix' => 'site-number-four',
 					'wgAWSBucketDomain' => [
 						'public' => 'img.example.com',
 						'thumb' => 'thumb.example.com'
 					]
 				],
-				[
-					'public' => 'https://img.example.com',
-					'thumb' => 'https://thumb.example.com'
-				]
-			],
+				'expectedPublicZone' => [ 'url' => 'https://img.example.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://thumb.example.com' ]
+			] ],
 
 			// Part 3. Incorrect configurations that should throw AmazonS3MisconfiguredException.
 			'Incorrect configuration with $wgAWSBucketPrefix ' .
-			'where $wgAWSBucketDomain is a fixed string' => [
-				[
+			'where $wgAWSBucketDomain is a fixed string' => [ [
+				'config' => [
 					'wgAWSBucketPrefix' => 'mysite',
 					'wgAWSBucketDomain' => 'same-for-public-and-thumb.example.com'
 				],
-				null,
-				'If $wgAWSBucketPrefix is used, $wgAWSBucketDomain must contain either $1 or $2.'
-			],
+				'expectException' => 'If $wgAWSBucketPrefix is used, $wgAWSBucketDomain must contain either $1 or $2.'
+			] ],
 			'Incorrect configuration with $wgAWSBucketPrefix ' .
-			'where $wgAWSBucketDomain is an array without required key "thumb"' => [
-				[
+			'where $wgAWSBucketDomain is an array without required key "thumb"' => [ [
+				'config' => [
 					'wgAWSBucketPrefix' => 'mysite',
 					'wgAWSBucketDomain' => [ 'public' => 'thumb-zone-was-forgotten.example.com' ]
 				],
-				null,
-				'$wgAWSBucketDomain is an array without the required key "thumb"'
-			]
+				'expectException' => '$wgAWSBucketDomain is an array without the required key "thumb"'
+			] ]
 		];
 	}
 }

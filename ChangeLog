@@ -2,7 +2,8 @@ List of changes between releases of Extension:AWS.
 
 == master branch (will become AWS 0.11.2 or 0.12.0, depending on magnitude of changes) ==
 
-No changes since AWS 0.11.1.
+Minor features:
+* $wgImgAuthPath can now override the path to /img_auth.php for private wikis.
 
 == AWS 0.11.1 ==
 
