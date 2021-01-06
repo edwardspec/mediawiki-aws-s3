@@ -14,7 +14,10 @@ jobs:
       TESTSUITE_TYPE: linter-php
     steps:
       - uses: actions/checkout@v2
-
+      - uses: shivammathur/setup-php@v2
+        with:
+            php-version: '7.4'
+            tools: composer:v1
       - name: Use the build cache
         uses: actions/cache@v2
         with:
@@ -34,7 +37,10 @@ jobs:
       branch: REL1_35
     steps:
       - uses: actions/checkout@v2
-
+      - uses: shivammathur/setup-php@v2
+        with:
+            php-version: '7.4'
+            tools: composer:v1
       - name: Use the build cache
         uses: actions/cache@v2
         with:
@@ -70,7 +76,10 @@ jobs:
       branch: REL1_35
     steps:
       - uses: actions/checkout@v2
-
+      - uses: shivammathur/setup-php@v2
+        with:
+            php-version: '7.4'
+            tools: composer:v1
       - name: Use the build cache
         uses: actions/cache@v2
         with:
@@ -82,7 +91,7 @@ jobs:
       - name: Install dependencies
         run: |
           # Install Moto
-          sudo apt-get install -y composer python3-pip netcat
+          sudo apt-get install -y python3-pip netcat
           pip3 install --user "moto[server]" && ( ~/.local/bin/moto_server s3 -p 3000 2>~/moto.log & )
 
           # Install MediaWiki
