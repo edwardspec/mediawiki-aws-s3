@@ -791,11 +791,16 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 */
 	protected function doGetLocalCopyMulti( array $params ) {
 		$fsFiles = [];
-		$params += [
-			'srcs' => $params['src'],
-			'concurrency' => isset( $params['srcs'] ) ? count( $params['srcs'] ) : 1
-		];
-		foreach ( array_chunk( $params['srcs'], $params['concurrency'] ) as $pathBatch ) {
+
+		if ( isset( $params['srcs'] ) ) {
+			$sources = $params['srcs'];
+			$concurrency = count( $params['srcs'] );
+		} else {
+			$sources = (array)$params['src'];
+			$concurrency = 1;
+		}
+
+		foreach ( array_chunk( $sources, $concurrency ) as $pathBatch ) {
 			foreach ( $pathBatch as $src ) {
 				// TODO: remove this duplicate check, getFileHttpUrl() already checks this.
 				list( $bucket, $key, ) = $this->getBucketAndObject( $src );

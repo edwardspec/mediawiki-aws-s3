@@ -5,6 +5,9 @@ List of changes between releases of Extension:AWS.
 Minor features:
 * $wgImgAuthPath can now override the path to /img_auth.php for private wikis.
 
+Warnings fixed:
+* Fixed harmless PHP warning in doGetLocalCopyMulti().
+
 == AWS 0.11.1 ==
 
 * Added support for MediaWiki 1.35.
