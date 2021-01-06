@@ -791,38 +791,29 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 */
 	protected function doGetLocalCopyMulti( array $params ) {
 		$fsFiles = [];
+		$sources = $params['srcs'] ?? (array)$params['src'];
 
-		if ( isset( $params['srcs'] ) ) {
-			$sources = $params['srcs'];
-			$concurrency = count( $params['srcs'] );
-		} else {
-			$sources = (array)$params['src'];
-			$concurrency = 1;
-		}
-
-		foreach ( array_chunk( $sources, $concurrency ) as $pathBatch ) {
-			foreach ( $pathBatch as $src ) {
-				// TODO: remove this duplicate check, getFileHttpUrl() already checks this.
-				list( $bucket, $key, ) = $this->getBucketAndObject( $src );
-				if ( $bucket === null || $key === null ) {
-					$fsFiles[$src] = null;
-					continue;
-				}
-
-				$fsFiles[$src] = $this->getLocalCopyCached( $src );
-
-				$this->logger->log(
-					$fsFiles[$src] ? LogLevel::DEBUG : LogLevel::ERROR,
-					'S3FileBackend: doGetLocalCopyMulti: {key} from S3 bucket ' .
-					'{bucket} {result}: {dst}',
-					[
-						'result' => $fsFiles[$src] ? 'is stored locally' : 'couldn\'t be copied to',
-						'key' => $key,
-						'bucket' => $bucket,
-						'dst' => $fsFiles[$src] ? $fsFiles[$src]->getPath() : null
-					]
-				);
+		foreach ( $sources as $src ) {
+			// TODO: remove this duplicate check, getFileHttpUrl() already checks this.
+			list( $bucket, $key, ) = $this->getBucketAndObject( $src );
+			if ( $bucket === null || $key === null ) {
+				$fsFiles[$src] = null;
+				continue;
 			}
+
+			$fsFiles[$src] = $this->getLocalCopyCached( $src );
+
+			$this->logger->log(
+				$fsFiles[$src] ? LogLevel::DEBUG : LogLevel::ERROR,
+				'S3FileBackend: doGetLocalCopyMulti: {key} from S3 bucket ' .
+				'{bucket} {result}: {dst}',
+				[
+					'result' => $fsFiles[$src] ? 'is stored locally' : 'couldn\'t be copied to',
+					'key' => $key,
+					'bucket' => $bucket,
+					'dst' => $fsFiles[$src] ? $fsFiles[$src]->getPath() : null
+				]
+			);
 		}
 		return $fsFiles;
 	}
