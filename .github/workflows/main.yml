@@ -7,33 +7,26 @@ env:
   DBUSER: root
 
 jobs:
-  # phpcs, parallel-lint, etc.
+  # PHP linters: phpcs, parallel-lint, etc.
   linter:
     runs-on: ubuntu-20.04
-    env:
-      TESTSUITE_TYPE: linter-php
     steps:
       - uses: actions/checkout@v2
       - uses: shivammathur/setup-php@v2
         with:
             php-version: '7.4'
             tools: composer:v1
-      - name: Use the build cache
-        uses: actions/cache@v2
+      - uses: actions/cache@v2
         with:
           path: ~/.composer/cache
           key: composer-cache
+      - run: sudo apt-get install -y composer && composer install
+      - run: composer test
 
-      - name: Install dependencies
-        run: sudo apt-get install -y composer && composer install
-      - name: RUN -- composer test
-        run: composer test
-
-  # Phan
+  # Phan (PHP static analyzer)
   phan:
     runs-on: ubuntu-20.04
     env:
-      TESTSUITE_TYPE: phan
       branch: REL1_35
     steps:
       - uses: actions/checkout@v2
@@ -41,18 +34,19 @@ jobs:
         with:
             php-version: '7.4'
             tools: composer:v1
-      - name: Use the build cache
-        uses: actions/cache@v2
+      - uses: actions/cache@v2
         with:
           path: |
             ~/.composer/cache
             buildcache
           key: buildcache-${{ env.branch }}
-
+      - run: sudo apt-get install -y composer php-ast
+      - uses: edwardspec/github-action-build-mediawiki@v1
+        with:
+          branch: ${{ env.branch }}
+          noinstall: 1
       - name: Install dependencies
         run: |
-          sudo apt-get install -y composer php-ast
-          bash -ex ./tests/travis/build_mediawiki.sh "$branch"
           rsync -a --exclude buildcache --exclude mediawiki --exclude .git . mediawiki/extensions/AWS/
           cd mediawiki/extensions/AWS
           composer install
@@ -61,8 +55,20 @@ jobs:
 
   # PHPUnit testsuite + Moto (mock server that emulates S3 API).
   phpunit-mock:
+    strategy:
+      matrix:
+        php: [7.4]
+        branch: [REL1_35]
+    env:
+      USE_MOCK: 1
+      branch: ${{ matrix.branch }}
     runs-on: ubuntu-20.04
     services:
+      memcached:
+        image: memcached:latest
+        ports:
+          - 11211:11211
+        options: --health-cmd "timeout 5 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/11211'" --health-interval 10s --health-timeout 5s --health-retries 5
       mariadb:
         image: mariadb
         env:
@@ -70,48 +76,39 @@ jobs:
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-
-    env:
-      USE_MOCK: 1
-      branch: REL1_35
     steps:
       - uses: actions/checkout@v2
-      - uses: shivammathur/setup-php@v2
-        with:
-            php-version: '7.4'
-            tools: composer:v1
-      - name: Use the build cache
-        uses: actions/cache@v2
+      - uses: actions/cache@v2
         with:
           path: |
             ~/.composer/cache
             buildcache
-          key: buildcache-${{ env.branch }}
-
-      - name: Install dependencies
+          key: buildcache-${{ env.branch }}-${{ hashFiles('**/no/files/need/to/invalidate/cache/for/now') }}
+      - name: Install and run Moto (S3 mock server)
         run: |
-          # Install Moto
           sudo apt-get install -y python3-pip netcat
           pip3 install --user "moto[server]" && ( ~/.local/bin/moto_server s3 -p 3000 2>~/moto.log & )
 
-          # Install MediaWiki
-          bash -ex ./tests/travis/build_mediawiki.sh "$branch"
-          rsync -a --exclude buildcache --exclude mediawiki --exclude .git * mediawiki/extensions/AWS/
+      - uses: shivammathur/setup-php@v2
+        with:
+            php-version: ${{ matrix.php }}
+            extensions: mbstring, intl, opcache, mysqli
+            tools: composer:v1
+      - name: (debug) Print "php -i"
+        run: php -i
+      - uses: edwardspec/github-action-build-mediawiki@v1
+        with:
+          branch: ${{ env.branch }}
+          extraLocalSettings: tests/travis/AWSSettings.php
+      - name: Finalize the installation of MediaWiki
+        run: |
+          rsync -a --exclude buildcache --exclude mediawiki --exclude .git . mediawiki/extensions/AWS/
           cd mediawiki
           cp extensions/AWS/tests/travis/composer.local.json . && composer update
-          php maintenance/install.php traviswiki admin \
-            --pass $(dd if=/dev/urandom count=1 bs=20 2>/dev/null | base64) \
-            --dbtype "$DBTYPE" \
-            --dbserver "127.0.0.1:3306" \
-            --dbname traviswiki \
-            --dbuser "$DBUSER" \
-            --dbpass "" \
-            --scriptpath "/w"
-          echo -en "\n\nrequire_once __DIR__ . '/includes/DevelopmentSettings.php';\n" >> ./LocalSettings.php
-          echo -en "\n\nrequire_once __DIR__ . '/extensions/AWS/tests/travis/AWSSettings.php';\n" >> ./LocalSettings.php
-          php -l ./LocalSettings.php
+          echo '{{CURRENTVERSION}}' | php maintenance/parse.php
 
-          # Wait for Moto server to start accepting connections.
+      - name: Wait for Moto server to start accepting connections
+        run: |
           cat ~/moto.log
           ( while ! nc -z 127.0.0.1 3000; do sleep 1; done )
       - name: RUN -- phpunit (TestsWithNoNeedForAwsCredentials)
