@@ -2,6 +2,10 @@ List of changes between releases of Extension:AWS.
 
 == master branch (will become AWS 0.11.2 or 0.12.0, depending on magnitude of changes) ==
 
+Major features:
+* Results of doGetFileStat() are now cached, which greatly improves performance
+when editing a page with many images.
+
 Minor features:
 * $wgImgAuthPath can now override the path to /img_auth.php for private wikis.
 

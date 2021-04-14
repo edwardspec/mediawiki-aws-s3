@@ -85,6 +85,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 	private $containerSecurityCache = null;
 
 	/**
+	 * Cache used in doGetFileStat(). Avoids extra requests to doesObjectExist().
+	 * @var BagOStuff
+	 */
+	private $statCache = null;
+
+	/**
 	 * @var bool If true, then all S3 objects are private.
 	 * NOTE: for images to work in private mode, $wgUploadPath should point to img_auth.php.
 	 */
@@ -179,6 +185,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 
 		$this->containerSecurityCache = new CachedBagOStuff( wfGetMainCache() );
+		$this->statCache = wfGetMainCache();
 	}
 
 	/**
@@ -352,7 +359,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return Status::newFatal( 'backend-fail-create', $params['dst'] );
 		}
 
-		AmazonS3LocalCache::invalidate( $params['dst'] );
+		$this->invalidateCacheFor( $params['dst'] );
 		return Status::newGood();
 	}
 
@@ -462,7 +469,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return Status::newFatal( 'backend-fail-internal', $this->name );
 		}
 
-		AmazonS3LocalCache::invalidate( $params['dst'] );
+		$this->invalidateCacheFor( $params['dst'] );
 		return Status::newGood();
 	}
 
@@ -509,7 +516,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return Status::newFatal( 'backend-fail-internal', $this->name );
 		}
 
-		AmazonS3LocalCache::invalidate( $params['src'] );
+		$this->invalidateCacheFor( $params['src'] );
 		return Status::newGood();
 	}
 
@@ -544,6 +551,25 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	/**
+	 * Returns memcached key used by doGetFileStat() and invalidateCacheFor().
+	 * @param string $src
+	 * @return string
+	 */
+	protected function getStatCacheKey( $src ) {
+		return $this->statCache->makeKey( 'S3FileBackend', 'StatCache', $src );
+	}
+
+	/**
+	 * Clear all local caches about some S3 object.
+	 * This is called after uploading/renaming/deleting an image.
+	 * @param string $src
+	 */
+	protected function invalidateCacheFor( $src ) {
+		$this->statCache->delete( $this->getStatCacheKey( $src ) );
+		AmazonS3LocalCache::invalidate( $src );
+	}
+
+	/**
 	 * Obtain metadata (e.g. size, SHA1, etc.) of existing S3 object.
 	 * @param array $params
 	 * @return array|false|null
@@ -552,7 +578,27 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @phan-return array{mtime:string,size:int,etag:string,sha1:string}|false|null
 	 */
 	protected function doGetFileStat( array $params ) {
-		list( $bucket, $key, ) = $this->getBucketAndObject( $params['src'] );
+		$src = $params['src'];
+		$cacheKey = $this->getStatCacheKey( $src );
+
+		$result = $this->statCache->get( $cacheKey );
+		if ( $result === false ) { /* Not found in the cache */
+			$result = $this->statUncached( $src );
+			$this->statCache->set( $cacheKey, $result, 86400 ); // 24 hours
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Uncached version of doGetFileStat(). Shouldn't be used outside of doGetFileStat().
+	 * @param string $src
+	 * @return array|false|null
+	 *
+	 * @phan-return array{mtime:string,size:int,etag:string,sha1:string}|false|null
+	 */
+	protected function statUncached( $src ) {
+		list( $bucket, $key, ) = $this->getBucketAndObject( $src );
 
 		$this->logger->debug(
 			'S3FileBackend: doGetFileStat(): obtaining information about {key} in S3 bucket {bucket}',
