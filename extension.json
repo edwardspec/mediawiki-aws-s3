@@ -44,44 +44,44 @@
 			"merge_strategy": "array_plus"
 		},
 		"AWSRegion": {
-			"value": false,
-			"description": "Region of AWS to connect to."
+			"description": "Region of AWS to connect to.",
+			"value": false
 		},
 		"AWSUseHTTPS": {
-			"value": true,
-			"description": "Whether to use HTTPS with AWS."
+			"description": "Whether to use HTTPS with AWS.",
+			"value": true
 		},
 		"AWSBucketName": {
-			"value": null,
-			"description": "MUST BE SET in LocalSettings.php. Name of S3 bucket (e.g. \"wonderfulbali\"). Note: it will be seen in the URL of images."
+			"description": "MUST BE SET in LocalSettings.php. Name of S3 bucket (e.g. \"wonderfulbali\"). Note: it will be seen in the URL of images.",
+			"value": null
 		},
 		"AWSBucketPrefix": {
-			"value": null,
-			"description": "[deprecated] Backward-compatibility option to use 4 S3 buckets (public, thumb, deleted, temp) instead of one $wgAWSBucketName. Shouldn't be used in new wikis. If set to \"wonderfulbali\", buckets [wonderfulbali], [wonderfulbali-thumb], [wonderfulbali-deleted] and [wonderfulbali-temp] are used."
+			"description": "[deprecated] Backward-compatibility option to use 4 S3 buckets (public, thumb, deleted, temp) instead of one $wgAWSBucketName. Shouldn't be used in new wikis. If set to \"wonderfulbali\", buckets [wonderfulbali], [wonderfulbali-thumb], [wonderfulbali-deleted] and [wonderfulbali-temp] are used.",
+			"value": null
 		},
 		"AWSBucketDomain": {
-			"value": "$1.s3.amazonaws.com",
-			"description": "Subdomain of Amazon S3. Can be replaced with the URL of CDN. $1 is replaced with bucket name (see README.md for more customization)."
+			"description": "Subdomain of Amazon S3. Can be replaced with the URL of CDN. $1 is replaced with bucket name (see README.md for more customization).",
+			"value": "$1.s3.amazonaws.com"
 		},
 		"AWSRepoHashLevels": {
-			"value": 0,
-			"description": "Number of prefix subdirectories. Value \"2\" means that S3 objects will be named a/ab/Filename.png (same as when MediaWiki stores files in local directories). Default value: 0 (objects are named Filename.png without any prefix)."
+			"description": "Number of prefix subdirectories. Value \"2\" means that S3 objects will be named a/ab/Filename.png (same as when MediaWiki stores files in local directories). Default value: 0 (objects are named Filename.png without any prefix).",
+			"value": 0
 		},
 		"AWSRepoDeletedHashLevels": {
-			"value": 0,
-			"description": "Same as $wgAWSRepoHashLevels, but for deleted images. Set to \"3\" for naming a/ab/abc/Filename.png (same as when MediaWiki stores deleted files in local directories). Default value: 0 (objects are named Filename.png without any prefix)."
+			"description": "Same as $wgAWSRepoHashLevels, but for deleted images. Set to \"3\" for naming a/ab/abc/Filename.png (same as when MediaWiki stores deleted files in local directories). Default value: 0 (objects are named Filename.png without any prefix).",
+			"value": 0
 		},
 		"AWSBucketTopSubdirectory": {
-			"value": "",
-			"description": "Extra path within the S3 bucket (not recommended). E.g. if this is '/something', then images will be in bucketname.s3.amazonaws.com/something/File.png instead of bucketname.s3.amazonaws.com/File.png."
+			"description": "Extra path within the S3 bucket (not recommended). E.g. if this is '/something', then images will be in bucketname.s3.amazonaws.com/something/File.png instead of bucketname.s3.amazonaws.com/File.png.",
+			"value": ""
 		},
 		"AWSLocalCacheDirectory": {
-			"value": false,
-			"description": "Path to the directory for storing local copies of large images from S3 (when they are copied to webserver to make a thumbnail image, etc.). Don't enable this unless you have REALLY HUGE files (e.g. 100Mb+ PDFs). Default: false (disabled)."
+			"description": "Path to the directory for storing local copies of large images from S3 (when they are copied to webserver to make a thumbnail image, etc.). Don't enable this unless you have REALLY HUGE files (e.g. 100Mb+ PDFs). Default: false (disabled).",
+			"value": false
 		},
 		"AWSLocalCacheMinSize": {
-			"value": 104857600,
-			"description": "Minimal size of image (in bytes) that should be cached. Default: 100Mb."
+			"description": "Minimal size of image (in bytes) that should be cached. Default: 100Mb.",
+			"value": 104857600
 		}
 	},
 	"manifest_version": 2
