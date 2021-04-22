@@ -34,45 +34,55 @@
 		"AmazonS3Hooks::setup"
 	],
 	"config": {
-		"@doc1": "Credentials to connect to AWS. Setting this in LocalSettings.php is NOT NEEDED if your EC2 instance has an IAM instance profile, and its IAM role allows access to Amazon S3 (see README).",
 		"AWSCredentials": {
-			"key": false,
-			"secret": false,
-			"token": false,
-			"_merge_strategy": "array_plus"
+			"description": "Credentials to connect to AWS. Setting this in LocalSettings.php is NOT NEEDED if your EC2 instance has an IAM instance profile, and its IAM role allows access to Amazon S3 (see README).",
+			"value": {
+				"key": false,
+				"secret": false,
+				"token": false
+			},
+			"merge_strategy": "array_plus"
 		},
-
-		"@doc2": "Region of AWS to connect to.",
-		"AWSRegion": false,
-
-		"@doc3": "Whether to use HTTPS with AWS.",
-		"AWSUseHTTPS": true,
-
-		"@doc4": "MUST BE SET in LocalSettings.php. Name of S3 bucket (e.g. \"wonderfulbali\"). Note: it will be seen in the URL of images.",
-		"AWSBucketName": null,
-
-		"@doc4.1": "[deprecated] Backward-compatibility option to use 4 S3 buckets (public, thumb, deleted, temp) instead of one $wgAWSBucketName. Shouldn't be used in new wikis. If set to \"wonderfulbali\", buckets [wonderfulbali], [wonderfulbali-thumb], [wonderfulbali-deleted] and [wonderfulbali-temp] are used.",
-		"AWSBucketPrefix": null,
-
-		"@doc5": "Subdomain of Amazon S3. Can be replaced with the URL of CDN. $1 is replaced with bucket name (see README.md for more customization).",
-		"AWSBucketDomain": "$1.s3.amazonaws.com",
-
-		"@doc6": "Number of prefix subdirectories. Value \"2\" means that S3 objects will be named a/ab/Filename.png (same as when MediaWiki stores files in local directories). Default value: 0 (objects are named Filename.png without any prefix).",
-		"AWSRepoHashLevels": 0,
-
-		"@doc7": "Same as $wgAWSRepoHashLevels, but for deleted images. Set to \"3\" for naming a/ab/abc/Filename.png (same as when MediaWiki stores deleted files in local directories). Default value: 0 (objects are named Filename.png without any prefix).",
-		"AWSRepoDeletedHashLevels": 0,
-
-		"@doc8": "Extra path within the S3 bucket (not recommended). E.g. if this is '/something', then images will be in bucketname.s3.amazonaws.com/something/File.png instead of bucketname.s3.amazonaws.com/File.png.",
-		"AWSBucketTopSubdirectory": "",
-
-		"@doc9": "Path to the directory for storing local copies of large images from S3 (when they are copied to webserver to make a thumbnail image, etc.). Don't enable this unless you have REALLY HUGE files (e.g. 100Mb+ PDFs). Default: false (disabled).",
-		"AWSLocalCacheDirectory": false,
-
-
-		"@doc10": "Minimal size of image (in bytes) that should be cached. Default: 100Mb.",
-		"AWSLocalCacheMinSize": 104857600
+		"AWSRegion": {
+			"description": "Region of AWS to connect to.",
+			"value": false
+		},
+		"AWSUseHTTPS": {
+			"description": "Whether to use HTTPS with AWS.",
+			"value": true
+		},
+		"AWSBucketName": {
+			"description": "MUST BE SET in LocalSettings.php. Name of S3 bucket (e.g. \"wonderfulbali\"). Note: it will be seen in the URL of images.",
+			"value": null
+		},
+		"AWSBucketPrefix": {
+			"description": "[deprecated] Backward-compatibility option to use 4 S3 buckets (public, thumb, deleted, temp) instead of one $wgAWSBucketName. Shouldn't be used in new wikis. If set to \"wonderfulbali\", buckets [wonderfulbali], [wonderfulbali-thumb], [wonderfulbali-deleted] and [wonderfulbali-temp] are used.",
+			"value": null
+		},
+		"AWSBucketDomain": {
+			"description": "Subdomain of Amazon S3. Can be replaced with the URL of CDN. $1 is replaced with bucket name (see README.md for more customization).",
+			"value": "$1.s3.amazonaws.com"
+		},
+		"AWSRepoHashLevels": {
+			"description": "Number of prefix subdirectories. Value \"2\" means that S3 objects will be named a/ab/Filename.png (same as when MediaWiki stores files in local directories). Default value: 0 (objects are named Filename.png without any prefix).",
+			"value": 0
+		},
+		"AWSRepoDeletedHashLevels": {
+			"description": "Same as $wgAWSRepoHashLevels, but for deleted images. Set to \"3\" for naming a/ab/abc/Filename.png (same as when MediaWiki stores deleted files in local directories). Default value: 0 (objects are named Filename.png without any prefix).",
+			"value": 0
+		},
+		"AWSBucketTopSubdirectory": {
+			"description": "Extra path within the S3 bucket (not recommended). E.g. if this is '/something', then images will be in bucketname.s3.amazonaws.com/something/File.png instead of bucketname.s3.amazonaws.com/File.png.",
+			"value": ""
+		},
+		"AWSLocalCacheDirectory": {
+			"description": "Path to the directory for storing local copies of large images from S3 (when they are copied to webserver to make a thumbnail image, etc.). Don't enable this unless you have REALLY HUGE files (e.g. 100Mb+ PDFs). Default: false (disabled).",
+			"value": false
+		},
+		"AWSLocalCacheMinSize": {
+			"description": "Minimal size of image (in bytes) that should be cached. Default: 100Mb.",
+			"value": 104857600
+		}
 	},
-
-	"manifest_version": 1
+	"manifest_version": 2
 }
