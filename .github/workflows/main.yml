@@ -58,7 +58,7 @@ jobs:
     strategy:
       matrix:
         php: [7.4]
-        branch: [REL1_35]
+        branch: [REL1_35,REL1_36]
     env:
       USE_MOCK: 1
       branch: ${{ matrix.branch }}
