@@ -44,6 +44,23 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
+	 * Workaround for Http::get() not being allowed in tests.
+	 * We have Moto server providing the mock of AWS S3, reimplementing it in PHP is unneeded/suboptimal.
+	 * @param string $url
+	 * @return string|false
+	 */
+	private function httpGet( $url ) {
+		$options = [ 'method' => 'GET', 'timeout' => 25, 'connectTimeout' => 5 ];
+		$request = new GuzzleHttpRequest( $url, $options, __METHOD__ );
+		$status = $request->execute();
+		if ( !$status->isOK() ) {
+			return false;
+		}
+
+		return $request->getContent();
+	}
+
+	/**
 	 * Get AmazonS3FileBackend object.
 	 * @return TestingAccessWrapper
 	 */
@@ -62,6 +79,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	/**
 	 * Translate "Hello/world.txt" to mw:// pseudo-URL.
 	 * @param string $filename
+	 * @return string
 	 */
 	private function getVirtualPath( $filename ) {
 		$repo = RepoGroup::singleton()->getLocalRepo();
@@ -133,7 +151,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$url = $this->getBackend()->getFileHttpUrl( [ 'src' => $params['dst'] ] );
 		$this->assertNotNull( $url, 'No URL returned by getFileHttpUrl()' );
 
-		$content = Http::get( $url );
+		$content = $this->httpGet( $url );
 		$this->assertEquals( $params['content'], $content,
 			'Content downloaded from FileHttpUrl is different from expected' );
 	}
@@ -178,6 +196,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 * List of files that must be created before testList().
 	 * @see listingTestsDataProvider
 	 * @see testList
+	 * @return string[]
 	 */
 	public function getFilenamesForListTest() {
 		return [
@@ -351,7 +370,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		$url = $this->getBackend()->getFileHttpUrl( [ 'src' => $dst ] );
 		$this->assertNotNull( $url, 'No URL returned by getFileHttpUrl()' );
 
-		$content = Http::get( $url );
+		$content = $this->httpGet( $url );
 		$this->assertEquals( $expectedContent, $content,
 			'Content downloaded from FileHttpUrl is different from expected' );
 	}
@@ -432,7 +451,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 			# if the ACL of this object is not PUBLIC_READ.
 			list( $bucket, $prefix ) = $this->getBackend()->findContainer( $container );
 			$url = $this->getClient()->getObjectUrl( $bucket, $prefix . $key );
-			$securityAfterTest = ( Http::get( $url ) === false );
+			$securityAfterTest = ( $this->httpGet( $url ) === false );
 
 			$this->assertEquals( $expectedSecurity, $securityAfterTest,
 				"Incorrect ACL: S3 Object uploaded after $method() is " .
