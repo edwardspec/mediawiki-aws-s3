@@ -33,6 +33,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
             php-version: '7.4'
+            extensions: ast
             tools: composer:v1
       - uses: actions/cache@v2
         with:
@@ -40,7 +41,6 @@ jobs:
             ~/.composer/cache
             buildcache
           key: buildcache-${{ env.branch }}
-      - run: sudo apt-get install -y composer php-ast
       - uses: edwardspec/github-action-build-mediawiki@v1
         with:
           branch: ${{ env.branch }}
@@ -56,9 +56,10 @@ jobs:
   # PHPUnit testsuite + Moto (mock server that emulates S3 API).
   phpunit-mock:
     strategy:
+      fail-fast: false
       matrix:
         php: [7.4]
-        branch: [REL1_35,REL1_36]
+        branch: [REL1_35, REL1_36, REL1_37]
     env:
       USE_MOCK: 1
       branch: ${{ matrix.branch }}

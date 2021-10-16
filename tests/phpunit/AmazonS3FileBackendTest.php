@@ -19,6 +19,7 @@
  * Integration test for AmazonS3FileBackend.
  */
 
+use MediaWiki\MediaWikiServices;
 use Wikimedia\TestingAccessWrapper;
 
 /**
@@ -32,14 +33,16 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 
 	public static function setUpBeforeClass() : void {
 		global $wgFileBackends;
+		$services = MediaWikiServices::getInstance();
+
 		if ( getenv( 'USE_MOCK' ) ) {
 			// Point to a local Moto server (AWS-mocking daemon)
 			$wgFileBackends['s3']['endpoint'] = 'http://127.0.0.1:3000';
-			FileBackendGroup::destroySingleton();
+			$services->resetServiceForTesting( 'FileBackendGroup' );
 		}
 
 		self::$backend = TestingAccessWrapper::newFromObject(
-			FileBackendGroup::singleton()->get( 'AmazonS3' )
+			$services->getFileBackendGroup()->get( 'AmazonS3' )
 		);
 	}
 
@@ -82,7 +85,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 * @return string
 	 */
 	private function getVirtualPath( $filename ) {
-		$repo = RepoGroup::singleton()->getLocalRepo();
+		$repo = MediaWikiServices::getInstance()->getRepoGroup()->getLocalRepo();
 		return $repo->getZonePath( getenv( 'AWS_S3_TEST_ZONE' ) ?: 'public' ) . '/' .
 			$repo->newFile( $filename )->getRel();
 	}
