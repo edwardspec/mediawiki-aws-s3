@@ -473,12 +473,12 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	}
 
 	/**
-	 * Verify that uploaded S3 objects have a correct Content-Type header.
+	 * Verify that uploaded S3 objects have correct 1) Content-Type header, 2) "sha1base36" metadata.
 	 * @dataProvider contentTypeDataProvider
 	 * @covers AmazonS3FileBackend::doCreateInternal
 	 * @covers AmazonS3FileBackend::doStoreInternal
 	 */
-	public function testContentType( $method, $filename, $expectedContentType ) {
+	public function testContentType( $method, $filename, $expectedContentType, $expectedSha1Base36 ) {
 		$src = __DIR__ . "/../resources/$filename";
 		if ( !file_exists( $src ) ) {
 			throw new MWException( __METHOD__ . ": file $src not found (needed for the test)." );
@@ -512,6 +512,9 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 		] );
 		$this->assertArrayHasKey( 'ContentType', $response );
 		$this->assertEquals( $expectedContentType, $response['ContentType'] );
+
+		$this->assertArrayHasKey( 'sha1base36', $response['Metadata'] );
+		$this->assertEquals( $expectedSha1Base36, $response['Metadata']['sha1base36'] );
 	}
 
 	/**
@@ -519,10 +522,10 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	 */
 	public function contentTypeDataProvider() {
 		return [
-			[ 'doCreateInternal', 'blank.png',  'image/png' ],
-			[ 'doStoreInternal', 'blank.png',  'image/png' ],
-			[ 'doStoreInternal', 'text.txt',  'text/plain' ],
-			[ 'doCreateInternal', 'text.txt',  'text/plain' ]
+			[ 'doCreateInternal', 'blank.png',  'image/png', 'hcuidxu8r3jvhby9kd569py2lfeqlxs' ],
+			[ 'doStoreInternal', 'blank.png',  'image/png', 'hcuidxu8r3jvhby9kd569py2lfeqlxs' ],
+			[ 'doStoreInternal', 'text.txt',  'text/plain', '1jqz0c1p0v6ieg9r3b6y60cqb4hb07b' ],
+			[ 'doCreateInternal', 'text.txt',  'text/plain', '1jqz0c1p0v6ieg9r3b6y60cqb4hb07b' ]
 		];
 	}
 }
