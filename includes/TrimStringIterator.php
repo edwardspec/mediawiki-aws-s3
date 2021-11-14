@@ -26,9 +26,6 @@
  * Used in getFileListInternal() and getDirectoryListInternal().
  */
 class TrimStringIterator extends IteratorIterator {
-	/** @var Iterator */
-	private $innerIterator;
-
 	/** @var int */
 	private $firstBytesToStrip;
 
