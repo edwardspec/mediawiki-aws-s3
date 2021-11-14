@@ -31,7 +31,7 @@ class AmazonS3FileBackendTest extends MediaWikiTestCase {
 	/** @var TestingAccessWrapper Proxy to AmazonS3FileBackend */
 	private static $backend;
 
-	public static function setUpBeforeClass() : void {
+	public static function setUpBeforeClass(): void {
 		global $wgFileBackends;
 		$services = MediaWikiServices::getInstance();
 

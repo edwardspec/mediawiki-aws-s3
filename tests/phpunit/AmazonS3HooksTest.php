@@ -27,9 +27,10 @@
  */
 class AmazonS3HooksTest extends MediaWikiTestCase {
 
+	/** @var array */
 	protected $untouchedFakeLocalRepo = [ 'untouched' => 'marker' ];
 
-	public function setUp() : void {
+	public function setUp(): void {
 		parent::setUp();
 
 		$this->setMwGlobals( [

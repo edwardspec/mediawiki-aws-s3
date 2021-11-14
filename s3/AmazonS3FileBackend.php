@@ -626,16 +626,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return false;
 		}
 
-		$sha1 = '';
-		if ( isset( $res['Metadata']['sha1base36'] ) ) {
-			$sha1 = $res['Metadata']['sha1base36'];
-		}
-
 		return [
 			'mtime' => wfTimestamp( TS_MW, $res['LastModified'] ),
 			'size' => (int)$res['ContentLength'],
 			'etag' => $res['Etag'],
-			'sha1' => $sha1
+			// @phan-suppress-next-line PhanTypeMismatchDimFetch - false positive
+			'sha1' => $res['Metadata']['sha1base36'] ?? ''
 		];
 	}
 

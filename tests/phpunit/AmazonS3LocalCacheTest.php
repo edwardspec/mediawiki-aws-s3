@@ -31,7 +31,10 @@ use Wikimedia\TestingAccessWrapper;
  */
 class AmazonS3LocalCacheTest extends MediaWikiTestCase {
 
-	// Sample virtual URL (mwstore://something), as used by MediaWiki.
+	/**
+	 * @var string
+	 * Sample virtual URL (mwstore://something), as used by MediaWiki.
+	 */
 	protected $virtualUrl = 'mwstore://AmazonS3/local-public/Something_something.png';
 
 	/**
