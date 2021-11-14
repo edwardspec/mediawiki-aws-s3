@@ -50,12 +50,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 	private $encryption;
 
 	/**
-	 * Whether to use HTTPS for communicating with Amazon
-	 * @var bool
-	 */
-	private $useHTTPS;
-
-	/**
 	 * @var array
 	 * Maps names of containers (e.g. mywiki-local-thumb) to "mybucket/some/path", where "mybucket"
 	 * is the name of S3 bucket, and "some/path" is the "top directory" prefix of S3 object names.
@@ -117,15 +111,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		parent::__construct( $config );
 
-		$this->encryption = isset( $config['awsEncryption'] ) ? (bool)$config['awsEncryption'] : false;
-
-		if ( $this->encryption ) {
-			$this->useHTTPS = true;
-		} elseif ( isset( $config['awsHttps'] ) ) {
-			$this->useHTTPS = (bool)$config['awsHttps'];
-		} else {
-			$this->useHTTPS = (bool)$wgAWSUseHTTPS;
-		}
+		$this->encryption = (bool)( $config['awsEncryption'] ?? false );
+		$useHTTPS = $this->encryption ? true : (bool)( $config['awsHttps'] ?? $wgAWSUseHTTPS );
 
 		if ( isset( $config['shardViaHashLevels'] ) ) {
 			$this->shardViaHashLevels = $config['shardViaHashLevels'];
@@ -139,7 +126,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$params = [
 			'version' => '2006-03-01',
 			'region' => $config['awsRegion'] ?? $wgAWSRegion,
-			'scheme' => $this->useHTTPS ? 'https' : 'http'
+			'scheme' => $useHTTPS ? 'https' : 'http'
 		];
 		if ( !empty( $wgAWSCredentials['key'] ) ) {
 			$params['credentials'] = $wgAWSCredentials;
