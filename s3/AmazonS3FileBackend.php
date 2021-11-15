@@ -151,16 +151,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 				__METHOD__ . " : containerPaths array must be set for S3." );
 		}
 
-		if ( isset( $config['privateWiki'] ) ) {
-			/* Explicitly set in LocalSettings.php ($wgLocalFileRepo) */
-			$this->privateWiki = $config['privateWiki'];
-		} else {
-			/* If anonymous users aren't allowed to read articles,
-				then we assume that this wiki is private,
-				and that we want files to be "for registered users only".
-			*/
-			$this->privateWiki = !AmazonS3CompatTools::isPublicWiki();
-		}
+		/*
+			In "privateWiki" mode, all files are "for registered users only".
+			This mode can be explicitly enabled/disabled in LocalSettings.php.
+			Default: if anonymous users aren't allowed to read articles, then we assume private mode.
+		*/
+		$this->privateWiki = $config['privateWiki'] ?? !AmazonS3CompatTools::isPublicWiki();
 
 		$this->logger->info(
 			'S3FileBackend: found backend with S3 buckets: {buckets}.{isPrivateWiki}',
