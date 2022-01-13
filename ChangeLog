@@ -11,6 +11,7 @@ Minor features:
 
 Warnings fixed:
 * Fixed harmless PHP warning in doGetLocalCopyMulti().
+* Replaced deprecated wfWikiId().
 
 == AWS 0.11.1 ==
 

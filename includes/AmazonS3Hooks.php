@@ -100,8 +100,8 @@ class AmazonS3Hooks {
 			}
 		}
 
-		// Container names are prefixed by wfWikiID(), which depends on $wgDBPrefix and $wgDBname.
-		$wikiId = wfWikiID();
+		// Container names are prefixed by WikiId string, which depends on $wgDBPrefix and $wgDBname.
+		$wikiId = WikiMap::getCurrentWikiId();
 		$containerPaths = [];
 		foreach ( $zones as $zone ) {
 			$containerPaths["$wikiId-local-$zone"] = $this->getContainerPath( $zone );
