@@ -9,6 +9,10 @@ when editing a page with many images.
 Minor features:
 * $wgImgAuthPath can now override the path to /img_auth.php for private wikis.
 
+Bugfixes:
+* HTTP headers set by other extensions (like Content-Disposition) are no longer ignored
+when uploading new images.
+
 Warnings fixed:
 * Fixed harmless PHP warning in doGetLocalCopyMulti().
 * Replaced deprecated wfWikiId().

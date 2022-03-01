@@ -279,11 +279,11 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		$params['headers'] = $params['headers'] ?? [];
 		$params['headers'] += array_fill_keys( [
-			'Cache-Control',
-			'Content-Disposition',
-			'Content-Encoding',
-			'Content-Language',
-			'Expires'
+			'cache-control',
+			'content-disposition',
+			'content-encoding',
+			'content-language',
+			'expires'
 		], null );
 
 		$this->logger->debug(
@@ -305,12 +305,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'ACL' => $this->isSecure( $container ) ? 'private' : 'public-read',
 				'Body' => $params['content'],
 				'Bucket' => $bucket,
-				'CacheControl' => $params['headers']['Cache-Control'],
-				'ContentDisposition' => $params['headers']['Content-Disposition'],
-				'ContentEncoding' => $params['headers']['Content-Encoding'],
-				'ContentLanguage' => $params['headers']['Content-Language'],
+				'CacheControl' => $params['headers']['cache-control'],
+				'ContentDisposition' => $params['headers']['content-disposition'],
+				'ContentEncoding' => $params['headers']['content-encoding'],
+				'ContentLanguage' => $params['headers']['content-language'],
 				'ContentType' => $contentType,
-				'Expires' => $params['headers']['Expires'],
+				'Expires' => $params['headers']['expires'],
 				'Key' => $key,
 				'Metadata' => [ 'sha1base36' => $sha1Hash ],
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null,
@@ -336,7 +336,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 */
 	protected function doCreateInternal( array $params ) {
 		$sha1 = sha1( $params['content'] );
-		$contentType = $params['headers']['Content-Type'] ??
+		$contentType = $params['headers']['content-type'] ??
 			$this->getContentType( $params['dst'], $params['content'], null );
 
 		return $this->createOrStore( $params, $sha1, $contentType );
@@ -352,7 +352,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	protected function doStoreInternal( array $params ) {
 		$params['content'] = fopen( $params['src'], 'r' );
 		$sha1 = sha1_file( $params['src'] );
-		$contentType = $params['headers']['Content-Type'] ??
+		$contentType = $params['headers']['content-type'] ??
 			$this->getContentType( $params['dst'], null, $params['src'] );
 
 		return $this->createOrStore( $params, $sha1, $contentType );
@@ -396,14 +396,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		$params['headers'] = $params['headers'] ?? [];
 		$params['headers'] += array_fill_keys( [
-			'Cache-Control',
-			'Content-Disposition',
-			'Content-Encoding',
-			'Content-Language',
-			'Content-Type',
-			'Expires',
-			'E-Tag',
-			'If-Modified-Since'
+			'cache-control',
+			'content-disposition',
+			'content-encoding',
+			'content-language',
+			'content-type',
+			'expires',
+			'e-tag',
+			'if-modified-since'
 		], null );
 
 		$profiling = new AmazonS3ProfilingAssist( "copying S3 object $srcKey to $dstKey" );
@@ -413,15 +413,15 @@ class AmazonS3FileBackend extends FileBackendStore {
 			return $this->client->copyObject( array_filter( [
 				'ACL' => $this->isSecure( $dstContainer ) ? 'private' : 'public-read',
 				'Bucket' => $dstBucket,
-				'CacheControl' => $params['headers']['Cache-Control'],
-				'ContentDisposition' => $params['headers']['Content-Disposition'],
-				'ContentEncoding' => $params['headers']['Content-Encoding'],
-				'ContentLanguage' => $params['headers']['Content-Language'],
-				'ContentType' => $params['headers']['Content-Type'],
+				'CacheControl' => $params['headers']['cache-control'],
+				'ContentDisposition' => $params['headers']['content-disposition'],
+				'ContentEncoding' => $params['headers']['content-encoding'],
+				'ContentLanguage' => $params['headers']['content-language'],
+				'ContentType' => $params['headers']['content-type'],
 				'CopySource' => $srcBucket . '/' . $this->client->encodeKey( $srcKey ),
-				'CopySourceIfMatch' => $params['headers']['E-Tag'],
-				'CopySourceIfModifiedSince' => $params['headers']['If-Modified-Since'],
-				'Expires' => $params['headers']['Expires'],
+				'CopySourceIfMatch' => $params['headers']['e-tag'],
+				'CopySourceIfModifiedSince' => $params['headers']['if-modified-since'],
+				'Expires' => $params['headers']['expires'],
 				'Key' => $dstKey,
 				'MetadataDirective' => 'COPY',
 				'ServerSideEncryption' => $this->encryption ? 'AES256' : null
