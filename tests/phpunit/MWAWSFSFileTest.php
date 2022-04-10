@@ -27,7 +27,7 @@
  * @group TestsWithNoNeedForAwsCredentials
  * @covers MWAWS\FSFile
  */
-class MWAWSFSFileTest extends MediaWikiTestCase {
+class MWAWSFSFileTest extends MediaWikiIntegrationTestCase {
 	/**
 	 * Verify that MWAWS\FSFile provides the methods that TempFSFile has.
 	 * @dataProvider dataProvider

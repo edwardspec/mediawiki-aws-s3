@@ -27,7 +27,7 @@
  * @group TestsWithNoNeedForAwsCredentials
  * @covers TrimStringIterator
  */
-class TrimStringIteratorTest extends MediaWikiTestCase {
+class TrimStringIteratorTest extends MediaWikiIntegrationTestCase {
 	/**
 	 * Check that TrimStringIterator correctly modifies input strings.
 	 * @dataProvider dataProvider

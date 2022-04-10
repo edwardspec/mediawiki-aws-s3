@@ -27,7 +27,7 @@ use Wikimedia\TestingAccessWrapper;
  * @group FileBackend
  * @group medium
  */
-class AmazonS3FileBackendTest extends MediaWikiTestCase {
+class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 	/** @var TestingAccessWrapper Proxy to AmazonS3FileBackend */
 	private static $backend;
 

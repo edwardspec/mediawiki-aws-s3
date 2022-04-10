@@ -25,7 +25,7 @@
  * @group medium
  * @group TestsWithNoNeedForAwsCredentials
  */
-class AmazonS3HooksTest extends MediaWikiTestCase {
+class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 
 	/** @var array */
 	protected $untouchedFakeLocalRepo = [ 'untouched' => 'marker' ];

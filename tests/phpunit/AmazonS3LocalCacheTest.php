@@ -29,7 +29,7 @@ use Wikimedia\TestingAccessWrapper;
  * @group TestsWithNoNeedForAwsCredentials
  * @covers AmazonS3LocalCache
  */
-class AmazonS3LocalCacheTest extends MediaWikiTestCase {
+class AmazonS3LocalCacheTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @var string

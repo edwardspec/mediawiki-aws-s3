@@ -27,7 +27,7 @@
  * @group TestsWithNoNeedForAwsCredentials
  * @covers AmazonS3CompatTools
  */
-class AmazonS3CompatToolsTest extends MediaWikiTestCase {
+class AmazonS3CompatToolsTest extends MediaWikiIntegrationTestCase {
 	/**
 	 * @covers AmazonS3CompatTools::isPublicWiki()
 	 */
