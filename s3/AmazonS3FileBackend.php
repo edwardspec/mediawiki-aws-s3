@@ -167,8 +167,9 @@ class AmazonS3FileBackend extends FileBackendStore {
 			]
 		);
 
-		$this->containerSecurityCache = new CachedBagOStuff( wfGetMainCache() );
-		$this->statCache = wfGetMainCache();
+		$mainCache = ObjectCache::getLocalClusterInstance();
+		$this->containerSecurityCache = new CachedBagOStuff( $mainCache );
+		$this->statCache = $mainCache;
 	}
 
 	/**

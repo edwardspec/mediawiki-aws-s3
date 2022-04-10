@@ -16,6 +16,7 @@ when uploading new images.
 Warnings fixed:
 * Fixed harmless PHP warning in doGetLocalCopyMulti().
 * Replaced deprecated wfWikiId().
+* Replaced deprecated wfGetMainCache().
 
 == AWS 0.11.1 ==
 
