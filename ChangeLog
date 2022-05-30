@@ -1,6 +1,10 @@
 List of changes between releases of Extension:AWS.
 
-== master branch (will become AWS 0.11.2 or 0.12.0, depending on magnitude of changes) ==
+== master branch (will become AWS 0.12.1 or 0.13.0, depending on magnitude of changes) ==
+
+No changes since AWS 0.12.0.
+
+== AWS 0.12.0 ==
 
 Major features:
 * Results of doGetFileStat() are now cached, which greatly improves performance
