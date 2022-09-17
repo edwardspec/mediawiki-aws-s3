@@ -88,6 +88,7 @@ jobs:
       - name: Install and run Moto (S3 mock server)
         run: |
           sudo apt-get install -y python3-pip netcat
+          pip3 install pyOpenSSL --upgrade
           pip3 install --user "moto[server]" && ( ~/.local/bin/moto_server s3 -p 3000 2>~/moto.log & )
 
       - uses: shivammathur/setup-php@v2
