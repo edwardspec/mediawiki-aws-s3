@@ -58,6 +58,51 @@ class AmazonS3LocalCacheTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
+	 * Verify that $wgAWSLocalCacheExcludeFileExtensions can be used to NOT cache some files.
+	 * @dataProvider excludeFileExtensionsDataProvider
+	 * @param bool $expectedToExclude True if must be excluded, false otherwise.
+	 * @param string $fileExtension Suffix of filename, e.g. 'ogg'.
+	 * @param string[] $excluded Value of $wgAWSLocalCacheExcludeFileExtensions.
+	 */
+	public function testExcludeFileExtensions( $expectedToExclude, $fileExtension, array $excluded ) {
+		$this->enableCache();
+		$this->setMwGlobals( 'wgAWSLocalCacheExcludeFileExtensions', $excluded );
+
+		$file = AmazonS3LocalCache::get( $this->virtualUrl . '.' . $fileExtension );
+		if ( $expectedToExclude ) {
+			// When the cache is disabled, obtained file is temporary.
+			$this->assertInstanceOf( TempFSFile::class, $file );
+		} else {
+			// When the cache is enabled, obtained file must NOT be temporary.
+			$this->assertInstanceOf( \MWAWS\FSFile::class, $file );
+		}
+	}
+
+	/**
+	 *
+	 * Provides datasets for testExcludeFileExtensions().
+	 */
+	public function excludeFileExtensionsDataProvider() {
+		return [
+			[ false, 'ogg', [] ],
+			[ true, 'ogg', [ 'ogg' ] ],
+			[ false, 'png', [ 'mp4', 'ogg', 'gif', 'pdf' ] ],
+			[ true, 'png', [ 'mp4', 'ogg', 'png', 'pdf' ] ]
+		];
+	}
+
+	/**
+	 * Set $wgAWSLocalCacheDirectory to a newly created temporary directory.
+	 * Used in testEnabledLocalCache() and testExcludeFileExtensions().
+	 */
+	private function enableCache() {
+		$cacheDir = wfTempDir() . "/" . wfRandomString( 32 );
+		wfMkdirParents( $cacheDir );
+
+		$this->setMwGlobals( 'wgAWSLocalCacheDirectory', $cacheDir ); // Enable the cache
+	}
+
+	/**
 	 * Verify that get(), postDownloadLogic() and invalidate() work correctly with enabled cache.
 	 */
 	public function testEnabledLocalCache() {
@@ -73,10 +118,7 @@ class AmazonS3LocalCacheTest extends MediaWikiIntegrationTestCase {
 		$expectedTemporaryPathRegex = "/\.S3LocalCache\.[0-9a-fA-F]{32,32}\." .
 			quotemeta( $expectedExtension ) . '$/';
 
-		$cacheDir = wfTempDir() . "/" . wfRandomString( 32 );
-		wfMkdirParents( $cacheDir );
-
-		$this->setMwGlobals( 'wgAWSLocalCacheDirectory', $cacheDir ); // Enable the cache
+		$this->enableCache();
 		$this->setMwGlobals( 'wgAWSLocalCacheMinSize', $thresholdInBytes );
 
 		// Step 1: get() a small file that doesn't exist in the cache yet.
@@ -87,7 +129,7 @@ class AmazonS3LocalCacheTest extends MediaWikiIntegrationTestCase {
 		// Furthermore, if it wasn't found in the cache, then the file shouldn't exist yet.
 		// It must also have a temporary name of a certain pattern (with ".S3LocalCache." in it).
 
-		$this->assertInstanceOf( MWAWS\FSFile::class, $file );
+		$this->assertInstanceOf( \MWAWS\FSFile::class, $file );
 		$this->assertNotInstanceOf( TempFSFile::class, $file );
 		$this->assertFalse( $file->exists() );
 		$this->assertRegExp( $expectedTemporaryPathRegex, $file->getPath() );

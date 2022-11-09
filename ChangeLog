@@ -4,6 +4,10 @@ List of changes between releases of Extension:AWS.
 
 * Added support for MediaWiki 1.39.
 
+Minor features:
+* Added $wgAWSLocalCacheExcludeFileExtensions, which allows to exclude some files (e.g. audio)
+from the local cache.
+
 == AWS 0.12.0 ==
 
 Major features:

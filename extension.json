@@ -82,6 +82,10 @@
 		"AWSLocalCacheMinSize": {
 			"description": "Minimal size of image (in bytes) that should be cached. Default: 100Mb.",
 			"value": 104857600
+		},
+		"AWSLocalCacheExcludeFileExtensions": {
+			"description": "File extensions (e.g. 'ogg') of files that shouldn't be stored in the local cache. Recommended values: every non-image (files that are never used to make a thumbnail).",
+			"value": [ "ogg" ]
 		}
 	},
 	"manifest_version": 2
