@@ -32,7 +32,7 @@ class AmazonS3SubdirectoryIterator extends FilterIterator {
 	 */
 	private $seenDirectories = [];
 
-	public function rewind() {
+	public function rewind(): void {
 		$this->seenDirectories = [];
 		parent::rewind();
 	}
@@ -43,7 +43,7 @@ class AmazonS3SubdirectoryIterator extends FilterIterator {
 	 * but this iterator should return "dir1" only once.
 	 * @return bool
 	 */
-	public function accept() {
+	public function accept(): bool {
 		$dirname = $this->current();
 		if ( !isset( $this->seenDirectories[$dirname] ) ) {
 			/* New directory found */
@@ -57,7 +57,7 @@ class AmazonS3SubdirectoryIterator extends FilterIterator {
 		return false;
 	}
 
-	public function current() {
+	public function current(): string {
 		return dirname( $this->getInnerIterator()->current() );
 	}
 }
