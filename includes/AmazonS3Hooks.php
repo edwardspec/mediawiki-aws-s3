@@ -223,6 +223,10 @@ class AmazonS3Hooks {
 			$domain
 		);
 
-		return 'https://' . $domain . $this->getS3RootDir( $zone );
+		if ( !preg_match( '@^https?://@', $domain ) ) {
+			$domain = 'https://' . $domain;
+		}
+
+		return $domain . $this->getS3RootDir( $zone );
 	}
 }

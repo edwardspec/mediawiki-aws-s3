@@ -8,6 +8,8 @@ List of changes between releases of Extension:AWS.
 Minor features:
 * Added $wgAWSLocalCacheExcludeFileExtensions, which allows to exclude some files (e.g. audio)
 from the local cache.
+* Added support for path-style endpoints: $wgFileBackends['s3']['use_path_style_endpoint'] setting.
+* $wgAWSBucketDomain now supports values that start with http:// (to not use HTTPS).
 
 == AWS 0.12.0 ==
 
