@@ -9,7 +9,7 @@ env:
 jobs:
   # PHP linters: phpcs, parallel-lint, etc.
   linter:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
       - uses: shivammathur/setup-php@v2
@@ -25,7 +25,7 @@ jobs:
 
   # Phan (PHP static analyzer)
   phan:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       branch: REL1_39
     steps:
@@ -68,7 +68,7 @@ jobs:
     env:
       USE_MOCK: 1
       branch: ${{ matrix.branch }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     services:
       memcached:
         image: memcached:latest
