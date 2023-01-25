@@ -79,7 +79,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	private $containerSecurityCache = null;
 
 	/**
-	 * Cache used in doGetFileStat(). Avoids extra requests to doesObjectExist().
+	 * Cache used in doGetFileStat(). Avoids extra requests to headObject().
 	 * @var BagOStuff
 	 */
 	private $statCache = null;
