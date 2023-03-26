@@ -19,7 +19,7 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: ~/.composer/cache
-          key: composer-cache
+          key: buildcache-linter
       - run: sudo apt-get install -y composer && composer install
       - run: composer test
 
@@ -40,7 +40,7 @@ jobs:
           path: |
             ~/.composer/cache
             buildcache
-          key: buildcache-${{ env.branch }}
+          key: buildcache-phan
       - uses: edwardspec/github-action-build-mediawiki@v1
         with:
           branch: ${{ env.branch }}
@@ -87,7 +87,6 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.composer/cache
             buildcache
           key: buildcache-${{ env.branch }}-${{ hashFiles('**/no/files/need/to/invalidate/cache/for/now') }}
       - name: Install and run Moto (S3 mock server)
