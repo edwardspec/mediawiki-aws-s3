@@ -132,7 +132,7 @@ class AmazonS3LocalCacheTest extends MediaWikiIntegrationTestCase {
 		$this->assertInstanceOf( \MWAWS\FSFile::class, $file );
 		$this->assertNotInstanceOf( TempFSFile::class, $file );
 		$this->assertFalse( $file->exists() );
-		$this->assertRegExp( $expectedTemporaryPathRegex, $file->getPath() );
+		$this->assertRegExpTemp( $expectedTemporaryPathRegex, $file->getPath() );
 
 		// If contents downloaded into $file are smaller than $wgAWSLocalCacheMinSize bytes,
 		// then $file must become temporary after postDownloadLogic().
@@ -165,7 +165,7 @@ class AmazonS3LocalCacheTest extends MediaWikiIntegrationTestCase {
 			$this->assertInstanceOf( MWAWS\FSFile::class, $testFile );
 			$this->assertNotInstanceOf( TempFSFile::class, $testFile );
 			$this->assertTrue( $testFile->exists() );
-			$this->assertNotRegExp( $expectedTemporaryPathRegex, $testFile->getPath() );
+			$this->assertNotRegExpTemp( $expectedTemporaryPathRegex, $testFile->getPath() );
 			$this->assertEquals( $largeFileContents, file_get_contents( $testFile->getPath() ) );
 		};
 
@@ -186,5 +186,27 @@ class AmazonS3LocalCacheTest extends MediaWikiIntegrationTestCase {
 		// Step 6: verify that an attempt to invalidate() a non-existent file
 		// wouldn't result in any errors or warnings.
 		AmazonS3LocalCache::invalidate( $this->virtualUrl );
+	}
+
+	/**
+	 * B/C: assertRegExp() is deprecated in MediaWiki 1.40, but 1.35-1.39 don't have a replacement.
+	 * @param string $pattern
+	 * @param string $string
+	 */
+	protected function assertRegExpTemp( $pattern, $string ) {
+		$method = method_exists( $this, 'assertMatchesRegularExpression' ) ?
+			'assertMatchesRegularExpression' : 'assertRegExp';
+		$this->$method( $pattern, $string );
+	}
+
+	/**
+	 * B/C: assertNotRegExp() is deprecated in MediaWiki 1.40, but 1.35-1.39 don't have a replacement.
+	 * @param string $pattern
+	 * @param string $string
+	 */
+	protected function assertNotRegExpTemp( $pattern, $string ) {
+		$method = method_exists( $this, 'assertDoesNotMatchRegularExpression' ) ?
+			'assertDoesNotMatchRegularExpression' : 'assertNotRegExp';
+		$this->$method( $pattern, $string );
 	}
 }
