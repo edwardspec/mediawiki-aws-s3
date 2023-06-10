@@ -10,6 +10,7 @@ Minor features:
 from the local cache.
 * Added support for path-style endpoints: $wgFileBackends['s3']['use_path_style_endpoint'] setting.
 * $wgAWSBucketDomain now supports values that start with http:// (to not use HTTPS).
+* Added $wgAWSRepoZones, which can be used to add non-standard zones to $wgLocalFileRepo.
 
 == AWS 0.12.0 ==
 

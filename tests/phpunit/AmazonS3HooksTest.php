@@ -16,7 +16,7 @@
 
 /**
  * @file
- * Checks calculation of $wgLocalRepo from $wgAWSBucketPrefix/$wgAWSBucketDomain.
+ * Checks calculation of $wgLocalFileRepo from $wgAWSBucketPrefix/$wgAWSBucketDomain.
  */
 
 /**

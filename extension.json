@@ -86,6 +86,29 @@
 		"AWSLocalCacheExcludeFileExtensions": {
 			"description": "File extensions (e.g. 'ogg') of files that shouldn't be stored in the local cache. Recommended values: every non-image (files that are never used to make a thumbnail).",
 			"value": [ "ogg" ]
+		},
+		"AWSRepoZones": {
+			"description": "List of zones that should be added to $wgLocalFileRepo (public, thumb, deleted, etc.). 99,9% of wikis don't need to change the default value.",
+			"value": {
+				"public": {
+					"container": "local-public",
+					"path": "",
+					"isPublic": true
+				},
+				"thumb": {
+					"container": "local-thumb",
+					"path": "/thumb",
+					"isPublic": true
+				},
+				"deleted": {
+					"container": "local-deleted",
+					"path": "/deleted"
+				},
+				"temp": {
+					"container": "local-temp",
+					"path": "/temp"
+				}
+			}
 		}
 	},
 	"manifest_version": 2

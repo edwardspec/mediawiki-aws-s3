@@ -65,15 +65,12 @@ class AmazonS3Hooks {
 	}
 
 	/**
-	 * Replace $wgLocalRepo with Amazon S3.
+	 * Replace $wgLocalFileRepo with Amazon S3.
 	 */
 	protected function replaceLocalRepo() {
 		global $wgFileBackends, $wgLocalFileRepo, $wgAWSRepoHashLevels,
-			$wgAWSRepoDeletedHashLevels, $wgImgAuthPath;
-
-		/* Needed zones */
-		$zones = [ 'public', 'thumb', 'deleted', 'temp' ];
-		$publicZones = [ 'public', 'thumb' ];
+			$wgAWSRepoDeletedHashLevels, $wgImgAuthPath,
+			$wgAWSRepoZones;
 
 		$wgLocalFileRepo = [
 			'class'             => 'LocalRepo',
@@ -82,30 +79,29 @@ class AmazonS3Hooks {
 			'url'               => $wgImgAuthPath ?: wfScript( 'img_auth' ),
 			'hashLevels'        => $wgAWSRepoHashLevels,
 			'deletedHashLevels' => $wgAWSRepoDeletedHashLevels,
-			'zones'             => array_fill_keys( $zones, [ 'url' => false ] )
+			'zones'             => []
 		];
-
-		if ( AmazonS3CompatTools::isPublicWiki() ) {
-			// Not a private wiki: $publicZones must have an URL
-			foreach ( $publicZones as $zone ) {
-				$wgLocalFileRepo['zones'][$zone] = [
-					'url' => $this->getZoneUrl( $zone )
-				];
-			}
-		} else {
-			// Private wiki: $publicZones must use img_auth.php
-			foreach ( $publicZones as $zone ) {
-				// Use default value from $wgLocalFileRepo['url']
-				unset( $wgLocalFileRepo['zones'][$zone]['url'] );
-			}
-		}
 
 		// Container names are prefixed by WikiId string, which depends on $wgDBPrefix and $wgDBname.
 		$wikiId = WikiMap::getCurrentWikiId();
+		$isPublicWiki = AmazonS3CompatTools::isPublicWiki();
+
+		// Configure zones (public, thumb, deleted, etc.).
 		$containerPaths = [];
-		foreach ( $zones as $zone ) {
-			$containerPaths["$wikiId-local-$zone"] = $this->getContainerPath( $zone );
+		foreach ( $wgAWSRepoZones as $zone => $info ) {
+			$containerPaths["$wikiId-" . $info['container']] = $this->getContainerPath( $zone );
+
+			$zoneConf = [];
+			if ( empty( $info['isPublic'] ) ) {
+				// Private zones don't have an URL.
+				$zoneConf['url'] = false;
+			} elseif ( $isPublicWiki ) {
+				// Not a private wiki: public zones must have an URL.
+				$zoneConf['url'] = $this->getZoneUrl( $zone );
+			}
+			$wgLocalFileRepo['zones'][$zone] = $zoneConf;
 		}
+
 		$wgFileBackends['s3']['containerPaths'] = $containerPaths;
 	}
 
@@ -141,7 +137,7 @@ class AmazonS3Hooks {
 	 * @return string Relative path, e.g. "" or "/thumb" (without trailing slash).
 	 */
 	protected function getS3RootDirInternal( $zone ) {
-		global $wgAWSBucketName;
+		global $wgAWSBucketName, $wgAWSRepoZones;
 		if ( !$wgAWSBucketName ) {
 			// Backward compatibility mode (4 S3 buckets): when we use more than one bucket,
 			// there is no need for extra subdirectories within the bucket.
@@ -149,21 +145,8 @@ class AmazonS3Hooks {
 		}
 
 		// Modern config, one S3 bucket for all zones.
-		switch ( $zone ) {
-			case 'public':
-				return '';
-
-			case 'thumb':
-				return '/thumb';
-
-			case 'deleted':
-				return '/deleted';
-
-			case 'temp':
-				return '/temp';
-		}
-
-		return "/$zone"; # Fallback value for unknown zone (added in recent version of MediaWiki?)
+		$zoneConf = $wgAWSRepoZones[$zone] ?? [];
+		return $zoneConf['path'] ?? "/$zone"; # Fallback value for unknown zone
 	}
 
 	/**
