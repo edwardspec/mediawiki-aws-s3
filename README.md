@@ -91,7 +91,7 @@ Replace `<something>` with the name of your S3 bucket, e.g. `wonderfulbali234`.
 
 You can use a domain name for images (for example, `img.mysite.com`). This is needed when you want a CDN (such as CloudFlare) to cache your images. See [https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html Virtual Hosting of Buckets] for details.
 
-1\) At your DNS provider, add a CNAME entry. For example, point `img.mysite.com` to `<your-wgAWSBucketName>.s3.amazonaws.com`).
+1\) At your DNS provider, add a CNAME entry. For example, point `img.mysite.com` to `<your-wgAWSBucketName>.s3.<location>.amazonaws.com`).
 
 2\) In LocalSettings.php, set `$wgAWSBucketDomain`. The following values are supported:
 
