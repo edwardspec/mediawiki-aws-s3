@@ -1004,6 +1004,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @return bool
 	 */
 	private function isSecure( $container ) {
+		global $wgFileBackends;
+
+		if ( str_contains( $wgFileBackends['s3']['endpoint'], 'backblazeb2.com' ) ) {
+			return false;
+		}
+
 		if ( $this->privateWiki ) {
 			// Private wiki: all containers are secure, even in "public" and "thumb" zones.
 			return true;
