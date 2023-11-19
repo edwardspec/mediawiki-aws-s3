@@ -12,6 +12,9 @@ from the local cache.
 * $wgAWSBucketDomain now supports values that start with http:// (to not use HTTPS).
 * Added $wgAWSRepoZones, which can be used to add non-standard zones to $wgLocalFileRepo.
 
+Troubleshooting tools:
+* Debug log now warns if some extension tries to use non-standard zones (not in $wgAWSRepoZones).
+
 == AWS 0.12.0 ==
 
 Major features:

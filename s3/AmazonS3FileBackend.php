@@ -219,6 +219,14 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 */
 	protected function findContainer( $container ) {
 		if ( empty( $this->containerPaths[$container] ) ) {
+			$this->logger->warning(
+				'S3FileBackend: findContainer(): trying to use unknown container {container}' .
+				' (not in $wgAWSRepoZones), known containers: {paths}',
+				[
+					'container' => $container,
+					'paths' => FormatJson::encode( $this->containerPaths )
+				]
+			);
 			return null; // Not configured
 		}
 

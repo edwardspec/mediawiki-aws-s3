@@ -6,7 +6,8 @@
 
 	<rule ref="./vendor/mediawiki/mediawiki-codesniffer/MediaWiki">
 		<!-- NOTE: this should be fixed -->
-		<exclude name="MediaWiki.Usage.ForbiddenFunctions.is_resource" />
+		<exclude name="MediaWiki.Usage.ShortListSyntax.Found" />
+		<exclude name="MediaWiki.PHPUnit.AssertCount.AssertSameSize" />
 
 		<!-- Don't want to apply this -->
 		<exclude name="MediaWiki.WhiteSpace.SpaceBeforeSingleLineComment.NewLineComment" />
