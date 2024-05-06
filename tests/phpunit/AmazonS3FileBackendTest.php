@@ -331,6 +331,10 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 		] );
 		$this->assertTrue( $status->isGood(), 'doCopyInternal() failed' );
 
+		$info = $this->getBackend()->doGetFileStat( [ 'src' => $params['copy-dst'] ] );
+		$this->assertNotFalse( $info,
+			'doGetFileStat() says the file with new filename doesn\'t exist after doCopyInternal()' );
+
 		/* Pass $params to dependent test */
 		return $params;
 	}
@@ -349,6 +353,29 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 		$info = $this->getBackend()->doGetFileStat( [ 'src' => $params['copy-dst'] ] );
 		$this->assertFalse( $info,
 			'doGetFileStat() says the file still exists after doDeleteInternal()' );
+	}
+
+	/**
+	 * Check that doMoveInternal() succeeds.
+	 * @depends testCopyInternal
+	 * @covers AmazonS3FileBackend::doMoveInternal
+	 */
+	public function testMoveInternal( array $params ) {
+		$newDst = $this->getVirtualPath( $params['fullfilename'] . '_renamed_' . rand() );
+
+		$status = $this->getBackend()->doMoveInternal( [
+			'src' => $params['dst'],
+			'dst' => $newDst
+		] );
+		$this->assertTrue( $status->isGood(), 'doMoveInternal() failed' );
+
+		$info = $this->getBackend()->doGetFileStat( [ 'src' => $params['dst'] ] );
+		$this->assertFalse( $info,
+			'doGetFileStat() says the file with old filename still exists after doMoveInternal()' );
+
+		$info = $this->getBackend()->doGetFileStat( [ 'src' => $newDst ] );
+		$this->assertNotFalse( $info,
+			'doGetFileStat() says the file with new filename doesn\'t exist after doMoveInternal()' );
 	}
 
 	/**

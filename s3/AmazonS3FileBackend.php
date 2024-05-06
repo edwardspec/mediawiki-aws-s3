@@ -512,6 +512,25 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	/**
+	 * Rename an existing S3 object.
+	 * @param array $params
+	 * @return Status
+	 *
+	 * phpcs:ignore Generic.Files.LineLength.TooLong
+	 * @phan-param array{src:string,dst:string,headers?:array<string,string>,ignoreMissingSource?:bool} $params
+	 */
+	protected function doMoveInternal( array $params ) {
+		// S3 doesn't have "rename" operation, so we copy the object, and if successful, delete the source.
+		$status = $this->doCopyInternal( $params );
+		if ( !$status->isOK() ) {
+			return $status;
+		}
+
+		$status->merge( $this->doDeleteInternal( $params ) );
+		return $status;
+	}
+
+	/**
 	 * Check if "directory" $dir exists within $container.
 	 * Note: in S3, "directories" are imaginary, so existence means that there are S3 objects
 	 * that have "$dir/" as the beginning of their name.
