@@ -67,6 +67,8 @@ jobs:
             branch: REL1_40
           - php: 8.1
             branch: REL1_41
+          - php: 8.1
+            branch: REL1_42
     env:
       USE_MOCK: 1
       branch: ${{ matrix.branch }}
@@ -101,7 +103,7 @@ jobs:
         with:
             php-version: ${{ matrix.php }}
             extensions: mbstring, intl, opcache, mysqli
-            tools: composer${{ env.branch != 'REL1_39' && env.branch != 'REL1_40' && env.branch != 'REL1_41' && ':v1' || '' }}
+            tools: composer${{ env.branch != 'REL1_39' && env.branch != 'REL1_40' && env.branch != 'REL1_41' && env.branch != 'REL1_42' && ':v1' || '' }}
       - name: (debug) Print "php -i"
         run: php -i
       - uses: edwardspec/github-action-build-mediawiki@v1

@@ -98,7 +98,7 @@ class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 			$hooks = new AmazonS3Hooks;
 			$hooks->installBackend();
 		} catch ( AmazonS3MisconfiguredException $e ) {
-			$this->assertStringContainsString( $opt['expectException'] ?? null, $e->getText(),
+			$this->assertStringContainsString( $opt['expectException'] ?? null, $e->getMessage(),
 				"Unexpected exception from installBackend()" );
 			return;
 		}
