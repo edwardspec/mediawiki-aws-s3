@@ -44,6 +44,12 @@ class AmazonS3FileBackend extends FileBackendStore {
 	private $client;
 
 	/**
+	 * Parameters that will be passed to the constructor of S3Client object.
+	 * @var array
+	 */
+	private $clientParameters;
+
+	/**
 	 * Whether server side encryption is enabled
 	 * @var bool
 	 */
@@ -145,7 +151,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$params['use_path_style_endpoint'] = $config['use_path_style_endpoint'];
 		}
 
-		$this->client = new S3Client( $params );
+		$this->clientParameters = $params;
 
 		if ( isset( $config['containerPaths'] ) ) {
 			$this->containerPaths = (array)$config['containerPaths'];
@@ -173,6 +179,18 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$mainCache = ObjectCache::getLocalClusterInstance();
 		$this->containerSecurityCache = new CachedBagOStuff( $mainCache );
 		$this->statCache = $mainCache;
+	}
+
+	/**
+	 * Returns S3Client object.
+	 * @return Aws\S3\S3Client
+	 */
+	protected function getClient() {
+		if ( !$this->client ) {
+			$this->client = new S3Client( $this->clientParameters );
+		}
+
+		return $this->client;
 	}
 
 	/**
@@ -313,7 +331,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		$ret = $this->runWithExceptionHandling( __FUNCTION__, function ()
 			use ( $params, $container, $bucket, $key, $contentType, $sha1Hash ) {
-			return $this->client->putObject( array_filter( [
+			return $this->getClient()->putObject( array_filter( [
 				'ACL' => $this->isSecure( $container ) ? 'private' : 'public-read',
 				'Body' => $params['content'],
 				'Bucket' => $bucket,
@@ -421,8 +439,10 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$profiling = new AmazonS3ProfilingAssist( "copying S3 object $srcKey to $dstKey" );
 
 		$ret = $this->runWithExceptionHandling( __FUNCTION__, function ()
-			use ( $dstContainer, $dstBucket, $params, $srcBucket, $srcKey, $dstKey ) {
-			return $this->client->copyObject( array_filter( [
+			use ( $dstContainer, $dstBucket, $params, $srcBucket, $srcKey, $dstKey )
+		{
+			$client = $this->getClient();
+			return $client->copyObject( array_filter( [
 				'ACL' => $this->isSecure( $dstContainer ) ? 'private' : 'public-read',
 				'Bucket' => $dstBucket,
 				'CacheControl' => $params['headers']['cache-control'],
@@ -430,7 +450,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 				'ContentEncoding' => $params['headers']['content-encoding'],
 				'ContentLanguage' => $params['headers']['content-language'],
 				'ContentType' => $params['headers']['content-type'],
-				'CopySource' => $srcBucket . '/' . $this->client->encodeKey( $srcKey ),
+				'CopySource' => $srcBucket . '/' . $client->encodeKey( $srcKey ),
 				'CopySourceIfMatch' => $params['headers']['e-tag'],
 				'CopySourceIfModifiedSince' => $params['headers']['if-modified-since'],
 				'Expires' => $params['headers']['expires'],
@@ -489,7 +509,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 
 		$ret = $this->runWithExceptionHandling( __FUNCTION__, function () use ( $bucket, $key ) {
-			$this->client->deleteObject( [
+			$this->getClient()->deleteObject( [
 				'Bucket' => $bucket,
 				'Key' => $key
 			] );
@@ -628,7 +648,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		// 2) if the bucket doesn't exist, there is no point in repeating this operation
 		// after creating it, because the result will still be "file not found".
 		try {
-			$res = $this->client->headObject( [
+			$res = $this->getClient()->headObject( [
 				'Bucket' => $bucket,
 				'Key' => $key
 			] );
@@ -671,12 +691,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 		);
 
 		// Not using runWithExceptionHandling() for the same reasons as in doGetFileStat().
+		$client = $this->getClient();
 		try {
-			$request = $this->client->getCommand( 'GetObject', [
+			$request = $client->getCommand( 'GetObject', [
 				'Bucket' => $bucket,
 				'Key' => $key
 			] );
-			$presigned = $this->client->createPresignedRequest( $request, '+1 day' );
+			$presigned = $client->createPresignedRequest( $request, '+1 day' );
 			return (string)$presigned->getUri();
 		} catch ( S3Exception $e ) {
 			return null;
@@ -692,7 +713,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @return Aws\ResultPaginator
 	 */
 	private function getS3ListPaginator( $bucket, $prefix, $topOnly, array $extraParams = [] ) {
-		return $this->client->getPaginator( 'ListObjects', $extraParams + [
+		return $this->getClient()->getPaginator( 'ListObjects', $extraParams + [
 			'Bucket' => $bucket,
 			'Prefix' => $prefix,
 			'Delimiter' => $topOnly ? '/' : ''
@@ -945,7 +966,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 			$ret = $this->runWithExceptionHandling( __FUNCTION__, function ()
 				use ( $bucket, $restrictFile ) {
-				return $this->client->deleteObject( [
+				return $this->getClient()->deleteObject( [
 					'Bucket' => $bucket,
 					'Key'    => $restrictFile
 				] );
@@ -986,7 +1007,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 			$ret = $this->runWithExceptionHandling( __FUNCTION__, function ()
 				use ( $bucket, $restrictFile ) {
-				return $this->client->putObject( [
+				return $this->getClient()->putObject( [
 					'Bucket' => $bucket,
 					'Key'    => $restrictFile,
 					'Body'   => '' /* Empty file */
@@ -1055,7 +1076,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		// No need to use runWithExceptionHandling() for existence checks (see doGetFileStat())
 		try {
-			$isSecure = $this->client->doesObjectExist( $bucket, $restrictFile );
+			$isSecure = $this->getClient()->doesObjectExist( $bucket, $restrictFile );
 		} catch ( S3Exception $e ) {
 			/* Assume insecure. Don't cache (this may be a temporary problem). */
 			return false;
@@ -1096,14 +1117,15 @@ class AmazonS3FileBackend extends FileBackendStore {
 					]
 				);
 
+				$client = $this->getClient();
 				try {
-					$this->client->createBucket( [
+					$client->createBucket( [
 						'ACL' => 'private', // No listing. Note: this doesn't affect ACL of objects
 						'Bucket' => $bucket
 					] );
 
 					// @phan-suppress-next-line PhanUndeclaredFunctionInCallable <--- false positive
-					$this->client->waitUntil( 'BucketExists', [ 'Bucket' => $bucket ] );
+					$client->waitUntil( 'BucketExists', [ 'Bucket' => $bucket ] );
 				} catch ( S3Exception $e ) {
 					// Failed to create a bucket, so we can't continue.
 					$this->logException( $e, $caller );
