@@ -6,6 +6,7 @@ env:
   DBTYPE: mysql
   DBUSER: root
 
+
 jobs:
   # PHP linters: phpcs, parallel-lint, etc.
   linter:
