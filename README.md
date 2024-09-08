@@ -163,3 +163,8 @@ $wgAWSBucketDomain = '$1.my-custom-url';
 ```
 
 Make sure `$wgAWSBucketName` and `$wgAWSRegion` are set as well.
+
+Some software (such as MinIO) doesn't use subdomains for buckets, in which case you need the following configuration:
+```php
+$wgFileBackends['s3']['use_path_style_endpoint'] = true;
+```
