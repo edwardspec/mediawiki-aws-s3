@@ -23,9 +23,9 @@ $cfg['exclude_file_list'] = array_merge( $cfg['exclude_file_list'], [
 	# These interfaces exist both in "extensions/AWS/vendor/" and in "vendor/" of MediaWiki core.
 	# They are identical, but let's exclude one to not confuse Phan.
 	'vendor/psr/http-message/src/RequestInterface.php',
-	'vendor/psr/log/Psr/Log/LoggerInterface.php',
-	'vendor/psr/log/Psr/Log/LogLevel.php',
-	'vendor/psr/log/Psr/Log/NullLogger.php'
+	'vendor/psr/log/src/LoggerInterface.php',
+	'vendor/psr/log/src/LogLevel.php',
+	'vendor/psr/log/src/NullLogger.php'
 ] );
 
 # Temporarily suppressed warnings.

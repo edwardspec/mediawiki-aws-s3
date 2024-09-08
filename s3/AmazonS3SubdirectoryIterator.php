@@ -58,6 +58,7 @@ class AmazonS3SubdirectoryIterator extends FilterIterator {
 	}
 
 	public function current(): string {
+		// @phan-suppress-next-line PhanUndeclaredMethod <--- false positive
 		return dirname( $this->getInnerIterator()->current() );
 	}
 }
