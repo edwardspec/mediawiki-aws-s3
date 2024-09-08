@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-            php-version: '7.4'
+            php-version: '8.1'
             tools: composer
       - uses: actions/cache@v4
         with:
@@ -58,17 +58,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: [7.4]
-        branch: [REL1_35, REL1_36, REL1_38]
-        include:
-          - php: 8.1
-            branch: REL1_39
-          - php: 8.1
-            branch: REL1_40
-          - php: 8.1
-            branch: REL1_41
-          - php: 8.1
-            branch: REL1_42
+        php: [8.1]
+        branch: [REL1_39, REL1_40, REL1_41, REL1_42]
     env:
       USE_MOCK: 1
       branch: ${{ matrix.branch }}
@@ -103,7 +94,7 @@ jobs:
         with:
             php-version: ${{ matrix.php }}
             extensions: mbstring, intl, opcache, mysqli
-            tools: composer${{ env.branch != 'REL1_39' && env.branch != 'REL1_40' && env.branch != 'REL1_41' && env.branch != 'REL1_42' && ':v1' || '' }}
+            tools: composer
       - name: (debug) Print "php -i"
         run: php -i
       - uses: edwardspec/github-action-build-mediawiki@v1
