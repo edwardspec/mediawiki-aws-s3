@@ -84,7 +84,7 @@ class AmazonS3Hooks {
 
 		// Container names are prefixed by WikiId string, which depends on $wgDBPrefix and $wgDBname.
 		$wikiId = WikiMap::getCurrentWikiId();
-		$isPublicWiki = AmazonS3CompatTools::isPublicWiki();
+		$isPublicWiki = $this->earlyIsPublicWiki();
 
 		// Configure zones (public, thumb, deleted, etc.).
 		$containerPaths = [];
@@ -103,6 +103,21 @@ class AmazonS3Hooks {
 		}
 
 		$wgFileBackends['s3']['containerPaths'] = $containerPaths;
+	}
+
+	/**
+	 * Returns true if everyone (even anonymous users) can see pages in this wiki, false otherwise.
+	 * Unlike AmazonS3CompatTools::isPublicWiki(), this method can be used during early initialization,
+	 * when services like PermissionManager are not available yet.
+	 * @return bool
+	 */
+	protected function earlyIsPublicWiki() {
+		global $wgGroupPermissions, $wgRevokePermissions;
+
+		$allowed = $wgGroupPermissions['*']['read'] ?? true;
+		$revoked = $wgRevokePermissions['*']['read'] ?? false;
+
+		return $allowed && !$revoked;
 	}
 
 	/**

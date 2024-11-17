@@ -4,6 +4,9 @@ List of changes between releases of Extension:AWS.
 
 * Added support for upcoming MediaWiki 1.43.
 
+Bugfixes:
+* Fixed situation where /img_auth.php was unnecessarily used for public wikis.
+
 Performance optimizations:
 * S3Client is no longer created if it isn't actually needed for some operation.
 

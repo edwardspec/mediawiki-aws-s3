@@ -30,9 +30,9 @@
 		"MWAWS\\FSFile": "includes/MWAWS/FSFile.php",
 		"TrimStringIterator": "includes/TrimStringIterator.php"
 	},
-	"ExtensionFunctions": [
-		"AmazonS3Hooks::setup"
-	],
+	"Hooks": {
+		"MediaWikiServices": "AmazonS3Hooks::setup"
+	},
 	"config": {
 		"AWSCredentials": {
 			"description": "Credentials to connect to AWS. Setting this in LocalSettings.php is NOT NEEDED if your EC2 instance has an IAM instance profile, and its IAM role allows access to Amazon S3 (see README).",
