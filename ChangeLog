@@ -1,8 +1,12 @@
 List of changes between releases of Extension:AWS.
 
-== master branch (will become AWS 0.13.1 or 0.14.0, depending on magnitude of changes) ==
+== master branch (will become AWS 0.13.2 or 0.14.0, depending on magnitude of changes) ==
 
-* Added support for upcoming MediaWiki 1.43.
+No changes since AWS 0.13.1.
+
+== AWS 0.13.1 ==
+
+* Added support for MediaWiki 1.43.
 
 Bugfixes:
 * Fixed situation where /img_auth.php was unnecessarily used for public wikis.
