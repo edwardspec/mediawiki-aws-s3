@@ -117,14 +117,16 @@ class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 				"$wikiId-local-thumb" => "$wgAWSBucketName/thumb",
 				"$wikiId-local-deleted" => "$wgAWSBucketName/deleted",
 				"$wikiId-local-temp" => "$wgAWSBucketName/temp",
+				"$wikiId-local-transcoded" => "$wgAWSBucketName/transcoded",
 			];
 		} elseif ( $wgAWSBucketPrefix ) {
-			// 4 buckets (deprecated configuration)
+			// Separate buckets for every zone (deprecated configuration)
 			$expectedBackend['containerPaths'] = [
 				"$wikiId-local-public" => "$wgAWSBucketPrefix",
 				"$wikiId-local-thumb" => "$wgAWSBucketPrefix-thumb",
 				"$wikiId-local-deleted" => "$wgAWSBucketPrefix-deleted",
 				"$wikiId-local-temp" => "$wgAWSBucketPrefix-temp",
+				"$wikiId-local-transcoded" => "$wgAWSBucketPrefix-transcoded",
 			];
 		}
 
@@ -139,6 +141,11 @@ class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 			$expectedHashLevels = $inputConfigs['wgAWSRepoHashLevels'] ?? 0;
 			$expectedDeletedHashLevels = $inputConfigs['wgAWSRepoDeletedHashLevels'] ?? 0;
 
+			$expectedTranscodedZone = [];
+			if ( isset( $opt['expectedThumbZone']['url'] ) ) {
+				$expectedTranscodedZone['url'] = str_replace( 'thumb', 'transcoded', $opt['expectedThumbZone']['url'] );
+			}
+
 			$expectedRepo = [
 				'class' => 'LocalRepo',
 				'name' => 'local',
@@ -150,7 +157,8 @@ class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 					'public' => $opt['expectedPublicZone'],
 					'thumb' => $opt['expectedThumbZone'],
 					'deleted' => [ 'url' => false ],
-					'temp' => [ 'url' => false ]
+					'temp' => [ 'url' => false ],
+					'transcoded' => $expectedTranscodedZone
 				]
 			];
 		}
@@ -236,7 +244,8 @@ class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 					'wgAWSBucketName' => 'site-number-four',
 					'wgAWSBucketDomain' => [
 						'public' => 'img.example.com',
-						'thumb' => 'thumb.example.com'
+						'thumb' => 'thumb.example.com',
+						'transcoded' => 'transcoded.example.com',
 					]
 				],
 				'expectedPublicZone' => [ 'url' => 'https://img.example.com' ],
@@ -318,7 +327,8 @@ class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 					'wgAWSBucketPrefix' => 'site-number-four',
 					'wgAWSBucketDomain' => [
 						'public' => 'img.example.com',
-						'thumb' => 'thumb.example.com'
+						'thumb' => 'thumb.example.com',
+						'transcoded' => 'transcoded.example.com'
 					]
 				],
 				'expectedPublicZone' => [ 'url' => 'https://img.example.com' ],

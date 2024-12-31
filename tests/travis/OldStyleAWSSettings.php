@@ -36,7 +36,8 @@ $wgFileBackends['s3']['containerPaths'] = [
 	"$wgDBname-local-public" => "${BUCKET}",
 	"$wgDBname-local-thumb" => "${BUCKET}/thumb",
 	"$wgDBname-local-deleted" => "${BUCKET}/deleted",
-	"$wgDBname-local-temp" => "${BUCKET}/temp"
+	"$wgDBname-local-temp" => "${BUCKET}/temp",
+	"$wgDBname-local-transcoded" => "${BUCKET}/transcoded"
 ];
 
 $wgLocalFileRepo = [
@@ -49,7 +50,8 @@ $wgLocalFileRepo = [
 		'public'  => [ 'url' => "https://${BUCKET}.s3.amazonaws.com" ],
 		'thumb'   => [ 'url' => "https://${BUCKET}.s3.amazonaws.com/thumb" ],
 		'temp'    => [ 'url' => false ],
-		'deleted' => [ 'url' => false ]
+		'deleted' => [ 'url' => false ],
+		'transcoded' => [ 'url' => "https://${BUCKET}.s3.amazonaws.com/transcoded" ]
 	]
 ];
 

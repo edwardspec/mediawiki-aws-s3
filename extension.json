@@ -107,6 +107,11 @@
 				"temp": {
 					"container": "local-temp",
 					"path": "/temp"
+				},
+				"transcoded": {
+					"container": "local-transcoded",
+					"path": "/transcoded",
+					"isPublic": true
 				}
 			}
 		}
