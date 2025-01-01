@@ -138,7 +138,7 @@ class AmazonS3LocalCache {
 	public static function invalidate( $virtualPath ) {
 		$localPath = self::findLocalPath( $virtualPath );
 
-		if ( $localPath ) {
+		if ( $localPath && file_exists( $localPath ) ) {
 			// TODO: graceful "mark as expired, delete later".
 			// TODO: delete on all webservers (not just this one).
 			$file = new TempFSFile( $localPath );
