@@ -5,6 +5,9 @@ List of changes between releases of Extension:AWS.
 Minor features:
 * Added "transcoded" zone to $wgAWSRepoZones.
 
+Warnings fixed:
+* Fixed harmless PHP warning in LocalCache::invalidate().
+
 == AWS 0.13.1 ==
 
 * Added support for MediaWiki 1.43.
