@@ -166,7 +166,7 @@ class AmazonS3LocalCacheTest extends MediaWikiIntegrationTestCase {
 			$this->assertNotInstanceOf( TempFSFile::class, $testFile );
 			$this->assertTrue( $testFile->exists() );
 			$this->assertNotRegExpTemp( $expectedTemporaryPathRegex, $testFile->getPath() );
-			$this->assertEquals( $largeFileContents, file_get_contents( $testFile->getPath() ) );
+			$this->assertSame( $largeFileContents, file_get_contents( $testFile->getPath() ) );
 		};
 
 		AmazonS3LocalCache::postDownloadLogic( $file );

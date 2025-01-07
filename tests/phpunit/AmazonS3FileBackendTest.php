@@ -137,11 +137,11 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 	public function testGetFileStat( array $params ) {
 		$info = $this->getBackend()->doGetFileStat( [ 'src' => $params['dst'] ] );
 
-		$this->assertEquals( $info['size'], strlen( $params['content'] ),
+		$this->assertSame( $info['size'], strlen( $params['content'] ),
 			'GetFileStat(): incorrect filesize after doCreateInternal()' );
 
 		$expectedSHA1 = Wikimedia\base_convert( sha1( $params['content'] ), 16, 36, 31 );
-		$this->assertEquals( $expectedSHA1, $info['sha1'],
+		$this->assertSame( $expectedSHA1, $info['sha1'],
 			'GetFileStat(): incorrect SHA1 after doCreateInternal()' );
 	}
 
@@ -155,7 +155,7 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 		$this->assertNotNull( $url, 'No URL returned by getFileHttpUrl()' );
 
 		$content = $this->httpGet( $url );
-		$this->assertEquals( $params['content'], $content,
+		$this->assertSame( $params['content'], $content,
 			'Content downloaded from FileHttpUrl is different from expected' );
 	}
 
@@ -272,7 +272,7 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 			$params
 		);
 		if ( $method == 'doDirectoryExists' ) {
-			$this->assertEquals( $expectedResult, $result );
+			$this->assertSame( $expectedResult, $result );
 			return;
 		}
 
@@ -280,7 +280,7 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 
 		sort( $expectedResult );
 		sort( $foundFilenames );
-		$this->assertEquals( $expectedResult, $foundFilenames,
+		$this->assertSame( $expectedResult, $foundFilenames,
 			"Directory listing doesn't match expected."
 		);
 	}
@@ -308,7 +308,7 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 		foreach ( $src as $filename => $virtualPath ) {
 			$this->assertArrayHasKey( $virtualPath, $result,
 				"URL $virtualPath not found() in array returned by doGetLocalCopyMulti()" );
-			$this->assertEquals(
+			$this->assertSame(
 				$this->getTestContent( $filename ),
 				file_get_contents( $result[$virtualPath]->getPath() ),
 				"Incorrect contents of $virtualPath returned by doGetLocalCopyMulti()"
@@ -401,7 +401,7 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 		$this->assertNotNull( $url, 'No URL returned by getFileHttpUrl()' );
 
 		$content = $this->httpGet( $url );
-		$this->assertEquals( $expectedContent, $content,
+		$this->assertSame( $expectedContent, $content,
 			'Content downloaded from FileHttpUrl is different from expected' );
 	}
 
@@ -483,7 +483,7 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 			$url = $this->getClient()->getObjectUrl( $bucket, $prefix . $key );
 			$securityAfterTest = ( $this->httpGet( $url ) === false );
 
-			$this->assertEquals( $expectedSecurity, $securityAfterTest,
+			$this->assertSame( $expectedSecurity, $securityAfterTest,
 				"Incorrect ACL: S3 Object uploaded after $method() is " .
 				( $expectedSecurity ? "publicly accessible" : "restricted for reading" ) );
 		}
@@ -538,10 +538,10 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 			'Key' => $key
 		] );
 		$this->assertArrayHasKey( 'ContentType', $response );
-		$this->assertEquals( $expectedContentType, $response['ContentType'] );
+		$this->assertSame( $expectedContentType, $response['ContentType'] );
 
 		$this->assertArrayHasKey( 'sha1base36', $response['Metadata'] );
-		$this->assertEquals( $expectedSha1Base36, $response['Metadata']['sha1base36'] );
+		$this->assertSame( $expectedSha1Base36, $response['Metadata']['sha1base36'] );
 	}
 
 	/**

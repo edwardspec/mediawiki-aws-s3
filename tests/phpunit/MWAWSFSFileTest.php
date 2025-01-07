@@ -44,7 +44,7 @@ class MWAWSFSFileTest extends MediaWikiIntegrationTestCase {
 			$methodExists = false;
 		}
 
-		$this->assertEquals( $mustExist, $methodExists,
+		$this->assertSame( $mustExist, $methodExists,
 			"Is method \"$methodName\" provided by " . get_class( $fsFile ) . "?"
 		);
 	}

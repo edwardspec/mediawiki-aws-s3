@@ -132,7 +132,7 @@ class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 
 		$this->assertArrayHasKey( 's3', $wgFileBackends,
 			"\$wgFileBackends array doesn't have 's3' key" );
-		$this->assertEquals( $expectedBackend, $wgFileBackends['s3'],
+		$this->assertSame( $expectedBackend, $wgFileBackends['s3'],
 			"Unexpected value of \$wgFileBackends['s3']" );
 
 		// Step 2. Check $wgLocalFileRepo.
@@ -163,7 +163,7 @@ class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 			];
 		}
 
-		$this->assertEquals( $expectedRepo, $wgLocalFileRepo, "Unexpected \$wgLocalFileRepo" );
+		$this->assertSame( $expectedRepo, $wgLocalFileRepo, "Unexpected \$wgLocalFileRepo" );
 	}
 
 	/**
