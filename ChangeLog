@@ -5,6 +5,9 @@ List of changes between releases of Extension:AWS.
 Minor features:
 * Added "transcoded" zone to $wgAWSRepoZones.
 
+Bugfixes:
+* TimedMediaHandler: fixed error "TimedText subtitles require scriptDirUrl".
+
 Warnings fixed:
 * Fixed harmless PHP warning in LocalCache::invalidate().
 

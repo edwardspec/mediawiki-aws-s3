@@ -146,11 +146,19 @@ class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 				$expectedTranscodedZone['url'] = str_replace( 'thumb', 'transcoded', $opt['expectedThumbZone']['url'] );
 			}
 
+			$expectedScriptDirUrl = ''; // MediaWiki 1.43+
+			if ( version_compare( MW_VERSION, '1.43.0', '<' ) ) {
+				// MediaWiki 1.43+ empties $wgScriptPath before the test.
+				global $wgScriptPath;
+				$expectedScriptDirUrl = $wgScriptPath;
+			}
+
 			$expectedRepo = [
 				'class' => 'LocalRepo',
 				'name' => 'local',
 				'backend' => 'AmazonS3',
 				'url' => $opt['expectedDefaultUrl'] ?? wfScript( 'img_auth' ),
+				'scriptDirUrl' => $expectedScriptDirUrl,
 				'hashLevels' => $expectedHashLevels,
 				'deletedHashLevels' => $expectedDeletedHashLevels,
 				'zones' => [

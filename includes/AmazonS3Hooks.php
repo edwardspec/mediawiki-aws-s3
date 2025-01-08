@@ -70,13 +70,14 @@ class AmazonS3Hooks {
 	protected function replaceLocalRepo() {
 		global $wgFileBackends, $wgLocalFileRepo, $wgAWSRepoHashLevels,
 			$wgAWSRepoDeletedHashLevels, $wgImgAuthPath,
-			$wgAWSRepoZones;
+			$wgAWSRepoZones, $wgScriptPath;
 
 		$wgLocalFileRepo = [
 			'class'             => 'LocalRepo',
 			'name'              => 'local',
 			'backend'           => 'AmazonS3',
 			'url'               => $wgImgAuthPath ?: wfScript( 'img_auth' ),
+			'scriptDirUrl'      => $wgScriptPath,
 			'hashLevels'        => $wgAWSRepoHashLevels,
 			'deletedHashLevels' => $wgAWSRepoDeletedHashLevels,
 			'zones'             => []
