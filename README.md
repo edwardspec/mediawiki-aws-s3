@@ -168,3 +168,9 @@ Some software (such as MinIO) doesn't use subdomains for buckets, in which case 
 ```php
 $wgFileBackends['s3']['use_path_style_endpoint'] = true;
 ```
+
+Some software doesn't support modern checksums (expected by AWS SDK v3.337.0 and above). You can workaround it by adding the following lines to LocalSettings.php:
+```php
+putenv( 'AWS_REQUEST_CHECKSUM_CALCULATION=WHEN_REQUIRED' );
+putenv( 'AWS_RESPONSE_CHECKSUM_VALIDATION=WHEN_REQUIRED' );
+```
