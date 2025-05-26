@@ -21,6 +21,11 @@
  * @file
  */
 
+if ( !class_exists( 'WikiMap' ) ) {
+	// MediaWiki 1.44+
+	class_alias( 'MediaWiki\\WikiMap\\WikiMap', 'WikiMap' );
+}
+
 /**
  * Hooks of Extension:AWS
  */

@@ -2,6 +2,8 @@ List of changes between releases of Extension:AWS.
 
 == master branch (will become AWS 0.13.2 or 0.14.0, depending on magnitude of changes) ==
 
+* Added support for MediaWiki 1.44.
+
 Minor features:
 * Added "transcoded" zone to $wgAWSRepoZones.
 
