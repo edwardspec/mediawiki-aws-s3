@@ -95,9 +95,9 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 	 * @covers AmazonS3FileBackend::doPrepareInternal
 	 */
 	public function testPrepareInternal() {
-		list( $container, ) = $this->getBackend()->resolveStoragePathReal(
+		[ $container, ] = $this->getBackend()->resolveStoragePathReal(
 			$this->getVirtualPath( 'Hello/World.png' ) );
-		list( , $prefix ) = $this->getBackend()->findContainer( $container );
+		[ , $prefix ] = $this->getBackend()->findContainer( $container );
 
 		$status = $this->getBackend()->doPrepareInternal( $container, $prefix, [] );
 		$this->assertTrue( $status->isGood(), 'doPrepareInternal() failed' );
@@ -116,7 +116,7 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 		];
 		$params['fullfilename'] = $params['directory'] . '/' . $params['filename'];
 		$params['dst'] = $this->getVirtualPath( $params['fullfilename'] );
-		list( $params['container'], ) = $this->getBackend()->resolveStoragePathReal( $params['dst'] );
+		[ $params['container'], ] = $this->getBackend()->resolveStoragePathReal( $params['dst'] );
 
 		$status = $this->getBackend()->doCreateInternal( [
 			'content' => $params['content'],
@@ -184,7 +184,7 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 			$this->assertTrue( $status->isGood(), 'doCreateInternal() failed' );
 		}
 
-		list( $container, ) = $this->getBackend()->resolveStoragePathReal(
+		[ $container, ] = $this->getBackend()->resolveStoragePathReal(
 			$this->getVirtualPath( $parentDirectory . '/' . $filenames[0] )
 		);
 
@@ -412,7 +412,7 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 	 */
 	public function testSecureAndPublish() {
 		$dst = $this->getVirtualPath( 'Stored/File/2.txt' );
-		list( $container, $key ) = $this->getBackend()->resolveStoragePathReal( $dst );
+		[ $container, $key ] = $this->getBackend()->resolveStoragePathReal( $dst );
 
 		/* Order of these tests will be different, see below */
 		$subtests = [
@@ -448,7 +448,7 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 			// Delete cache, so that it won't affect this subtest
 			$this->clearSecurityCache( $container );
 
-			list( $method, $params, $expectedSecurity ) = $subtests[$subtestName];
+			[ $method, $params, $expectedSecurity ] = $subtests[$subtestName];
 			$this->getBackend()->$method( $container, 'unused', $params );
 
 			// Delete cache, so that doCreateInternal would actually recheck security,
@@ -479,7 +479,7 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 			# Note: getFileHttpUrl() returns presigned URLs and can't be used here.
 			# A non-presigned URL will return HTTP 403 Forbidden
 			# if the ACL of this object is not PUBLIC_READ.
-			list( $bucket, $prefix ) = $this->getBackend()->findContainer( $container );
+			[ $bucket, $prefix ] = $this->getBackend()->findContainer( $container );
 			$url = $this->getClient()->getObjectUrl( $bucket, $prefix . $key );
 			$securityAfterTest = ( $this->httpGet( $url ) === false );
 
@@ -532,7 +532,7 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 		$this->assertTrue( $status->isGood(), "$method() failed" );
 
 		// Now that S3 object has been stored, perform a HEAD request and check its headers.
-		list( $bucket, $key, ) = $this->getBackend()->getBucketAndObject( $params['dst'] );
+		[ $bucket, $key, ] = $this->getBackend()->getBucketAndObject( $params['dst'] );
 		$response = $this->getClient()->headObject( [
 			'Bucket' => $bucket,
 			'Key' => $key
@@ -549,10 +549,10 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 	 */
 	public function contentTypeDataProvider() {
 		return [
-			[ 'doCreateInternal', 'blank.png',  'image/png', 'hcuidxu8r3jvhby9kd569py2lfeqlxs' ],
-			[ 'doStoreInternal', 'blank.png',  'image/png', 'hcuidxu8r3jvhby9kd569py2lfeqlxs' ],
-			[ 'doStoreInternal', 'text.txt',  'text/plain', '1jqz0c1p0v6ieg9r3b6y60cqb4hb07b' ],
-			[ 'doCreateInternal', 'text.txt',  'text/plain', '1jqz0c1p0v6ieg9r3b6y60cqb4hb07b' ]
+			[ 'doCreateInternal', 'blank.png', 'image/png', 'hcuidxu8r3jvhby9kd569py2lfeqlxs' ],
+			[ 'doStoreInternal', 'blank.png', 'image/png', 'hcuidxu8r3jvhby9kd569py2lfeqlxs' ],
+			[ 'doStoreInternal', 'text.txt', 'text/plain', '1jqz0c1p0v6ieg9r3b6y60cqb4hb07b' ],
+			[ 'doCreateInternal', 'text.txt', 'text/plain', '1jqz0c1p0v6ieg9r3b6y60cqb4hb07b' ]
 		];
 	}
 }

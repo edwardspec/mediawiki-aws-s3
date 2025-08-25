@@ -272,8 +272,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @return array|null Array of three strings: bucket, object and internal container.
 	 */
 	protected function getBucketAndObject( $storagePath ) {
-		list( $container, $filename ) = $this->resolveStoragePathReal( $storagePath );
-		list( $bucket, $prefix ) = $this->findContainer( $container );
+		[ $container, $filename ] = $this->resolveStoragePathReal( $storagePath );
+		[ $bucket, $prefix ] = $this->findContainer( $container );
 		return [ $bucket, $prefix . $filename, $container ];
 	}
 
@@ -283,7 +283,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @return array|null Array of two strings: bucket, object name.
 	 */
 	protected function getRestrictFilePath( $container ) {
-		list( $bucket, $prefix ) = $this->findContainer( $container );
+		[ $bucket, $prefix ] = $this->findContainer( $container );
 		$restrictFile = $prefix . self::RESTRICT_FILE;
 
 		return [ $bucket, $restrictFile ];
@@ -299,7 +299,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @phan-param array{content:string|resource,dst:string,headers?:array<string,string>} $params
 	 */
 	protected function createOrStore( array $params, $sha1, $contentType ) {
-		list( $bucket, $key, $container ) = $this->getBucketAndObject( $params['dst'] );
+		[ $bucket, $key, $container ] = $this->getBucketAndObject( $params['dst'] );
 
 		if ( $bucket === null || $key == null ) {
 			return Status::newFatal( 'backend-fail-invalidpath', $params['dst'] );
@@ -399,8 +399,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 	protected function doCopyInternal( array $params ) {
 		$status = Status::newGood();
 
-		list( $srcBucket, $srcKey, ) = $this->getBucketAndObject( $params['src'] );
-		list( $dstBucket, $dstKey, $dstContainer ) = $this->getBucketAndObject( $params['dst'] );
+		[ $srcBucket, $srcKey, ] = $this->getBucketAndObject( $params['src'] );
+		[ $dstBucket, $dstKey, $dstContainer ] = $this->getBucketAndObject( $params['dst'] );
 
 		if ( $srcBucket === null || $srcKey == null ) {
 			$status->fatal( 'backend-fail-invalidpath', $params['src'] );
@@ -494,7 +494,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	protected function doDeleteInternal( array $params ) {
 		$status = Status::newGood();
 
-		list( $bucket, $key, ) = $this->getBucketAndObject( $params['src'] );
+		[ $bucket, $key, ] = $this->getBucketAndObject( $params['src'] );
 		if ( $bucket === null || $key == null ) {
 			$status->fatal( 'backend-fail-invalidpath', $params['src'] );
 			return $status;
@@ -565,7 +565,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$dir .= '/';
 		}
 
-		list( $bucket, $prefix ) = $this->findContainer( $container );
+		[ $bucket, $prefix ] = $this->findContainer( $container );
 		$dir = $prefix . $dir;
 
 		$this->logger->debug(
@@ -628,7 +628,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @phan-return array{mtime:string,size:int,etag:string,sha1:string}|false|null
 	 */
 	protected function statUncached( $src ) {
-		list( $bucket, $key, ) = $this->getBucketAndObject( $src );
+		[ $bucket, $key, ] = $this->getBucketAndObject( $src );
 
 		$this->logger->debug(
 			'S3FileBackend: doGetFileStat(): obtaining information about {key} in S3 bucket {bucket}',
@@ -677,7 +677,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @phan-param array{src:string} $params
 	 */
 	public function getFileHttpUrl( array $params ) {
-		list( $bucket, $key, ) = $this->getBucketAndObject( $params['src'] );
+		[ $bucket, $key, ] = $this->getBucketAndObject( $params['src'] );
 		if ( $bucket === null ) {
 			return null;
 		}
@@ -732,7 +732,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	public function getDirectoryListInternal( $container, $dir, array $params ) {
 		$topOnly = !empty( $params['topOnly'] );
 
-		list( $bucket, $prefix ) = $this->findContainer( $container );
+		[ $bucket, $prefix ] = $this->findContainer( $container );
 		$bucketDir = $prefix . $dir; // Relative to S3 bucket $bucket, not $container
 
 		$this->logger->debug(
@@ -776,7 +776,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	public function getFileListInternal( $container, $dir, array $params ) {
 		$topOnly = !empty( $params['topOnly'] );
 
-		list( $bucket, $prefix ) = $this->findContainer( $container );
+		[ $bucket, $prefix ] = $this->findContainer( $container );
 		$dir = $prefix . $dir;
 
 		$this->logger->debug(
@@ -868,7 +868,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 
 		foreach ( $sources as $src ) {
 			// TODO: remove this duplicate check, getFileHttpUrl() already checks this.
-			list( $bucket, $key, ) = $this->getBucketAndObject( $src );
+			[ $bucket, $key, ] = $this->getBucketAndObject( $src );
 			if ( $bucket === null || $key === null ) {
 				$fsFiles[$src] = null;
 				continue;
@@ -901,7 +901,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @phan-param $params array{noAccess?:bool,noListing?:bool,access?:bool,listing?:bool}
 	 */
 	protected function doPrepareInternal( $container, $dir, array $params ) {
-		list( $bucket, $prefix ) = $this->findContainer( $container );
+		[ $bucket, $prefix ] = $this->findContainer( $container );
 		$dir = $prefix . $dir;
 
 		$this->logger->debug(
@@ -954,7 +954,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	protected function doPublishInternal( $container, $dir, array $params ) {
 		if ( !empty( $params['access'] ) && $this->isSecure( $container ) ) {
 			// Container is currently secure, but $params say that it should be public.
-			list( $bucket, $restrictFile ) = $this->getRestrictFilePath( $container );
+			[ $bucket, $restrictFile ] = $this->getRestrictFilePath( $container );
 
 			$this->logger->debug(
 				'S3FileBackend: doPublishInternal: deleting {file} from S3 bucket {bucket}',
@@ -995,7 +995,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	protected function doSecureInternal( $container, $dir, array $params ) {
 		if ( !empty( $params['noAccess'] ) && !$this->isSecure( $container ) ) {
 			// Container is currently public, but $params say that it should be secure.
-			list( $bucket, $restrictFile ) = $this->getRestrictFilePath( $container );
+			[ $bucket, $restrictFile ] = $this->getRestrictFilePath( $container );
 
 			$this->logger->debug(
 				'S3FileBackend: doSecureInternal: creating {file} in S3 bucket {bucket}',
@@ -1064,7 +1064,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		// Not found in cache. Determine from S3: if ".htsecure" file is present, then secure.
-		list( $bucket, $restrictFile ) = $this->getRestrictFilePath( $container );
+		[ $bucket, $restrictFile ] = $this->getRestrictFilePath( $container );
 
 		$this->logger->debug(
 			'S3FileBackend: isSecure: checking the presence of {file} in S3 bucket {bucket}',
