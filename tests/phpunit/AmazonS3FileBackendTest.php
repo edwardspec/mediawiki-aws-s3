@@ -35,6 +35,11 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 		global $wgFileBackends;
 		$services = MediaWikiServices::getInstance();
 
+		global $wgAWSBucketName, $wgAWSBucketPrefix;
+		if ( !$wgAWSBucketName && !$wgAWSBucketPrefix ) {
+			self::markTestSkipped( '$wgAWSBucketName must be set in LocalSettings.php' );
+		}
+
 		if ( getenv( 'USE_MOCK' ) ) {
 			// Point to a local Moto server (AWS-mocking daemon)
 			$wgFileBackends['s3']['endpoint'] = 'http://127.0.0.1:3000';
