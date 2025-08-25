@@ -699,7 +699,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			] );
 			$presigned = $client->createPresignedRequest( $request, '+1 day' );
 			return (string)$presigned->getUri();
-		} catch ( S3Exception $e ) {
+		} catch ( S3Exception ) {
 			return null;
 		}
 	}
@@ -1077,7 +1077,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		// No need to use runWithExceptionHandling() for existence checks (see doGetFileStat())
 		try {
 			$isSecure = $this->getClient()->doesObjectExist( $bucket, $restrictFile );
-		} catch ( S3Exception $e ) {
+		} catch ( S3Exception ) {
 			/* Assume insecure. Don't cache (this may be a temporary problem). */
 			return false;
 		}
@@ -1123,8 +1123,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 						'ACL' => 'private', // No listing. Note: this doesn't affect ACL of objects
 						'Bucket' => $bucket
 					] );
-
-					// @phan-suppress-next-line PhanUndeclaredFunctionInCallable <--- false positive
 					$client->waitUntil( 'BucketExists', [ 'Bucket' => $bucket ] );
 				} catch ( S3Exception $e ) {
 					// Failed to create a bucket, so we can't continue.
