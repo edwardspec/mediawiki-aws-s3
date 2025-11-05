@@ -21,6 +21,7 @@
  * @file
  */
 
+use MediaWiki\MediaWikiServices;
 use MWAWS\FSFile;
 
 /**
@@ -75,7 +76,7 @@ class AmazonS3LocalCache {
 		} else {
 			// Cache is disabled.
 			// Target file is temporary and will be deleted automatically.
-			$file = TempFSFile::factory( 'localcopy_', $ext );
+			$file = MediaWikiServices::getInstance()->getTempFSFileFactory()->newTempFSFile( 'localcopy_', $ext );
 		}
 
 		if ( !$file ) {
