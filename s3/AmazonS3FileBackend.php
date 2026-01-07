@@ -620,7 +620,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			// 0 is not identical (===) to false, so the cache miss check won't trigger again until the cache expires
 			// otherwise, the value of $result will always be false and the statUncached function will always
 			// run even if the cache entry says the image doesn't exist
-			$valueForCache = ($result === false) ? 0 : $result;
+			$valueForCache = ( $result === false ) ? 0 : $result;
 
 			$this->statCache->set( $cacheKey, $valueForCache, 604800 ); // 7 days, since we invalidate the cache
 		}
