@@ -612,9 +612,22 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$cacheKey = $this->getStatCacheKey( $src );
 
 		$result = $this->statCache->get( $cacheKey );
-		if ( $result === false ) { /* Not found in the cache */
+
+		if ( $result === false ) {
 			$result = $this->statUncached( $src );
-			$this->statCache->set( $cacheKey, $result, 604800 ); // 7 days, since we invalidate the cache
+
+			// statUncached returned false which means the FILE DOES NOT EXIST, store 0 in the cache instead
+			// 0 is not identical (===) to false, so the cache miss check won't trigger again until the cache expires
+			// otherwise, the value of $result will always be false and the statUncached function will always
+			// run even if the cache entry says the image doesn't exist
+			$valueForCache = ($result === false) ? 0 : $result;
+
+			$this->statCache->set( $cacheKey, $valueForCache, 604800 ); // 7 days, since we invalidate the cache
+		}
+
+		// Convert back to false so MediaWiki can understand that the file doesn't exist
+		if ( $result === 0 ) {
+			return false;
 		}
 
 		return $result;
