@@ -10,6 +10,10 @@ Minor features:
 Bugfixes:
 * TimedMediaHandler: fixed error "TimedText subtitles require scriptDirUrl".
 
+Performance optimizations:
+* If it is known that some file doesn't exist in S3, this fact is now remembered
+instead of being rechecked on every doGetFileStat().
+
 Warnings fixed:
 * Fixed harmless PHP warning in LocalCache::invalidate().
 

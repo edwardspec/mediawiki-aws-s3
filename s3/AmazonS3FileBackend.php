@@ -612,9 +612,22 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$cacheKey = $this->getStatCacheKey( $src );
 
 		$result = $this->statCache->get( $cacheKey );
-		if ( $result === false ) { /* Not found in the cache */
+
+		if ( $result === false ) {
+			// Not cached yet.
 			$result = $this->statUncached( $src );
+			if ( $result === false ) {
+				// File doesn't exist. This fact must be cached.
+				// Cached value must be different from "false" (which is used for "not cached yet" situation),
+				// so that we wouldn't be rechecking "does the file exist?" every time.
+				$result = 0;
+			}
 			$this->statCache->set( $cacheKey, $result, 604800 ); // 7 days, since we invalidate the cache
+		}
+
+		if ( $result === 0 ) {
+			// 0 is only used by the cache. MediaWiki expects false to be returned.
+			return false;
 		}
 
 		return $result;
