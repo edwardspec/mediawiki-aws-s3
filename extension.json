@@ -1,6 +1,6 @@
 {
 	"name": "AWS",
-	"version": "0.13.1",
+	"version": "0.14.0",
 	"author": [
 		"Tyler Romeo",
 		"Daniel Friesen @ Redwerks",
@@ -11,7 +11,7 @@
 	"descriptionmsg": "aws-desc",
 	"license-name": "GPL-2.0-or-later",
 	"requires": {
-		"MediaWiki": ">= 1.35.0"
+		"MediaWiki": ">= 1.43.0"
 	},
 	"type": "other",
 	"MessagesDirs": {
