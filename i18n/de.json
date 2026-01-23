@@ -1,8 +1,9 @@
 {
 	"@metadata": {
 		"authors": [
+			"Kghbln",
 			"Metalhead64"
 		]
 	},
-	"aws-desc": "Ergänzt ein Plugin zur Verwendung von Amazon Web Services"
+	"aws-desc": "Ermöglicht das Nutzen von Amazon S3 als Dateispeicher"
 }
