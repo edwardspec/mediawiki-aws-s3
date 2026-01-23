@@ -7,6 +7,7 @@ No changes since AWS 0.14.0.
 == AWS 0.14.0 ==
 
 * Added support for MediaWiki 1.44.
+* Dropped support for MediaWiki 1.35-1.42
 
 Minor features:
 * Added "transcoded" zone to $wgAWSRepoZones.
