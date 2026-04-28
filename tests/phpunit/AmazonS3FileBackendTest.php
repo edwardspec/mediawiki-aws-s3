@@ -40,6 +40,12 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 			self::markTestSkipped( '$wgAWSBucketName must be set in LocalSettings.php' );
 		}
 
+		if ( !isset( $wgFileBackends['s3']['containerPaths'] ) ) {
+			// This is normally done in "MediaWikiServices" hook, but this hook is not called during tests
+			// when they are called via "composer phpunit" (the only option in MediaWiki 1.46+).
+			AmazonS3Hooks::setup();
+		}
+
 		if ( getenv( 'USE_MOCK' ) ) {
 			// Point to a local Moto server (AWS-mocking daemon)
 			$wgFileBackends['s3']['endpoint'] = 'http://127.0.0.1:3000';

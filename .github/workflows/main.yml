@@ -9,14 +9,14 @@ env:
 jobs:
   # PHP linters: phpcs, parallel-lint, etc.
   linter:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: shivammathur/setup-php@v2
         with:
             php-version: '8.2'
             tools: composer
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/.composer/cache
           key: buildcache-linter
@@ -25,17 +25,17 @@ jobs:
 
   # Phan (PHP static analyzer)
   phan:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       branch: REL1_43
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: shivammathur/setup-php@v2
         with:
             php-version: '8.2'
             extensions: ast
             tools: composer
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.composer/cache
@@ -60,10 +60,13 @@ jobs:
       matrix:
         php: [8.2]
         branch: [REL1_43, REL1_44, REL1_45]
+        include:
+           - php: 8.3
+             branch: REL1_46
     env:
       USE_MOCK: 1
       branch: ${{ matrix.branch }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     services:
       memcached:
         image: memcached:latest
@@ -78,15 +81,15 @@ jobs:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v5
         with:
           path: |
             buildcache
           key: buildcache-${{ env.branch }}-${{ hashFiles('**/no/files/need/to/invalidate/cache/for/now') }}
       - name: Install and run Moto (S3 mock server)
         run: |
-          sudo apt-get install -y python3-pip netcat
+          sudo apt-get install -y python3-pip netcat-traditional
           pip3 install pyOpenSSL --upgrade
           pip3 install --user "moto[server]" "moto[s3]" && ( ~/.local/bin/moto_server -p 3000 2>~/moto.log & )
 
@@ -115,7 +118,7 @@ jobs:
       - name: RUN -- phpunit (TestsWithNoNeedForAwsCredentials)
         run: |
           cd mediawiki
-          php tests/phpunit/phpunit.php --group TestsWithNoNeedForAwsCredentials extensions/AWS/tests/phpunit/
+          composer phpunit -- --group TestsWithNoNeedForAwsCredentials extensions/AWS/tests/phpunit/
 
       - name: RUN -- phpunit AmazonS3FileBackendTest.php
         # We run the test twice: one for container path "NameOfBucket" (public zone),
@@ -128,7 +131,7 @@ jobs:
           for WITH_CACHE in 0 1; do
               for zone in public thumb; do
                   export BUCKET="${AWS_BUCKET_PREFIX}-$(LC_ALL=C date +'%s')-${{ job.container.id }}-$zone-cache$WITH_CACHE"
-                  AWS_S3_TEST_ZONE="$zone" WITH_CACHE="$WITH_CACHE" php tests/phpunit/phpunit.php extensions/AWS/tests/phpunit/AmazonS3FileBackendTest.php || ((fails++))
+                  AWS_S3_TEST_ZONE="$zone" WITH_CACHE="$WITH_CACHE" composer phpunit extensions/AWS/tests/phpunit/AmazonS3FileBackendTest.php || ((fails++))
                   rm -rf -v "~/aws.localcache"
               done
           done;
