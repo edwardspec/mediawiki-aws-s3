@@ -12,28 +12,15 @@ Why is this needed: when images are in S3, Amazon EC2 instance which runs MediaW
 
 2\) Move the AWS directory to the "extensions" directory of your MediaWiki, e.g. `/var/www/html/w/extensions` __(assuming MediaWiki is in `/var/www/html/w`)__.
 
-3\) Create the file `/var/www/html/w/composer.local.json` with the following contents:
-```json
-{
-	"extra": {
-		"merge-plugin": {
-			"include": [
-				"extensions/AWS/composer.json"
-			]
-		}
-	}
-}
-```
+3\) Run `composer update` from `/var/www/html/w/extensions/AWS` (to download dependencies). If you don't have Composer installed, see https://www.mediawiki.org/wiki/Composer for how to install it.
 
-4\) Run `composer update` from `/var/www/html/w` (to download dependencies). If you don't have Composer installed, see https://www.mediawiki.org/wiki/Composer for how to install it.
+4\) Create an S3 bucket for images, e.g. `wonderfulbali234`. Note: this name will be seen in URL of images.
 
-5\) Create an S3 bucket for images, e.g. `wonderfulbali234`. Note: this name will be seen in URL of images.
+5a\) If your EC2 instance has an IAM instance profile (recommended), copy everything from "Needed IAM permissions" (see below) to inline policy of the IAM role. See https://console.aws.amazon.com/iam/home#/roles
 
-6a\) If your EC2 instance has an IAM instance profile (recommended), copy everything from "Needed IAM permissions" (see below) to inline policy of the IAM role. See https://console.aws.amazon.com/iam/home#/roles
+5b\) If your EC2 instance doesn't have an IAM profile, obtain key/secret for AWS API. You'll need to write it in LocalSettings.php (see below).
 
-6b\) If your EC2 instance doesn't have an IAM profile, obtain key/secret for AWS API. You'll need to write it in LocalSettings.php (see below).
-
-7\) Modify LocalSettings.php (see below).
+6\) Modify LocalSettings.php (see below).
 
 # Configuration in LocalSettings.php
 
