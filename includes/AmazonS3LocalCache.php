@@ -55,7 +55,7 @@ class AmazonS3LocalCache {
 	public static function get( $virtualPath ) {
 		global $wgAWSLocalCacheDirectory, $wgAWSLocalCacheExcludeFileExtensions;
 
-		$ext = FSFile::extensionFromPath( $virtualPath );
+		$ext = FileBackend::extensionFromPath( $virtualPath );
 		$file = null;
 
 		if ( $wgAWSLocalCacheDirectory && !in_array( $ext, $wgAWSLocalCacheExcludeFileExtensions ) ) {

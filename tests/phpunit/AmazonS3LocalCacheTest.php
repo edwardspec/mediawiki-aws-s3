@@ -114,7 +114,7 @@ class AmazonS3LocalCacheTest extends MediaWikiIntegrationTestCase {
 		// - $smallFileContents NOT being cached
 		$thresholdInBytes = 0.5 * ( strlen( $largeFileContents ) + strlen( $smallFileContents ) );
 
-		$expectedExtension = FSFile::extensionFromPath( $this->virtualUrl );
+		$expectedExtension = FileBackend::extensionFromPath( $this->virtualUrl );
 		$expectedTemporaryPathRegex = "/\.S3LocalCache\.[0-9a-fA-F]{32,32}\." .
 			quotemeta( $expectedExtension ) . '$/';
 
