@@ -4,6 +4,9 @@ List of changes between releases of Extension:AWS.
 
 * Added support for MediaWiki 1.46.
 
+Minor features:
+* If $wgHTTPProxy is set, it is now used when downloading files from S3 to the webserver.
+
 == AWS 0.14.0 ==
 
 * Added support for MediaWiki 1.44.

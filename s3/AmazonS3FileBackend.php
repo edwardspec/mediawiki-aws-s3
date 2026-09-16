@@ -861,7 +861,8 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$this->s3trapWarnings();
 
 		$profiling = new AmazonS3ProfilingAssist( "downloading $srcPath from S3" );
-		$ok = copy( $srcPath, $dstPath );
+		// @phan-suppress-next-line PhanTypeMismatchArgumentNullableInternal - false positive
+		$ok = copy( $srcPath, $dstPath, $this->getStreamContext() );
 		$profiling->log();
 
 		$this->s3untrapWarnings();
@@ -874,6 +875,24 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		return $file;
+	}
+
+	/**
+	 * Get PHP stream context (null if not needed) to use with copy().
+	 * @return ?resource
+	 */
+	protected function getStreamContext() {
+		global $wgHTTPProxy;
+		if ( !$wgHTTPProxy ) {
+			return null;
+		}
+
+		$opts = [
+			'http' => [
+				'proxy' => $wgHTTPProxy
+			]
+		];
+		return stream_context_create( $opts );
 	}
 
 	/**
