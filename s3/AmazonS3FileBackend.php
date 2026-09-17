@@ -892,24 +892,6 @@ class AmazonS3FileBackend extends FileBackendStore {
 	}
 
 	/**
-	 * Get PHP stream context (null if not needed) to use with copy().
-	 * @return ?resource
-	 */
-	protected function getStreamContext() {
-		global $wgHTTPProxy;
-		if ( !$wgHTTPProxy ) {
-			return null;
-		}
-
-		$opts = [
-			'http' => [
-				'proxy' => $wgHTTPProxy
-			]
-		];
-		return stream_context_create( $opts );
-	}
-
-	/**
 	 * Obtain local copies of files from Amazon S3.
 	 * @param array $params
 	 * @return array
