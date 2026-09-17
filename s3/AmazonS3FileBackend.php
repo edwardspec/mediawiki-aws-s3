@@ -843,29 +843,43 @@ class AmazonS3FileBackend extends FileBackendStore {
 		}
 
 		// Not found in the cache. Download from S3.
-		$srcPath = $this->getFileHttpUrl( [ 'src' => $src ] );
-		if ( !$srcPath ) {
-			return null; // Not found: no such object in S3
+		[ $bucket, $key, ] = $this->getBucketAndObject( $src );
+		if ( $bucket === null ) {
+			return null;
 		}
 
 		$this->logger->debug(
-			'S3FileBackend: downloading presigned S3 URL {srcPath} to {dstPath}',
+			'S3FileBackend: getLocalCopyCached(): downloading S3 object {key} in S3 bucket {bucket}',
 			[
-				'srcPath' => $srcPath,
-				'dstPath' => $dstPath
+				'key' => $key,
+				'bucket' => $bucket
 			]
 		);
 
+		// Not using runWithExceptionHandling() for the same reasons as in doGetFileStat().
+		$client = $this->getClient();
+		$profiling = new AmazonS3ProfilingAssist( "downloading $bucket/$key from S3" );
+		try {
+			$ret = $client->getObject( [
+				'Bucket' => $bucket,
+				'Key' => $key
+			] );
+		} catch ( S3Exception ) {
+			// Not found: no such object in S3.
+			return null;
+		}
+
+		$inputStream = $ret->get( 'Body' )->detach();
+		if ( !$inputStream ) {
+			// Failed to download.
+			return null;
+		}
+
 		wfMkdirParents( dirname( $dstPath ) );
+		$outputStream = fopen( $dstPath, 'w' );
 
-		$this->s3trapWarnings();
-
-		$profiling = new AmazonS3ProfilingAssist( "downloading $srcPath from S3" );
-		// @phan-suppress-next-line PhanTypeMismatchArgumentNullableInternal - false positive
-		$ok = copy( $srcPath, $dstPath, $this->getStreamContext() );
+		$ok = stream_copy_to_stream( $inputStream, $outputStream );
 		$profiling->log();
-
-		$this->s3untrapWarnings();
 
 		// Delayed "remove from cache" if this file doesn't need to be cached (e.g. too small)
 		AmazonS3LocalCache::postDownloadLogic( $file );
