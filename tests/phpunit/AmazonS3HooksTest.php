@@ -40,7 +40,8 @@ class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 			'wgAWSBucketPrefix' => null,
 			'wgAWSRepoHashLevels' => 0,
 			'wgAWSRepoDeletedHashLevels' => 0,
-			'wgImgAuthPath' => false
+			'wgImgAuthPath' => false,
+			'wgGenerateThumbnailOnParse' => true
 		] );
 	}
 
@@ -161,6 +162,7 @@ class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 				'scriptDirUrl' => $expectedScriptDirUrl,
 				'hashLevels' => $expectedHashLevels,
 				'deletedHashLevels' => $expectedDeletedHashLevels,
+				'transformVia404' => !( $inputConfigs['wgGenerateThumbnailOnParse'] ?? true ),
 				'zones' => [
 					'public' => $opt['expectedPublicZone'],
 					'thumb' => $opt['expectedThumbZone'],
@@ -217,6 +219,14 @@ class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 				'config' => [
 					'wgAWSBucketName' => 'mysite-images',
 					'wgAWSRepoDeletedHashLevels' => 2
+				],
+				'expectedPublicZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com' ],
+				'expectedThumbZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com/thumb' ]
+			] ],
+			'Modern configuration with $wgAWSBucketName and $wgGenerateThumbnailOnParse=false' => [ [
+				'config' => [
+					'wgAWSBucketName' => 'mysite-images',
+					'wgGenerateThumbnailOnParse' => false
 				],
 				'expectedPublicZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com' ],
 				'expectedThumbZone' => [ 'url' => 'https://mysite-images.s3.amazonaws.com/thumb' ]
