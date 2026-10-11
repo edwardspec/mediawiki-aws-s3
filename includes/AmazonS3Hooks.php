@@ -70,7 +70,7 @@ class AmazonS3Hooks {
 	protected function replaceLocalRepo() {
 		global $wgFileBackends, $wgLocalFileRepo, $wgAWSRepoHashLevels,
 			$wgAWSRepoDeletedHashLevels, $wgImgAuthPath,
-			$wgAWSRepoZones;
+			$wgAWSRepoZones, $wgGenerateThumbnailOnParse;
 
 		$wgLocalFileRepo = [
 			'class'             => 'LocalRepo',
@@ -79,6 +79,9 @@ class AmazonS3Hooks {
 			'url'               => $wgImgAuthPath ?: wfScript( 'img_auth' ),
 			'hashLevels'        => $wgAWSRepoHashLevels,
 			'deletedHashLevels' => $wgAWSRepoDeletedHashLevels,
+			// Same as the default $wgLocalFileRepo in SetupDynamicConfig.php:
+			// without this, $wgGenerateThumbnailOnParse = false has no effect.
+			'transformVia404'   => !$wgGenerateThumbnailOnParse,
 			'zones'             => []
 		];
 
