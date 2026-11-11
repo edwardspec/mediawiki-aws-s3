@@ -19,6 +19,8 @@
  * Checks calculation of $wgLocalFileRepo from $wgAWSBucketPrefix/$wgAWSBucketDomain.
  */
 
+use MediaWiki\Shell\Shell;
+
 /**
  * @group FileRepo
  * @group FileBackend
@@ -52,25 +54,22 @@ class AmazonS3HooksTest extends MediaWikiIntegrationTestCase {
 	public function testConfigIsLoaded() {
 		global $IP;
 
-		$tmpFilename = tempnam( sys_get_temp_dir(), '.configtest' );
-		file_put_contents( $tmpFilename,
-			'echo ( isset( $wgFileBackends["s3"] ) && ' .
+		$scriptContents = 'echo ( isset( $wgFileBackends["s3"] ) && ' .
 			'isset( $wgFileBackends["s3"]["class"] ) && ' .
-			'$wgFileBackends["s3"]["class"] == "AmazonS3FileBackend" ) ? "LOADED" : "FAILED";' );
+			'$wgFileBackends["s3"]["class"] == "AmazonS3FileBackend" ) ? "LOADED" : "FAILED";';
 
 		// Spawn a new PHP process with eval.php.
 		// This way we can be sure that $wgFileBackends wasn't set by our previous tests,
 		// but was indeed initialized by installBackend().
-		$cmd = wfEscapeShellArg(
-			PHP_BINARY,
-			"$IP/maintenance/runScript.php",
-			"$IP/maintenance/eval.php"
-		) . ' <' . wfEscapeShellArg( $tmpFilename );
-
-		$retval = false;
-		$output = wfShellExecWithStderr( $cmd, $retval, [], [ 'memory' => -1 ] );
-
-		unlink( $tmpFilename ); // Cleanup
+		$output = Shell::command( [] )
+			->params( [
+				PHP_BINARY,
+				"$IP/maintenance/runScript.php",
+				"$IP/maintenance/eval.php"
+			] )
+			->input( $scriptContents )
+			->execute()
+			->getStdout();
 
 		$this->assertStringContainsString( 'LOADED', $output,
 			'testConfigIsLoaded(): $wgFileBackends["s3"] is not defined, ' .
