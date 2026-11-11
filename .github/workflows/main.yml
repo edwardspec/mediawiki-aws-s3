@@ -63,6 +63,8 @@ jobs:
         include:
            - php: 8.3
              branch: REL1_46
+           - php: 8.3
+             branch: REL1_47
     env:
       USE_MOCK: 1
       branch: ${{ matrix.branch }}
