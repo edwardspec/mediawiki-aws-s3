@@ -6,6 +6,7 @@ List of changes between releases of Extension:AWS.
 
 Minor features:
 * getLocalCopyCached() now directly uses S3 API GetObject instead of PHP function copy().
+* Added $wgFileBackends['s3']['useACL'] setting, which allows to use buckets with ACLs disabled.
 
 == AWS 0.14.0 ==
 

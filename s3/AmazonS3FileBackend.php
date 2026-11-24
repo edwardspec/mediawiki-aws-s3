@@ -98,6 +98,13 @@ class AmazonS3FileBackend extends FileBackendStore {
 	protected $privateWiki = null;
 
 	/**
+	 * @var bool If false, then putObject() and copyObject() don't send an ACL.
+	 * Needed for buckets with ACLs disabled (Object Ownership: "Bucket owner enforced"),
+	 * where access is controlled by the bucket policy alone.
+	 */
+	protected $useACL = true;
+
+	/**
 	 * Construct the backend. Doesn't take any extra config parameters.
 	 *
 	 * The configuration array may contain the following keys in addition
@@ -109,6 +116,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 *  * awsRegion - Region to use in place of $wgAWSRegion
 	 *  * awsHttps - Whether to use HTTPS for AWS connections (defaults to $wgAWSUseHTTPS)
 	 *  * awsEncryption - Whether to turn on server-side encryption on AWS (implies awsHttps=true)
+	 *  * useACL - Whether to send an ACL when creating S3 objects (default: true)
 	 *
 	 * @param array $config
 	 * @throws AmazonS3MisconfiguredException if no containerPaths is set
@@ -174,6 +182,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 			Default: if anonymous users aren't allowed to read articles, then we assume private mode.
 		*/
 		$this->privateWiki = $config['privateWiki'] ?? !AmazonS3CompatTools::isPublicWiki();
+		$this->useACL = (bool)( $config['useACL'] ?? true );
 
 		$this->logger->info(
 			'S3FileBackend: found backend with S3 buckets: {buckets}.{isPrivateWiki}',
@@ -340,7 +349,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		$ret = $this->runWithExceptionHandling( __FUNCTION__, function ()
 			use ( $params, $container, $bucket, $key, $contentType, $sha1Hash ) {
 			return $this->getClient()->putObject( array_filter( [
-				'ACL' => $this->isSecure( $container ) ? 'private' : 'public-read',
+				'ACL' => $this->getObjectACL( $container ),
 				'Body' => $params['content'],
 				'Bucket' => $bucket,
 				'CacheControl' => $params['headers']['cache-control'],
@@ -451,7 +460,7 @@ class AmazonS3FileBackend extends FileBackendStore {
 		{
 			$client = $this->getClient();
 			return $client->copyObject( array_filter( [
-				'ACL' => $this->isSecure( $dstContainer ) ? 'private' : 'public-read',
+				'ACL' => $this->getObjectACL( $dstContainer ),
 				'Bucket' => $dstBucket,
 				'CacheControl' => $params['headers']['cache-control'],
 				'ContentDisposition' => $params['headers']['content-disposition'],
@@ -1080,6 +1089,18 @@ class AmazonS3FileBackend extends FileBackendStore {
 			$isSecure ? 'private' : 'public-read',
 			604800 // 7 days. Changes in container security are exceptionally rare.
 		);
+	}
+
+	/**
+	 * Determine which ACL to send when creating S3 objects in $container.
+	 * @param string $container
+	 * @return string|null Null if no ACL should be sent.
+	 */
+	private function getObjectACL( $container ) {
+		if ( !$this->useACL ) {
+			return null;
+		}
+		return $this->isSecure( $container ) ? 'private' : 'public-read';
 	}
 
 	/**

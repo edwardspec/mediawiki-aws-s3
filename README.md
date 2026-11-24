@@ -174,3 +174,13 @@ Some software doesn't support modern checksums (expected by AWS SDK v3.337.0 and
 putenv( 'AWS_REQUEST_CHECKSUM_CALCULATION=WHEN_REQUIRED' );
 putenv( 'AWS_RESPONSE_CHECKSUM_VALIDATION=WHEN_REQUIRED' );
 ```
+
+## Using a bucket with ACLs disabled
+
+By default, new S3 objects are created with the "public-read" ACL, or "private" in a private wiki. If the bucket has ACLs disabled (Object Ownership is "Bucket owner enforced", the default for new Amazon S3 buckets), S3 rejects these requests with AccessControlListNotSupported. To create objects without an ACL, add the following line to LocalSettings.php:
+
+```php
+$wgFileBackends['s3']['useACL'] = false;
+```
+
+Access to the objects is then controlled by the bucket policy alone.
