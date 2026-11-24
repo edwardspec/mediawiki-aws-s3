@@ -501,6 +501,64 @@ class AmazonS3FileBackendTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
+	 * Check that "useACL" setting controls whether an ACL is sent when creating S3 objects.
+	 * @dataProvider useACLDataProvider
+	 * @covers AmazonS3FileBackend::doCreateInternal
+	 * @covers AmazonS3FileBackend::doCopyInternal
+	 */
+	public function testUseACL( $useACL ) {
+		$sentACL = [];
+		$client = $this->getBackend()->getClient();
+		$recordACL = static function ( Aws\CommandInterface $command ) use ( &$sentACL ) {
+			$operation = $command->getName();
+			if ( in_array( $operation, [ 'PutObject', 'CopyObject' ] ) ) {
+				$sentACL[$operation] = $command->hasParam( 'ACL' ) ? $command['ACL'] : null;
+			}
+		};
+		$client->getHandlerList()->appendInit( Aws\Middleware::tap( $recordACL ), 'testUseACL' );
+
+		$oldUseACL = $this->getBackend()->useACL;
+		$this->getBackend()->useACL = $useACL;
+		try {
+			$src = $this->getVirtualPath( 'UseACL/' . rand() . '.txt' );
+			$status = $this->getBackend()->doCreateInternal( [
+				'content' => 'Whatever',
+				'dst' => $src
+			] );
+			$this->assertTrue( $status->isGood(), 'doCreateInternal() failed' );
+
+			$status = $this->getBackend()->doCopyInternal( [
+				'src' => $src,
+				'dst' => $src . '_copy'
+			] );
+			$this->assertTrue( $status->isGood(), 'doCopyInternal() failed' );
+		} finally {
+			$this->getBackend()->useACL = $oldUseACL;
+			$client->getHandlerList()->remove( 'testUseACL' );
+		}
+
+		$this->assertSame( [ 'PutObject', 'CopyObject' ], array_keys( $sentACL ) );
+		foreach ( $sentACL as $operation => $acl ) {
+			if ( $useACL ) {
+				$this->assertContains( $acl, [ 'private', 'public-read' ],
+					"$operation didn't send an ACL" );
+			} else {
+				$this->assertNull( $acl, "$operation sent an ACL, even though useACL=false" );
+			}
+		}
+	}
+
+	/**
+	 * Provides datasets for testUseACL().
+	 */
+	public function useACLDataProvider() {
+		return [
+			'useACL=true (default)' => [ true ],
+			'useACL=false' => [ false ]
+		];
+	}
+
+	/**
 	 * Helper function for testSecureAndPublish() that invalidates "is secure?" cache for $container.
 	 * @param string $container
 	 */
