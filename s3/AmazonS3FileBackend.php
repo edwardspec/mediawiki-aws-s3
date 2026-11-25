@@ -27,6 +27,8 @@ if ( !class_exists( "\\Aws\\S3\\S3Client" ) ) {
 
 use Aws\S3\Exception\S3Exception;
 use Aws\S3\S3Client;
+use GuzzleHttp\Promise\PromiseInterface;
+use GuzzleHttp\Promise\Utils as PromiseUtils;
 use MediaWiki\MediaWikiServices;
 use Psr\Log\LogLevel;
 
@@ -78,6 +80,19 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * See https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingMetadata.html for details.
 	 */
 	protected const MAX_S3_OBJECT_NAME_LENGTH = 1024;
+
+	/**
+	 * @TELEPEDIA CHANGE
+	 * How long the results of HEAD requests are kept in statCache
+	 * S3 head requests are notoriously slow
+	 */
+	protected const STAT_CACHE_TTL = 604800;
+
+	/**
+	 * @TELEPEDIA CHANGE
+	 * How many HEAD requests doGetFileStatMulti() may have in flight at any given time
+	 */
+	protected const STAT_CONCURRENCY = 10;
 
 	/**
 	 * Cache used in isSecure(). Avoids extra requests to doesObjectExist().
@@ -616,78 +631,138 @@ class AmazonS3FileBackend extends FileBackendStore {
 	 * @phan-return array{mtime:string,size:int,etag:string,sha1:string}|false|null
 	 */
 	protected function doGetFileStat( array $params ) {
-		$src = $params['src'];
-		$cacheKey = $this->getStatCacheKey( $src );
+		$params = [ 'srcs' => [ $params['src'] ], 'concurrency' => 1 ] + $params;
+		unset( $params['src'] );
 
-		$result = $this->statCache->get( $cacheKey );
+		$stats = $this->doGetFileStatMulti( $params );
 
-		if ( $result === false ) {
-			// Not cached yet.
-			$result = $this->statUncached( $src );
-			if ( $result === false ) {
-				// File doesn't exist. This fact must be cached.
-				// Cached value must be different from "false" (which is used for "not cached yet" situation),
-				// so that we wouldn't be rechecking "does the file exist?" every time.
-				$result = 0;
-			}
-			$this->statCache->set( $cacheKey, $result, 604800 ); // 7 days, since we invalidate the cache
-		}
-
-		if ( $result === 0 ) {
-			// 0 is only used by the cache. MediaWiki expects false to be returned.
-			return false;
-		}
-
-		return $result;
+		return reset( $stats );
 	}
 
 	/**
-	 * Uncached version of doGetFileStat(). Shouldn't be used outside of doGetFileStat().
-	 * @param string $src
-	 * @return array|false|null
+	 * Obtain metadata of several S3 objects at once.
 	 *
-	 * @phan-return array{mtime:string,size:int,etag:string,sha1:string}|false|null
+	 * S3 has no batch equivalent of HEAD, but the requests don't depend on each other, so we send
+	 * them concurrently instead of one after another which is a huge waste of time
+	 *
+	 * @param array $params
+	 * @return array Map of storage path to a stat array
 	 */
-	protected function statUncached( $src ) {
-		[ $bucket, $key, ] = $this->getBucketAndObject( $src );
+	protected function doGetFileStatMulti( array $params ) {
+		$stats = [];
+		$cacheKeys = [];
+		$toFetch = [];
+
+		foreach ( $params['srcs'] as $src ) {
+			$cacheKeys[$src] = $this->getStatCacheKey( $src );
+		}
+
+		// do one trip to the cache instead of one per path
+		$cached = $cacheKeys ? $this->statCache->getMulti( array_values( $cacheKeys ) ) : [];
+
+		foreach ( $params['srcs'] as $src ) {
+			$result = $cached[$cacheKeys[$src]] ?? false;
+			if ( $result !== false ) {
+				// 0 is only used by the cache. MediaWiki expects false to be returned.
+				$stats[$src] = ( $result === 0 ) ? false : $result;
+				continue;
+			}
+
+			[ $bucket, $key, ] = $this->getBucketAndObject( $src );
+			if ( $bucket === null || $key == null ) {
+				// Unusable path. Not cached: there is nothing to invalidate it later.
+				$stats[$src] = null;
+				continue;
+			}
+
+			$toFetch[$src] = [ $bucket, $key ];
+		}
+
+		if ( $toFetch === [] ) {
+			return $stats;
+		}
 
 		$this->logger->debug(
-			'S3FileBackend: doGetFileStat(): obtaining information about {key} in S3 bucket {bucket}',
+			'S3FileBackend: doGetFileStatMulti(): obtaining information about {count} object(s): {keys}',
 			[
-				'key' => $key,
-				'bucket' => $bucket
+				'count' => count( $toFetch ),
+				'keys' => implode( ', ', array_keys( $toFetch ) )
 			]
 		);
 
-		if ( $bucket === null || $key == null ) {
-			return null;
-		}
+		$concurrency = max( (int)( $params['concurrency'] ?? 1 ), self::STAT_CONCURRENCY );
+
+		$profiling = new AmazonS3ProfilingAssist(
+			'HEAD of ' . count( $toFetch ) . " S3 object(s), up to $concurrency at a time" );
 
 		// Note: we don't use runWithExceptionHandling() here for two reasons:
 		// 1) we don't need NotFound errors logged (these are not errors, because doGetFileStat
 		// is meant to be used for "does this file exist" checks),
 		// 2) if the bucket doesn't exist, there is no point in repeating this operation
 		// after creating it, because the result will still be "file not found".
-		try {
-			$res = $this->getClient()->headObject( [
-				'Bucket' => $bucket,
-				'Key' => $key
-			] );
-		} catch ( S3Exception $e ) {
-			if ( $e->getAwsErrorCode() != 'NotFound' ) {
-				$this->logException( $e, __METHOD__ );
+		foreach ( array_chunk( $toFetch, $concurrency, true ) as $chunk ) {
+			$promises = [];
+			foreach ( $chunk as $src => [ $bucket, $key ] ) {
+				$promises[$src] = $this->getClient()->headObjectAsync( [
+					'Bucket' => $bucket,
+					'Key' => $key
+				] );
 			}
+
+			foreach ( PromiseUtils::settle( $promises )->wait() as $src => $outcome ) {
+				$stats[$src] = $this->statFromHeadOutcome( $cacheKeys[$src], $outcome );
+			}
+		}
+
+		$profiling->log();
+
+		return $stats;
+	}
+
+	/**
+	 * Turn the outcome of one headObjectAsync() request into a stat array, caching it in statCache.
+	 * @param string $cacheKey Key in statCache that corresponds to this object.
+	 * @param array $outcome element of the array returned by PromiseUtils::settle().
+	 * @return array|false Stat array, or false if there is no such.
+	 *
+	 */
+	private function statFromHeadOutcome( $cacheKey, array $outcome ) {
+		if ( $outcome['state'] !== PromiseInterface::FULFILLED ) {
+			$reason = $outcome['reason'];
+
+			if ( !( $reason instanceof S3Exception ) ) {
+				throw $reason instanceof Throwable ? $reason : new RuntimeException(
+					'S3 HEAD request failed: ' . get_debug_type( $reason ) );
+			}
+
+			if ( $reason->getAwsErrorCode() != 'NotFound' ) {
+				$this->logException( $reason, __METHOD__ );
+
+				// delib not cached as this may be a temporary error and we don't
+				// want to hide the existence of the file unless it actually doesn't exist
+				return false;
+			}
+
+			// File doesn't exist. This fact must be cached.
+			// Cached value must be different from "false" (which is used for "not cached yet" situation),
+			// so that we wouldn't be rechecking "does the file exist?" every time.
+			$this->statCache->set( $cacheKey, 0, self::STAT_CACHE_TTL );
 
 			return false;
 		}
 
-		return [
+		$res = $outcome['value'];
+		$stat = [
 			'mtime' => wfTimestamp( TS_MW, $res['LastModified'] ),
 			'size' => (int)$res['ContentLength'],
 			'etag' => $res['Etag'],
 			// @phan-suppress-next-line PhanTypeMismatchDimFetch - false positive
 			'sha1' => $res['Metadata']['sha1base36'] ?? ''
 		];
+
+		$this->statCache->set( $cacheKey, $stat, self::STAT_CACHE_TTL );
+
+		return $stat;
 	}
 
 	/**
