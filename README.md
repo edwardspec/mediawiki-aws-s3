@@ -183,4 +183,40 @@ By default, new S3 objects are created with the "public-read" ACL, or "private" 
 $wgFileBackends['s3']['useACL'] = false;
 ```
 
-Access to the objects is then controlled by the bucket policy alone.
+Access to the objects is then controlled by the bucket policy alone. Without ACLs, nothing marks deleted files as private, so the bucket policy must keep the private zones (`deleted` and `temp`) from being downloaded by anyone.
+
+For a public wiki, the following bucket policy allows anonymous downloads of images and thumbnails, but denies anonymous access to deleted and temporary files. Replace `BUCKET_NAME` with the name of your bucket:
+
+```json
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "AllowPublicRead",
+			"Effect": "Allow",
+			"Principal": "*",
+			"Action": "s3:GetObject",
+			"Resource": "arn:aws:s3:::BUCKET_NAME/*"
+		},
+		{
+			"Sid": "DenyAnonymousReadOfPrivateZones",
+			"Effect": "Deny",
+			"Principal": "*",
+			"Action": "s3:GetObject",
+			"Resource": [
+				"arn:aws:s3:::BUCKET_NAME/deleted/*",
+				"arn:aws:s3:::BUCKET_NAME/temp/*"
+			],
+			"Condition": {
+				"Null": {
+					"aws:PrincipalArn": "true"
+				}
+			}
+		}
+	]
+}
+```
+
+The `Null` condition limits the second statement to anonymous requests, so the wiki itself (which uses its IAM credentials) can still read deleted files when they are undeleted. "Block public access" must be turned off for the bucket for the first statement to take effect. If you use `$wgAWSBucketTopSubdirectory` or have changed the paths in `$wgAWSRepoZones`, adjust the paths accordingly.
+
+For a private wiki, don't add a public statement at all: keep "Block public access" turned on, and files will only be served through MediaWiki.
